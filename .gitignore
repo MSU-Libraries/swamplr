@@ -1,0 +1,4 @@
+.DS_Store
+*.pyc
+*.cfg
+!swamplr_example.cfg
