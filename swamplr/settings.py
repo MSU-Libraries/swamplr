@@ -58,6 +58,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'jobs'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -75,6 +76,9 @@ WSGI_APPLICATION = 'swamplr.wsgi.application'
 
 # Database
 DATABASES = {'default': dict(configs.items("database.default"))}
+# Activating STRICT_ALL_TABLES mode forces truncated strings inserted into
+# the database to produce errors instead of warnings.
+DATABASES['default']['OPTIONS'] = {'sql_mode': 'STRICT_ALL_TABLES'}
 
 # Internationalization
 TIME_ZONE = "America/Detroit"
