@@ -58,7 +58,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'jobs'
+    'swamplr_jobs',
+    'swamplr_services',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -106,6 +107,7 @@ TEMPLATES = [
          'django.template.context_processors.static',
          'django.template.context_processors.tz',
          'django.contrib.messages.context_processors.messages',
+         'swamplr_jobs.context_processors.load_swamplr',
          ],
          'debug': configs.get("debug", "DEBUG").lower() == 'true'},
      },

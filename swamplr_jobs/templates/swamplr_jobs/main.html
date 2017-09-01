@@ -1,0 +1,32 @@
+{% extends "swamplr_jobs/base.html" %}
+
+{% block main %}
+    <div id="header">
+        <h1><a href="/">Swamplr</a></h1>
+    </div>
+    {% include "swamplr_jobs/navbar.html" %}
+    <div id="messages">
+            {% if error_messages %}
+                <div style="margin-bottom:15px;margin-top:15px; width:50%;" class="alert alert-warning">
+                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                {% for e in error_messages %}
+                    <p>{{ e }}</p>
+                {% endfor %}
+                </div>
+            {% endif %}
+            {% if result_messages %}
+                <div style="margin-bottom:15px;margin-top:15px; width:50%;"class="alert alert-success">
+                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>    
+                {% for r in result_messages %}
+                    <p>{{ r }}</p>
+                {% endfor %}
+                </div>
+            {% endif %} 
+        </div> 
+
+
+{% block content %}
+
+{% endblock %}
+
+{% endblock %}
