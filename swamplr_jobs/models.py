@@ -5,7 +5,7 @@ from django.db import models
 class job_messages(models.Model):
     """Traceback and other messages related to job status."""
     message_id = models.AutoField(primary_key=True)
-    job_id = models.ForeignKey('jobs')
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
     created = models.DateTimeField()
     # The message will take a few forms. Important will be the "traceback" message for failed jobs.
     message = models.TextField(blank=True, null=True)
@@ -14,7 +14,7 @@ class job_messages(models.Model):
 class job_objects(models.Model):
     """Table to relate filename to PID."""
     object_id = models.AutoField(primary_key=True)
-    job_id = models.ForeignKey('jobs')
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
     created = models.DateTimeField()
     # Filepath
     obj_file = models.CharField(max_length=255, blank=True, null=True)
@@ -25,7 +25,7 @@ class job_objects(models.Model):
 class job_types(models.Model):
     """Type of each new job, e.g. derivative, ingest, etc."""
     type_id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=64)
+    label = models.CharField(max_length=64, unique=True)
 
 
 class jobs(models.Model):

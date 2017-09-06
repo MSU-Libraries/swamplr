@@ -62,21 +62,21 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='jobs',
             name='status_id',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='jobs.status'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='swamplr_jobs.status'),
         ),
         migrations.AddField(
             model_name='jobs',
             name='type_id',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='jobs.job_types'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='swamplr_jobs.job_types'),
         ),
         migrations.AddField(
             model_name='job_objects',
             name='job_id',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='jobs.jobs'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='swamplr_jobs.jobs'),
         ),
         migrations.AddField(
             model_name='job_messages',
             name='job_id',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='jobs.jobs'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='swamplr_jobs.jobs'),
         ),
     ]
