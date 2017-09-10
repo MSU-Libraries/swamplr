@@ -2,6 +2,8 @@ from django.conf.urls import include, url
 from swamplr_services import views
 
 urlpatterns = [
-    url(r'^solr/reload/', views.reload_solr, name="reload_solr"),
-    url(r'^djatoka/reset', views.reset_djatoka, name="reset_djatoka"),
+    url(r'^add', views.add_service, name="add-service"),
+    url(r'^manage', views.manage, name="manage-services"),
+    url(r'^run/([0-9]{1,3})', views.run_service, name="run-services"),
 ]
+
