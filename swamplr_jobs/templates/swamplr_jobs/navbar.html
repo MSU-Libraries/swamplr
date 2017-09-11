@@ -1,10 +1,9 @@
 <div class="navBar">
   <div id="menu" class="dropdown">
-    <div class="menu_item_button">
-      <a class="btn btn-default btn-lg" href={% url "jobs" %} title="View current jobs">Jobs</a>
-    </div>
+    <a href={% url "jobs" %}>
+    <button class="btn btn-lg btn-outline-dark"  title="View current jobs">Jobs</button></a>
     {% for app in nav_bar_options %}
-    <button class="btn btn-default btn-lg dropdown-toggle {{ app.name }}-button" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">{{ app.label }} <span class="caret"></span></button>
+    <button class="btn btn-outline-dark btn-lg dropdown-toggle {{ app.name }}-button" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">{{ app.label }} <span class="caret"></span></button>
         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
         {% for child in app.children %}
             <a class="dropdown-item" href="{% url "run-"|add:app.name child.id %}">{{ child.label }}</a>
