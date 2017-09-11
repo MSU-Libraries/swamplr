@@ -1,32 +1,78 @@
 from django.shortcuts import render
 from models import services, service_jobs
 from forms import ServicesForm
+from swamplr_jobs.models import job_types, jobs, status
+from datetime import datetime
 import logging
 
 # Create your views here.
 
-def reload_solr():
-    pass
-
-def reset_djatoka():
-    pass
-
-
-def manage(request):
+def manage(request, response={}):
     """Manage existing services and add new ones."""
-    form = ServicesForm()
-    response = {"form": form}   
-
+    response.update(load_manage_data())
     return render(request, 'swamplr_services/manage.html', response)
 
-def run_service(service):
+
+def load_manage_data():
+    """Load data for manage page."""
+    service_objects = services.objects.all()
+    all_services = []
+
+    for s in service_objects:
+
+        all_services.append(
+            {
+             "id": s.service_id,
+             "label": s.label,
+             "description": s.description,
+             "command": s.command,
+             "run_as_user": s.run_as_user,
+            }
+        )    
+
+    form = ServicesForm()
+    response = {
+        "form": form,
+        "services": all_services,
+    }   
+    return response
+
+
+def run_service(request, service_id):
     """Run service given by name.
-    Use name of service to retrieve it from a database.
+    Use id of service to retrieve it from a database.
 
     args:
-        service(str): name of service to run.
+        service_id(str): id of service to run.
     """
-    return HttpResponse("Hello")
+    
+    results_messages = ""
+    error_messages = ""
+    try:    
+
+        # Get service information from service id.
+        service = services.objects.get(service_id=service_id)
+       
+        # Get job type id for job type 'service'.
+        job_type = job_types.objects.get(label="service")
+        job_type_id = job_type.type_id
+        
+        # Query for id of job status.
+        job_status_id = status.objects.get(status="Job Queued").status_id     
+
+        new_job = jobs(type_id=job_type_id, created=datetime.now(), status_id=job_status_id)    
+        new_job.save()
+        
+        new_job_id = new_job.job_id
+
+        new_service_job = service_jobs(job_id=new_job_id, service_id=service_id)
+        new_service_job.save()
+        results_messages = ["Added job successfully."]
+
+    except Exception as e:
+        error_messages = [e]
+
+    return manage(request, response={"results_messages":results_messages, "error_messages":error_messages})
 
 def add_service(request):
 
@@ -46,7 +92,14 @@ def add_service(request):
     else:
         response["error_messages"] = ["Failed to add service."]
 
-    return render(request, 'swamplr_services/manage.html', response)
+    return manage(request, response=response)
+
+
+def delete_service(request, s_id):
+    """Delete service based on id."""
+    services.objects.filter(service_id=s_id).delete()
+    result_message = ["Successfully deleted service."]
+    return manage(request, response={"result_messages": result_message})    
 
 
 def get_nav_bar():

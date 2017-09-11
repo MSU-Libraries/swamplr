@@ -4,5 +4,39 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
+
+{% if services %}
+
+<table>
+    <tr>
+        <th>Label</th>
+        <th>Description</th>
+        <th>Command</th>
+        <th>User</th>
+        <th></th>
+    </tr>
+
+{% endif %}
+
+{% for s in services %}
+
+    <tr>
+        <td>{{ s.label }}</td>
+        <td>{{ s.description }}</td>
+        <td>{{ s.command }}</td>
+        <td>{{ s.run_as_user }}</td>
+        <td>
+            <a href="{% url 'run-services' s.id %}">
+                <button type="button" class="btn btn-outline-success">Run</button>
+            </a>
+            <a href="{% url 'delete-services' s.id %}">
+                <button type="button" class="btn btn-outline-danger">Delete</button>
+            </a>
+        </td>
+    </tr>
+
+{% endfor %}
+</table>
+
 {% crispy form %}
 {% endblock %}

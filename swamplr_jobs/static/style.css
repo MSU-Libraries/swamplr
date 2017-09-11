@@ -1,7 +1,35 @@
 body {
     margin:0;
-    margin-left:25px;
 }
+
+table {
+    width: 94%;
+    margin-left: 3%;
+    margin-right: 3%;
+    background-color:ivory;
+}
+
+form {
+    margin-left: 3%;
+}
+
+#navbar {
+    margin-left:3%;
+}
+
+#messages {
+    margin-left:3%;
+}
+
+#messages p {
+    margin-bottom:0;
+}
+
+#menu {
+    margin-bottom:25px;
+    margin-left: 3%;
+}
+
 
 #menu button {
     background-color:white;
@@ -12,6 +40,7 @@ body {
 #header {
     margin-top:25px;
     margin-bottom:25px;
+    margin-left: 3%;
 }
 
 #header a {
@@ -22,6 +51,6 @@ body {
 #header img {
     vertical-align:middle;
     height: 50px;
-    margin-left: 4px;
+    margin-left: .5%;
     margin-right: 15px;
 }
