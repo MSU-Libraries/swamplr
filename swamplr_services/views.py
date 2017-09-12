@@ -55,18 +55,16 @@ def run_service(request, service_id):
        
         # Get job type id for job type 'service'.
         job_type = job_types.objects.get(label="service")
-        job_type_id = job_type.type_id
         
         # Query for id of job status.
-        job_status_id = status.objects.get(status="Job Queued").status_id     
+        job_status = status.objects.get(default="y")
 
-        new_job = jobs(type_id=job_type_id, created=datetime.now(), status_id=job_status_id)    
+        new_job = jobs.objects.create(type_id=job_type, created=datetime.now(), status_id=job_status)    
         new_job.save()
         
-        new_job_id = new_job.job_id
-
-        new_service_job = service_jobs(job_id=new_job_id, service_id=service_id)
+        new_service_job = service_jobs.objects.create(job_id=new_job.id, service_id=service)
         new_service_job.save()
+
         results_messages = ["Added job successfully."]
 
     except Exception as e:

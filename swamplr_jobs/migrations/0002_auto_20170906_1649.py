@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='job_types',
             name='label',
-            field=models.CharField(max_length=64, unique=True),
-        ),
+            field=models.CharField(max_length=64, unique=True)),
+        migrations.RunSQL("""INSERT INTO swamplr_jobs_status (status, failure, running, success) VALUES('Job Queued','','',''), ('Cancelled By User','manual','',''), ('Failed due to timeout','timeout','',''), ('Script error','error','',''), ('Running','','y',''), ('Success','','','y');"""),
     ]

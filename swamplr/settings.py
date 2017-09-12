@@ -39,7 +39,6 @@ SECRET_KEY = configs.get("secretkey", "SECRET_KEY")
 # If value is 'true' set python boolean object to True, else False.
 DEBUG = configs.get("debug", "DEBUG").lower() == 'true'
 
-
 if DEBUG:
     # will output to console
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%a, %d %b %Y %H:%M:%S', filemode='w')
@@ -78,6 +77,10 @@ WSGI_APPLICATION = 'swamplr.wsgi.application'
 
 # Database
 DATABASES = {'default': dict(configs.items("database.default"))}
+# Check for ATOMIC_REQUESTS setting. If not set, defaults to True.
+ATOMIC_REQUESTS = DATABASES['default'].get('ATOMIC_REQUESTS', "True").lower() == "true"
+DATABASES['default']['ATOMIC_REQUESTS'] = ATOMIC_REQUESTS
+
 # Activating STRICT_ALL_TABLES mode forces truncated strings inserted into
 # the database to produce errors instead of warnings.
 DATABASES['default']['OPTIONS'] = {'sql_mode': 'STRICT_ALL_TABLES'}
