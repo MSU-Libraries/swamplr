@@ -1,7 +1,8 @@
 from django.shortcuts import render
-from models import services, service_jobs
+from apps import ServicesConfig
+from models import services, service_jobs, service_status
 from forms import ServicesForm
-from swamplr_jobs.models import job_types, jobs, status
+from swamplr_jobs.views import add_job
 from datetime import datetime
 import logging
 
@@ -12,6 +13,13 @@ def manage(request, response={}):
     response.update(load_manage_data())
     return render(request, 'swamplr_services/manage.html', response)
 
+def run_process(current_job):
+    """Run process from swamplr_jobs.views."""
+    
+    status_id = service_status.objects.get(status="Success").service_status_id_id
+    messages = ["SUCCESS - SOmETHING HAS WORKED"]
+
+    return (status_id, messages)
 
 def load_manage_data():
     """Load data for manage page."""
@@ -48,27 +56,17 @@ def run_service(request, service_id):
     
     results_messages = ""
     error_messages = ""
-    try:    
 
-        # Get service information from service id.
-        service = services.objects.get(service_id=service_id)
-       
-        # Get job type id for job type 'service'.
-        job_type = job_types.objects.get(label="service")
-        
-        # Query for id of job status.
-        job_status = status.objects.get(default="y")
+    # Get service information from service id.
+    service = services.objects.get(service_id=service_id)
 
-        new_job = jobs.objects.create(type_id=job_type, created=datetime.now(), status_id=job_status)    
-        new_job.save()
-        
-        new_service_job = service_jobs.objects.create(job_id=new_job.id, service_id=service)
-        new_service_job.save()
+    # Pass in app name from apps.py.
+    new_job = add_job(ServicesConfig.name)
 
-        results_messages = ["Added job successfully."]
+    new_service_job = service_jobs.objects.create(job_id=new_job, service_id=service)
+    new_service_job.save()
 
-    except Exception as e:
-        error_messages = [e]
+    results_messages = ["Added job successfully."]
 
     return manage(request, response={"results_messages":results_messages, "error_messages":error_messages})
 

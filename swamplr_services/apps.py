@@ -4,4 +4,4 @@ from django.apps import AppConfig
 
 
 class ServicesConfig(AppConfig):
-    name = 'services'
+    name = 'swamplr_services'
