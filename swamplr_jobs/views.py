@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render
 from django.conf import settings
 from django.http import HttpResponse
@@ -16,6 +17,37 @@ def main(request):
     """Landing page."""
     main = {}
     return render(request, 'swamplr_jobs/main.html', main)
+
+def job_status(request, count=2):
+    """Load job status page."""
+    all_jobs = jobs.objects.all()
+    paginator = Paginator(all_jobs, count)
+    
+    page = request.GET.get('page')
+    
+    try:
+        job_list = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        job_list = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        job_list = paginator.page(paginator.num_pages) 
+
+    for j in job_list.object_list:
+        j.info = "test"
+        j.status = status.objects.get(status_id=j.status_id_id)
+        j.job_type = job_types.objects.get(type_id=j.type_id_id)
+        
+        app = import_apps[j.job_type.app_name]
+        status_info = "No further info available."
+        if hasattr(app.views, "get_status_info") and callable(getattr(app.views, "get_status_info")):
+            status_info = app.views.get_status_info(j)
+        j.status_info = status_info
+        #TODO add actions: j.actions from app.views.get_actions 
+
+    return render(request, 'swamplr_jobs/job_status.html', {"jobs": job_list})
+
 
 def build_nav_bar():
     """Check installed apps for nav bar items."""

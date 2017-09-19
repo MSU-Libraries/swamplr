@@ -19,7 +19,7 @@ from swamplr_jobs import views
 from django.conf import settings
 
 urlpatterns = [
-    url(r'^jobs/$', views.jobs, name='jobs'),
+    url(r'^jobs/$', views.job_status, name='jobs'),
     url(r'^$', views.main, name='main'),
     url(r'^admin/', admin.site.urls),
 ]

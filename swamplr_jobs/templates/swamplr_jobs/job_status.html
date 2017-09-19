@@ -1,0 +1,25 @@
+{{ jobs.object_list }}
+
+
+{% for j in jobs %}
+    {# Each "contact" is a Contact model object. #}
+    {{ j }}<br />
+    {{ j.info }}<br/>
+    ...
+{% endfor %}
+
+<div class="pagination">
+    <span class="step-links">
+        {% if jobs.has_previous %}
+            <a href="?page={{ jobs.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ jobs.number }} of {{ jobs.paginator.num_pages }}.
+        </span>
+
+        {% if jobs.has_next %}
+            <a href="?page={{ jobs.next_page_number }}">next</a>
+        {% endif %}
+    </span>
+</div>
