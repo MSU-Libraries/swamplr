@@ -18,8 +18,10 @@ def main(request):
     main = {}
     return render(request, 'swamplr_jobs/main.html', main)
 
-def job_status(request, count=2):
+def job_status(request, count=25):
     """Load job status page."""
+    load_installed_apps()
+
     all_jobs = jobs.objects.all()
     paginator = Paginator(all_jobs, count)
     
@@ -35,15 +37,21 @@ def job_status(request, count=2):
         job_list = paginator.page(paginator.num_pages) 
 
     for j in job_list.object_list:
-        j.info = "test"
-        j.status = status.objects.get(status_id=j.status_id_id)
-        j.job_type = job_types.objects.get(type_id=j.type_id_id)
         
-        app = import_apps[j.job_type.app_name]
+        j.status = status.objects.get(status_id=j.status_id_id)
+        job_type_object = job_types.objects.get(type_id=j.type_id_id)
+
+        job_type = job_type_object.label
+        app_name = job_type_object.app_name
+
+        j.job_type = job_type
+        d = import_apps
+        app = import_apps[app_name]
         status_info = "No further info available."
         if hasattr(app.views, "get_status_info") and callable(getattr(app.views, "get_status_info")):
             status_info = app.views.get_status_info(j)
         j.status_info = status_info
+        
         #TODO add actions: j.actions from app.views.get_actions 
 
     return render(request, 'swamplr_jobs/job_status.html', {"jobs": job_list})

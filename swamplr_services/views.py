@@ -68,7 +68,7 @@ def run_service(request, service_id):
 
     results_messages = ["Added job successfully."]
 
-    return manage(request, response={"results_messages":results_messages, "error_messages":error_messages})
+    return manage(request, response={"results_messages": results_messages, "error_messages": error_messages})
 
 def add_service(request):
 
@@ -90,6 +90,30 @@ def add_service(request):
 
     return manage(request, response=response)
 
+def get_status_info(job):
+    """Required function: return info about current job for display."""
+    job_id = job.job_id
+    service = service_jobs.objects.get(job_id=job.job_id)
+    service_info = services.objects.get(service_id=service.service_id_id)
+    
+    info = ["Service: {0}".format(service_info.label)]
+
+    return info
+
+def get_actions(job):
+    """Required function: return actions to populate in job table."""
+    buttons = []
+    stop_job = {
+         "label": "Cancel Job",
+         "action": "stop_job",
+         "class": "btn-danger",
+         "args": []
+        }
+    job_status = status.objects.get(status_id=job)
+    if job_status.default == "y" or job_status.running == "y": 
+        buttons.append(stop_job)
+
+    return buttons
 
 def delete_service(request, s_id):
     """Delete service based on id."""
