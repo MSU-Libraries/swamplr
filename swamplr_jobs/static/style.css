@@ -54,3 +54,45 @@ form {
     margin-left: .5%;
     margin-right: 15px;
 }
+
+.job-row {
+    width: 97%;
+    height: 50px;
+    text-align: left!important;
+    line-height: 20px;
+    margin: auto;
+    margin-top: 7px;
+    margin-bottom: 7px;
+    border: 1px solid #ffffff;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.panel-primary .panel-heading {
+    color: #18453b !important;
+    background-color: #e3e3e3 !important;
+    border-color: #e3e3e3 !important;
+    text-align: center;
+    font-size: 20px;
+    }
+
+.job-column {
+    float: left;
+    display: inline-block;
+    min-width: 5%;
+    width: auto;
+    height: 50px;
+    text-align: center;
+    line-height: 40px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 1.1%;     
+}
+
+
+.job-heading {
+    font-size: 18px;
+    font-weight: 600;
+    color: #787A84;
+    }

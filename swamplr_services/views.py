@@ -45,7 +45,6 @@ def load_manage_data():
     }   
     return response
 
-
 def run_service(request, service_id):
     """Run service given by name.
     Use id of service to retrieve it from a database.
@@ -102,25 +101,14 @@ def get_status_info(job):
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
-    buttons = []
-    stop_job = {
-         "label": "Cancel Job",
-         "action": "stop_job",
-         "class": "btn-danger",
-         "args": []
-        }
-    job_status = status.objects.get(status_id=job)
-    if job_status.default == "y" or job_status.running == "y": 
-        buttons.append(stop_job)
-
-    return buttons
+    actions = []
+    return actions
 
 def delete_service(request, s_id):
     """Delete service based on id."""
     services.objects.filter(service_id=s_id).delete()
     result_message = ["Successfully deleted service."]
     return manage(request, response={"result_messages": result_message})    
-
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""

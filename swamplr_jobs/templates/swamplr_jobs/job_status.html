@@ -1,13 +1,31 @@
-{{ jobs.object_list }}
+{% extends "swamplr_jobs/main.html" %}
+{% load humanize %}
 
+{% block content %}
 
-{% for j in jobs %}
-    {# Each "contact" is a Contact model object. #}
-    {{ j }}<br />
-    {{ j.info }}<br/>
-    ...
-{% endfor %}
+<div class="panel panel-primary">
+    <div class="panel-heading">Job Status</div>
+    <div class="table table-responsive table-condensed">
+        <div class="job-row">
+        {% for h in headings %}
+            <div class="job-column ingestHeading {{ h|lower|slugify }}-column">{{ h }}</div>
+        {% endfor %}
+        </div>
 
+        {% for j in jobs %}
+        <div class="job-row">
+            <div class="job-column {{ headings.0|lower }}-column"><a class="btn-xs" href="{% url 'view_job' j.job_id %}">{{ j.job_id }}</a></div>
+            <div class="job-column {{ headings.0|lower }}-column">{{ j.job_type }}</div>
+            <div class="job-column {{ headings.0|lower }}-column">{{ j.status_info }}</div>
+            <div class="job-column {{ headings.0|lower }}-column">{{ j.created|naturaltime }}</div>
+            <div class="job-column {{ headings.0|lower }}-column">{{ j.completed|naturaltime }}</div>
+            <div class="job-column {{ headings.0|lower }}-column">{{ j.status.status }}</div>
+            <div class="job-column {{ headings.0|lower }}-column">{{ j.actions }}</div>
+         </div>
+         {% endfor %}
+    </div>
+</div>
+ 
 <div class="pagination">
     <span class="step-links">
         {% if jobs.has_previous %}
@@ -23,3 +41,5 @@
         {% endif %}
     </span>
 </div>
+
+{% endblock %}

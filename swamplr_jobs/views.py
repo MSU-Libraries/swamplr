@@ -20,7 +20,11 @@ def main(request):
 
 def job_status(request, count=25):
     """Load job status page."""
+    response = {}
+
     load_installed_apps()
+
+    response["headings"] = ["Job ID", "Job Type", "Details", "Created", "Completed", "Status", "Actions"]
 
     all_jobs = jobs.objects.all()
     paginator = Paginator(all_jobs, count)
@@ -50,12 +54,64 @@ def job_status(request, count=25):
         status_info = "No further info available."
         if hasattr(app.views, "get_status_info") and callable(getattr(app.views, "get_status_info")):
             status_info = app.views.get_status_info(j)
-        j.status_info = status_info
+        j.status_info = "<br/>".join(status_info)
+
+        actions = set_default_actions(j)
         
-        #TODO add actions: j.actions from app.views.get_actions 
+        if hasattr(app.views, "get_actions") and callable(getattr(app.views, "get_actions")):
+            buttons = app.views.get_actions(j)
 
-    return render(request, 'swamplr_jobs/job_status.html', {"jobs": job_list})
+        actions += [button(x) for x in actions]
 
+        j.actions = "".join(actions)
+
+    response["jobs"] = job_list        
+
+    return render(request, 'swamplr_jobs/job_status.html', response)
+
+def view_job(request, job_id):
+    """View full details for job."""
+    return HttpResponse('hello')
+
+def set_default_actions(job):
+    """Set default actions for jobs."""
+    actions = []
+    stop_job = {
+         "label": "Stop Job",
+         "action": "stop_job",
+         "class": "btn-danger",
+         "args": [job.job_id]
+        }
+    cancel_job = {
+        "label": "Cancel Job",
+        "action": "cancel_job",
+        "action": "btn-warning",
+        "args": [job.job_id]
+    }
+    rerun_job = {
+        "label": "Run same job",
+        "action": "add_job",
+        "class": "btn-info",
+        "args": [],
+        }
+
+    if job.status.default == "y":
+        actions.append(cancel_job)
+
+    elif job.status.running == "y": 
+        actions.append(stop_job)
+
+    #TODO: Add default re-run job button.
+ 
+    return actions
+
+def button(button_data):
+    """Turn standardly defined dict into django template ready button."""
+    template = """<a class="btn {0}" href="{{{% url {1} {2} %}}}>{3}</a>"""
+    args = " ".join(button_data["args"])
+    b = button_data
+    button = template.format(b["class"], b["action"], args, b["label"])
+    return button
 
 def build_nav_bar():
     """Check installed apps for nav bar items."""
