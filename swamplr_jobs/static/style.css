@@ -96,3 +96,32 @@ form {
     font-weight: 600;
     color: #787A84;
     }
+
+.job-id-column {
+    width:5%;
+}
+
+.job-type-column {
+    width:10%;
+}
+
+.details-column {
+    width:15%;
+}
+
+.created-column {
+    width:15%;
+}
+
+.completed-column {
+    width:15%;
+}
+
+.status-column {
+    width:15%;
+}
+
+.actions-column {
+    width:15%;
+}
+

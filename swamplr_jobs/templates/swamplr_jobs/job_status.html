@@ -14,13 +14,13 @@
 
         {% for j in jobs %}
         <div class="job-row">
-            <div class="job-column {{ headings.0|lower }}-column"><a class="btn-xs" href="{% url 'view_job' j.job_id %}">{{ j.job_id }}</a></div>
-            <div class="job-column {{ headings.0|lower }}-column">{{ j.job_type }}</div>
-            <div class="job-column {{ headings.0|lower }}-column">{{ j.status_info }}</div>
-            <div class="job-column {{ headings.0|lower }}-column">{{ j.created|naturaltime }}</div>
-            <div class="job-column {{ headings.0|lower }}-column">{{ j.completed|naturaltime }}</div>
-            <div class="job-column {{ headings.0|lower }}-column">{{ j.status.status }}</div>
-            <div class="job-column {{ headings.0|lower }}-column">{{ j.actions }}</div>
+            <div class="job-column {{ headings.0|lower|slugify }}-column"><a class="btn-xs" href="{% url 'view_job' j.job_id %}">{{ j.job_id }}</a></div>
+            <div class="job-column {{ headings.1|lower|slugify }}-column">{{ j.job_type }}</div>
+            <div class="job-column {{ headings.2|lower|slugify }}-column">{{ j.status_info }}</div>
+            <div class="job-column {{ headings.3|lower|slugify }}-column">{{ j.created|naturaltime }}</div>
+            <div class="job-column {{ headings.4|lower|slugify }}-column">{{ j.completed|naturaltime }}</div>
+            <div class="job-column {{ headings.5|lower|slugify }}-column">{{ j.status.status }}</div>
+            <div class="job-column {{ headings.6|lower|slugify }}-column">{{ j.actions }}</div>
          </div>
          {% endfor %}
     </div>
