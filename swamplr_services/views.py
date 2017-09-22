@@ -95,7 +95,7 @@ def get_status_info(job):
     service = service_jobs.objects.get(job_id=job.job_id)
     service_info = services.objects.get(service_id=service.service_id_id)
     
-    info = ["Service: {0}".format(service_info.label)]
+    info = ["Service name: {0}".format(service_info.label)]
 
     return info
 

@@ -1,0 +1,16 @@
+{% extends "swamplr_jobs/main.html" %}
+{% load humanize %}
+
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading">Status of {{ job.job_type }} {{ job.job_id }}<br/> <kbd>As of {% now 'm/d/Y f a' %}</kbd><br/>
+    <p>{{ job.messages.1 }}: <code>{{ job.messages.0 }}</code></p>
+
+
+    </div>
+    <div class="table table-responsive table-condensed">
+    </div>
+</div>
+
+{% endblock %}

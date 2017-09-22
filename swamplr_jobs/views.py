@@ -8,7 +8,6 @@ import logging
 import os
 import importlib
 
-
 APPS = [app for app in settings.INSTALLED_APPS if app.startswith("swamplr_")]
 
 import_apps = {}
@@ -26,7 +25,7 @@ def job_status(request, count=25):
 
     response["headings"] = ["Job ID", "Job Type", "Details", "Created", "Completed", "Status", "Actions"]
 
-    all_jobs = jobs.objects.all()
+    all_jobs = jobs.objects.all().order_by('-created')
     paginator = Paginator(all_jobs, count)
     
     page = request.GET.get('page')
@@ -71,7 +70,17 @@ def job_status(request, count=25):
 
 def view_job(request, job_id):
     """View full details for job."""
-    return HttpResponse('hello')
+    job = jobs.objects.get(job_id=job_id)
+    job_type_object = job_types.objects.get(type_id=job.type_id_id)
+    job.job_type = job_type_object.label
+    job.app_name = job_type_object.app_name
+    
+    message_object = job_messages.objects.get(job_id=job)
+    messages = message_object.message
+    message_time = message_object.created
+    job.messages = (messages, message_time)
+
+    return render(request, 'swamplr_jobs/job.html', {"job": job})
 
 def set_default_actions(job):
     """Set default actions for jobs."""
