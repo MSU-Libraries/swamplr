@@ -156,6 +156,10 @@ a.btn.btn-lg.btn-outline-dark {
     width: 13%;
 }
 
+.message-data {
+    width: 45%;
+}
+
 .job-heading {
     font-size: 18px;
     font-weight: 600;
@@ -214,4 +218,21 @@ a.btn.btn-lg.btn-outline-dark {
 
 .app-button {
     margin-top:1px;
+}
+
+#job-card-container {
+    margin-right:auto;
+    margin-left:auto;
+    padding:20px;
+    width: 50%;
+    background-color:white;
+}
+
+.job-card {
+    display:flex;
+    justify-content:space-between;
+}
+
+#job-card > div {
+    flex: 0 1 auto;
 }

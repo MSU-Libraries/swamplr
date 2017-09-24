@@ -4,13 +4,59 @@
 {% block content %}
 
 <div class="panel panel-primary">
-    <div class="panel-heading">Status of {{ job.job_type }} {{ job.job_id }}<br/> <kbd>As of {% now 'm/d/Y f a' %}</kbd><br/>
-    <p>{{ job.messages.1 }}: <code>{{ job.messages.0 }}</code></p>
-
+    <div class="panel-heading">
+        <div>Job Status</div>
+        <div id="kbd"><kbd>As of {% now 'm/d/Y f a' %}</kbd></div>
 
     </div>
+
+    <div id="job-card-container">
+    <div class="panel-heading">Details</div>
+    {% for e in job.card %}
+        <div class="job-card">
+            <div class="card-field">{{ e.0 }}</div>
+            <div class="card-data">{{ e.1 }}</div>
+        </div>
+    {% endfor %}
+    <div class="job-card">
+        <div class="card-field">Actions</div>
+            <div class="card-data">
+            {% for a in j.actions %}
+                <a href="{% url a.action a.args %}"><button class="btn {{ a.class }}">{{ a.label }}</button></a>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% if job.messages %}
+    <div class="panel-heading">Messages</div> 
     <div class="table table-responsive table-condensed">
+        <div class="job-row">
+            <div class="job-column message-data">Time</div>
+            <div class="job-column message-data">Message</div>
+        </div>
+        {% for m in job.messages %}
+        <div class="job-row">
+            <div class="job-column message-data">{{ m.0 }}</div>
+            <div class="job-column message-data"><code>{{ m.1 }}</code></div>
+        </div>
+        {% endfor %}
     </div>
+    {% endif %}
+    {% if job.objects %}
+    <div class="panel-heading">Objects</div> 
+    <div class="table table-responsive table-condensed">
+        <div class="job-row">
+            <div class="job-column job-data">Path</div>
+            <div class="job-column job-data">PID</div>
+        </div>
+        {% for o in job.objects %}
+        <div class="job-row">
+            <div class="job-column job-data">{{ o.0 }}</div>
+            <div class="job-column job-data"><code>{{ o.1 }}</code></div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
 
 {% endblock %}

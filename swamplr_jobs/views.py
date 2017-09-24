@@ -38,48 +38,85 @@ def job_status(request, count=25, response={}):
         # If page is out of range (e.g. 9999), deliver last page of results.
         job_list = paginator.page(paginator.num_pages) 
 
+    job_data = []
     for j in job_list.object_list:
         
-        j.status = status.objects.get(status_id=j.status_id_id)
-        job_type_object = job_types.objects.get(type_id=j.type_id_id)
+        j = set_job_info(j)
+        #job_data.append(j_updated)
 
-        job_type = job_type_object.label
-        app_name = job_type_object.app_name
-
-        j.job_type = job_type
-        d = import_apps
-        app = import_apps[app_name]
-        status_info = "No further info available."
-        if hasattr(app.views, "get_status_info") and callable(getattr(app.views, "get_status_info")):
-            status_info = app.views.get_status_info(j)
-        j.status_info = "<br/>".join(status_info)
-
-        actions = set_default_actions(j)
-        
-        if hasattr(app.views, "get_actions") and callable(getattr(app.views, "get_actions")):
-            buttons = app.views.get_actions(j)
-            app_actions = [button(x) for x in buttons]
-
-        actions += app_actions
-        j.actions = actions
-
-    response["jobs"] = job_list        
+    response["jobs"] = job_list
 
     return render(request, 'swamplr_jobs/job_status.html', response)
 
 def view_job(request, job_id):
     """View full details for job."""
+    load_installed_apps()
+    
     job = jobs.objects.get(job_id=job_id)
     job_type_object = job_types.objects.get(type_id=job.type_id_id)
-    job.job_type = job_type_object.label
-    job.app_name = job_type_object.app_name
     
-    message_object = job_messages.objects.get(job_id=job)
-    messages = message_object.message
-    message_time = message_object.created
-    job.messages = (messages, message_time)
+    job = set_job_info(job)
+    if job.completed:
+        elapsed = job.completed - job.created
+    else:
+        elapsed = timezone.now() - job.created
+    job.card = [
+        ("Job ID", job_id),
+        ("Job Type", job_type_object.label),
+        ("App", job_type_object.app_name),
+        ("Status", job.status.status),
+        ("Created", job.created),
+        ("Started", job.started),
+        ("Completed", job.completed),
+        ("Elapsed", elapsed),
+        ("Status Info", job.status_info),
+    ]
+
+    
+ 
+    job.messages = []
+    message_object = job_messages.objects.filter(job_id=job)
+    for m in message_object:
+        mcontent = m.message
+        mtime = m.created
+        job.messages.append((mtime, mcontent))
+
+    job.objects = []
+    #TODO - get objects.
 
     return render(request, 'swamplr_jobs/job.html', {"job": job})
+
+def set_job_info(j):
+    """Get job data for display."""
+
+    j.status = status.objects.get(status_id=j.status_id_id)
+    job_type_object = job_types.objects.get(type_id=j.type_id_id)
+
+    job_type = job_type_object.label
+    app_name = job_type_object.app_name
+
+    j.job_type = job_type
+    d = import_apps
+    app = import_apps[app_name]
+    
+    status_info = "No further info available."
+    if hasattr(app.views, "get_status_info") and callable(getattr(app.views, "get_status_info")):
+        status_info = app.views.get_status_info(j)
+        j.status_info = "<br/>".join(status_info)
+
+    actions = set_default_actions(j)
+    if hasattr(app.views, "get_actions") and callable(getattr(app.views, "get_actions")):
+        buttons = app.views.get_actions(j)
+    actions += app_actions
+    j.actions = actions
+    
+    job_type_details = [("None", "No info available")]
+    if hasattr(app.views, "get_job_details") and callable(getattr(app.views, "get_job_details")):
+        job_type_details = app.views.get_job_details(j)
+
+    j.details = job_type_details
+
+    return j
 
 def set_default_actions(job):
     """Set default actions for jobs."""
@@ -88,19 +125,19 @@ def set_default_actions(job):
          "label": "Stop Job",
          "action": "stop_job",
          "class": "btn-danger",
-         "args": [job.job_id]
+         "args": str(job.job_id)
         }
     cancel_job = {
         "label": "Cancel Job",
         "action": "cancel_job",
         "class": "btn-warning",
-        "args": [job.job_id]
+        "args": str(job.job_id)
     }
     rerun_job = {
         "label": "Run same job",
         "action": "add_job",
         "class": "btn-info",
-        "args": [],
+        "args": str(job.job_id),
         }
 
     archive_job = {

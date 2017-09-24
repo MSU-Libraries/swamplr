@@ -20,7 +20,7 @@
             <div class="job-column {{ headings.3|lower|slugify }}-column">{{ j.created|naturaltime }}</div>
             <div class="job-column {{ headings.4|lower|slugify }}-column">{{ j.completed|naturaltime }}</div>
             <div class="job-column {{ headings.5|lower|slugify }}-column">{{ j.status.status }}</div>
-            <div class="job-column {{ headings.6|lower|slugify }}-column">
+            <div class="job-column {{ headings.6|lower|slugify }}-column app-button">
             {% for a in j.actions %}
                 <a href="{% url a.action a.args %}"><button class="btn {{ a.class }}">{{ a.label }}</button></a>
             {% endfor %}
