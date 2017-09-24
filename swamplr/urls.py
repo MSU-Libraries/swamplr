@@ -22,6 +22,8 @@ urlpatterns = [
     url(r'^jobs/$', views.job_status, name='jobs'),
     url(r'^$', views.main, name='main'),
     url(r'^admin/', admin.site.urls),
+    url(r'^remove/(?P<job_id>[0-9]+)/', views.remove_job, name='remove_job'),
+    url(r'^cancel/(?P<job_id>[0-9]+)/', views.cancel_job, name='cancel_job'),
     url(r'^job/(?P<job_id>[0-9]+)/', views.view_job, name='view_job'),
 ]
 

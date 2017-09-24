@@ -1,9 +1,9 @@
-<div class="navBar">
-  <div id="menu" class="dropdown">
-    <a href={% url "jobs" %}>
-    <button class="btn btn-lg btn-outline-dark"  title="View current jobs">Jobs</button></a>
+<div id="navbar">
+  <div id="menu">
+    <div><a href={% url "jobs" %} class="btn btn-lg btn-outline-dark" role="button" title="View current jobs">Jobs</a></div>
     {% for app in nav_bar_options %}
-    <button class="btn btn-outline-dark btn-lg dropdown-toggle {{ app.name }}-button" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">{{ app.label }} <span class="caret"></span></button>
+    <div class="dropdown">
+        <button class="btn btn-outline-dark btn-lg dropdown-toggle {{ app.name }}-button" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">{{ app.label }} <span class="caret"></span></button>
         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
         {% for child in app.children %}
             <a class="dropdown-item" href="{% url "run-"|add:app.name child.id %}">{{ child.label }}</a>
@@ -11,6 +11,7 @@
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="{% url 'manage-'|add:app.name %}">{{ "Manage "|add:app.label }}</a>
         </div>
+    </div>
     {% endfor %}
   </div>
 </div>

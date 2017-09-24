@@ -17,21 +17,20 @@ def main(request):
     main = {}
     return render(request, 'swamplr_jobs/main.html', main)
 
-def job_status(request, count=25):
+def job_status(request, count=25, response={}):
     """Load job status page."""
-    response = {}
-
     load_installed_apps()
 
     response["headings"] = ["Job ID", "Job Type", "Details", "Created", "Completed", "Status", "Actions"]
 
-    all_jobs = jobs.objects.all().order_by('-created')
+    all_jobs = jobs.objects.all().exclude(archived="y").order_by('-created')
     paginator = Paginator(all_jobs, count)
     
     page = request.GET.get('page')
     
     try:
         job_list = paginator.page(page)
+
     except PageNotAnInteger:
         # If page is not an integer, deliver first page.
         job_list = paginator.page(1)
@@ -59,10 +58,10 @@ def job_status(request, count=25):
         
         if hasattr(app.views, "get_actions") and callable(getattr(app.views, "get_actions")):
             buttons = app.views.get_actions(j)
+            app_actions = [button(x) for x in buttons]
 
-        actions += [button(x) for x in actions]
-
-        j.actions = "".join(actions)
+        actions += app_actions
+        j.actions = actions
 
     response["jobs"] = job_list        
 
@@ -94,7 +93,7 @@ def set_default_actions(job):
     cancel_job = {
         "label": "Cancel Job",
         "action": "cancel_job",
-        "action": "btn-warning",
+        "class": "btn-warning",
         "args": [job.job_id]
     }
     rerun_job = {
@@ -104,23 +103,25 @@ def set_default_actions(job):
         "args": [],
         }
 
+    archive_job = {
+        "label": "Remove Job",
+        "action": "remove_job",
+        "class": "btn-secondary",
+        "args": str(job.job_id)
+    }
+
     if job.status.default == "y":
         actions.append(cancel_job)
 
     elif job.status.running == "y": 
         actions.append(stop_job)
 
+    elif not job.archived:
+        actions.append(archive_job)
+
     #TODO: Add default re-run job button.
  
     return actions
-
-def button(button_data):
-    """Turn standardly defined dict into django template ready button."""
-    template = """<a class="btn {0}" href="{{{% url {1} {2} %}}}>{3}</a>"""
-    args = " ".join(button_data["args"])
-    b = button_data
-    button = template.format(b["class"], b["action"], args, b["label"])
-    return button
 
 def build_nav_bar():
     """Check installed apps for nav bar items."""
@@ -203,7 +204,14 @@ def process_job(current_job):
     current_job.completed = timezone.now()
     current_job.save()
 
+def remove_job(request, job_id):
+    """Remove aka "archive" job."""
+    job_object = jobs.objects.get(job_id=job_id)
+    job_object.archived = "y"
+    job_object.save()
+    return job_status(request, response={"result_messages": ["Job ID #{0} successfully removed.".format(job_id)]})
+   
+def cancel_job(requests, job_id):
 
-    
-    
-    
+    return HttpResponse("hello")
+ 

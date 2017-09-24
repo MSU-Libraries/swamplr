@@ -4,7 +4,7 @@
 {% block content %}
 
 <div class="panel panel-primary">
-    <div class="panel-heading">Job Status<br/> <kbd>As of {% now 'm/d/Y f a' %}</kbd></div>
+    <div class="panel-heading"><div>Job Status</div> <div id="kbd"><kbd>As of {% now 'm/d/Y f a' %}</kbd></div></div>
     <div class="table table-responsive table-condensed">
         <div class="job-row">
         {% for h in headings %}
@@ -20,7 +20,11 @@
             <div class="job-column {{ headings.3|lower|slugify }}-column">{{ j.created|naturaltime }}</div>
             <div class="job-column {{ headings.4|lower|slugify }}-column">{{ j.completed|naturaltime }}</div>
             <div class="job-column {{ headings.5|lower|slugify }}-column">{{ j.status.status }}</div>
-            <div class="job-column {{ headings.6|lower|slugify }}-column">{{ j.actions }}</div>
+            <div class="job-column {{ headings.6|lower|slugify }}-column">
+            {% for a in j.actions %}
+                <a href="{% url a.action a.args %}"><button class="btn {{ a.class }}">{{ a.label }}</button></a>
+            {% endfor %}
+            </div>
          </div>
          {% endfor %}
     </div>

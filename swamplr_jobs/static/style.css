@@ -1,6 +1,9 @@
 body {
     margin:0;
 }
+h1 {
+    margin-bottom:0;
+}
 
 table {
     width: 94%;
@@ -10,24 +13,28 @@ table {
 }
 
 form {
-    margin-left: 3%;
+    margin-left: 2%;
 }
 
 kbd {
     font-size:50%;
 }
 
+#kbd {
+    margin-left:1%;
+    margin-bottom:5px;
+}
+
 a:hover, button:hover {
     cursor:pointer;
 }
 
-#navbar {
-    margin-left:3%;
- 
+a.btn.btn-lg.btn-outline-dark {
+    border-color:darkgray;
 }
 
 #messages {
-    margin-left:3%;
+    margin-left:2%;
 }
 
 #messages p {
@@ -48,9 +55,36 @@ a:hover, button:hover {
 #header {
     margin-top:25px;
     margin-bottom:25px;
-    margin-left: 3%;
+    margin-left: 2%;
+    margin-right: 3%;
+    display:flex;
+    align-items:center;
+    width:95%;
+    justify-content:space-between;
 }
 
+#menu {
+    display:flex;
+    align-items:center;
+}
+
+#menu > div {
+    flex: 0 1 auto;
+    margin-left:2%;
+}
+
+#heading {
+    width:30%;
+}
+
+#navbar {
+    width:auto;
+}
+
+#header > div {
+    flex: 0 1 auto;
+    margin-top:auto;
+}
 #header a {
     color:black;
     vertical-align:middle;
@@ -58,12 +92,12 @@ a:hover, button:hover {
 
 #header img {
     vertical-align:middle;
-    height: 50px;
+    height: 100px;
     margin-left: .5%;
     margin-right: 15px;
 }
 
-.job-row {
+.job-row, .app-row {
     width: 97%;
     height: 50px;
     text-align: left!important;
@@ -93,9 +127,17 @@ a:hover, button:hover {
 .panel-heading {
     font-size: 20px;
     padding-top:10px;
+    display: flex;
+    align-items:center;
+    justify-content:center;
 }
 
-.job-column {
+.panel-heading > div {
+    flex: 0 1 auto;
+    width:auto;
+}
+
+.job-column, .app-column {
     float: left;
     display: inline-block;
     min-width: 5%;
@@ -107,6 +149,11 @@ a:hover, button:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     margin-right: 1.1%;     
+    margin-top:5px;
+}
+
+.app-column {
+    width: 13%;
 }
 
 .job-heading {
@@ -148,6 +195,23 @@ a:hover, button:hover {
 }
 
 .pagination {
-    margin-left:3%;
+    margin-left:2%;
     margin-bottom: 20px;
+}
+
+.controls {
+    margin-right:10px;
+}
+
+.controls input {
+    line-height:26px;
+    padding-left:5px;
+}
+
+.form-inline {
+    margin-top:7px;
+}
+
+.app-button {
+    margin-top:1px;
 }

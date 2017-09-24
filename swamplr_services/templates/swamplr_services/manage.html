@@ -5,38 +5,63 @@
 
 {% block content %}
 
+<div class="panel panel-primary">
+
 {% if services %}
 
-<table>
-    <tr>
-        <th>Label</th>
-        <th>Description</th>
-        <th>Command</th>
-        <th>User</th>
-        <th></th>
-    </tr>
+    <div class="panel-heading">
 
-{% endif %}
+        <div>Services</div> <div id="kbd"><kbd>{% now 'm/d/Y f a' %}</kbd></div>
 
-{% for s in services %}
+    </div>
 
-    <tr>
-        <td>{{ s.label }}</td>
-        <td>{{ s.description }}</td>
-        <td>{{ s.command }}</td>
-        <td>{{ s.run_as_user }}</td>
-        <td>
+    <div class="table table-responsive table-condensed">
+
+    <div class="app-row">
+        <div class="app-column">Label</div>
+        <div class="app-column">Description</div>
+        <div class="app-column">Command</div>
+        <div class="app-column">Frequency</div>
+        <div class="app-column">Last Started</div>
+        <div class="app-column">User</div>
+        <div class="app-column"></div>
+    </div>
+
+
+    {% for s in services %}
+
+    <div class="app-row">
+        <div class="app-column">{{ s.label }}</div>
+        <div class="app-column">{{ s.description }}</div>
+        <div class="app-column">{{ s.command }}</div>
+        <div class="app-column">{{ s.frequency }}</div>
+        <div class="app-column">{{ s.last_started }}</div>
+        <div class="app-column">{{ s.run_as_user }}</div>
+        <div class="app-column app-button">
+
             <a href="{% url 'run-services' s.id %}">
                 <button type="button" class="btn btn-outline-success">Run</button>
             </a>
             <a href="{% url 'delete-services' s.id %}">
                 <button type="button" class="btn btn-outline-danger">Delete</button>
             </a>
-        </td>
-    </tr>
 
-{% endfor %}
-</table>
+        </div>
+     </div>
+    {% endfor %}
+    </div>
+{% endif %}
+    <div class="panel-heading">
 
-{% crispy form %}
+        <div>Add a Service</div>
+
+    </div>
+
+    <div class="table table-responsive table-condensed">
+        <div class="app-row">
+        {% crispy form %}
+        </div>
+    </div>
+</div> 
+
 {% endblock %}

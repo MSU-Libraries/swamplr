@@ -35,6 +35,8 @@ def load_manage_data():
              "description": s.description,
              "command": s.command,
              "run_as_user": s.run_as_user,
+             "frequency": s.frequency,
+             "last_started": s.last_started,
             }
         )    
 
@@ -92,10 +94,17 @@ def add_service(request):
 def get_status_info(job):
     """Required function: return info about current job for display."""
     job_id = job.job_id
-    service = service_jobs.objects.get(job_id=job.job_id)
-    service_info = services.objects.get(service_id=service.service_id_id)
-    
-    info = ["Service name: {0}".format(service_info.label)]
+
+    try:
+        service = service_jobs.objects.get(job_id=job.job_id)
+        service_info = services.objects.get(service_id=service.service_id_id)
+        label = service_info.label    
+
+    # Cause of this exception would be the service being deleted from the table.
+    except:
+        label = "Not Found"
+
+    info = ["Service name: {0}".format(label)]
 
     return info
 

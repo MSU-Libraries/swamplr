@@ -38,7 +38,7 @@ class jobs(models.Model):
     status_id = models.ForeignKey("status")
     type_id = models.ForeignKey("job_types")
     process_id = models.IntegerField(default=0)
-
+    archived = models.CharField(max_length=1, blank=True)
 
 class status(models.Model):
     """Status of the job: running, failed, successful, etc."""
