@@ -71,8 +71,6 @@ def view_job(request, job_id):
         ("Elapsed", elapsed),
         ("Status Info", job.status_info),
     ]
-
-    
  
     job.messages = []
     message_object = job_messages.objects.filter(job_id=job)
@@ -101,21 +99,17 @@ def set_job_info(j):
     
     status_info = "No further info available."
     if hasattr(app.views, "get_status_info") and callable(getattr(app.views, "get_status_info")):
-        status_info = app.views.get_status_info(j)
+        status_info, details = app.views.get_status_info(j)
         j.status_info = "<br/>".join(status_info)
+        j.details = details 
 
     actions = set_default_actions(j)
     if hasattr(app.views, "get_actions") and callable(getattr(app.views, "get_actions")):
-        buttons = app.views.get_actions(j)
+        app_actions = app.views.get_actions(j)
+
     actions += app_actions
     j.actions = actions
     
-    job_type_details = [("None", "No info available")]
-    if hasattr(app.views, "get_job_details") and callable(getattr(app.views, "get_job_details")):
-        job_type_details = app.views.get_job_details(j)
-
-    j.details = job_type_details
-
     return j
 
 def set_default_actions(job):

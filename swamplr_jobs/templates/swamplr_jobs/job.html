@@ -7,25 +7,34 @@
     <div class="panel-heading">
         <div>Job Status</div>
         <div id="kbd"><kbd>As of {% now 'm/d/Y f a' %}</kbd></div>
-
     </div>
-
-    <div id="job-card-container">
-    <div class="panel-heading">Details</div>
-    {% for e in job.card %}
-        <div class="job-card">
-            <div class="card-field">{{ e.0 }}</div>
-            <div class="card-data">{{ e.1 }}</div>
-        </div>
-    {% endfor %}
-    <div class="job-card">
-        <div class="card-field">Actions</div>
-            <div class="card-data">
-            {% for a in j.actions %}
-                <a href="{% url a.action a.args %}"><button class="btn {{ a.class }}">{{ a.label }}</button></a>
-            {% endfor %}
+    <div id="status-container">
+    <div class="job-container">
+        <div class="panel-heading job-detail-heading">Job Details</div>
+        {% for e in job.card %}
+            <div class="job-details">
+                <div class=details-field">{{ e.0 }}</div>
+                <div class="details-data">{{ e.1 }}</div>
+            </div>
+        {% endfor %}
+        <div class="job-details">
+            <div class="details-field">Actions</div>
+                <div class="details-data">
+                {% for a in job.actions %}
+                    <a href="{% url a.action a.args %}"><button class="btn {{ a.class }}">{{ a.label }}</button></a>
+                {% endfor %}
+                </div>
             </div>
         </div>
+    <div class="job-container">
+        <div class="panel-heading job-detail-heading">{{ job.job_type|title }} Details</div>
+        {% for e in job.details %}
+            <div class="job-details">
+                <div class="details-field">{{ e.0 }}</div>
+                <div class="details-data">{{ e.1 }}</div>
+            </div>
+        {% endfor %}
+    </div>
     </div>
     {% if job.messages %}
     <div class="panel-heading">Messages</div> 
@@ -57,6 +66,6 @@
         {% endfor %}
     </div>
     {% endif %}
+  </div>
 </div>
-
 {% endblock %}

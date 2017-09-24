@@ -103,7 +103,6 @@ a.btn.btn-lg.btn-outline-dark {
     text-align: left!important;
     line-height: 20px;
     margin: auto;
-    
     margin-top: 7px;
     margin-bottom: 7px;
     border: 1px solid #ffffff;
@@ -113,7 +112,7 @@ a.btn.btn-lg.btn-outline-dark {
 
 .panel-primary, .panel-heading {
     color: #18453b !important;
-    background-color: #e3e3e3 !important;
+    background-color: #e3e3e3;
     border-color: #e3e3e3 !important;
     text-align: center;
     margin-left:1%;
@@ -130,6 +129,7 @@ a.btn.btn-lg.btn-outline-dark {
     display: flex;
     align-items:center;
     justify-content:center;
+    margin: 12px 0;
 }
 
 .panel-heading > div {
@@ -220,19 +220,38 @@ a.btn.btn-lg.btn-outline-dark {
     margin-top:1px;
 }
 
-#job-card-container {
-    margin-right:auto;
-    margin-left:auto;
-    padding:20px;
-    width: 50%;
-    background-color:white;
-}
-
-.job-card {
+#status-container {
     display:flex;
     justify-content:space-between;
 }
 
-#job-card > div {
+#status-container {
     flex: 0 1 auto;
+}
+
+.job-container {
+    margin-right:auto;
+    margin-left:auto;
+    padding:20px;
+    width: 45%;
+    background-color:white;
+}
+
+.job-details {
+    display:flex;
+    justify-content:space-between;
+    padding: 3px 5px;
+}
+
+.job-details > div {
+    flex: 0 1 auto;
+}
+
+.job-detail-heading {
+    background-color:white;
+    border-bottom: 1px solid lightblue;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    margin-top: 0;
+    padding-top:2px;
 }

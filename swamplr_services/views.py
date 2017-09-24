@@ -17,7 +17,7 @@ def run_process(current_job):
     """Run process from swamplr_jobs.views."""
     
     status_id = service_status.objects.get(status="Success").service_status_id_id
-    messages = ["SUCCESS - SOmETHING HAS WORKED"]
+    messages = ["Success - Job Completed."]
 
     return (status_id, messages)
 
@@ -54,7 +54,6 @@ def run_service(request, service_id):
     args:
         service_id(str): id of service to run.
     """
-    
     results_messages = ""
     error_messages = ""
 
@@ -94,7 +93,6 @@ def add_service(request):
 def get_status_info(job):
     """Required function: return info about current job for display."""
     job_id = job.job_id
-    details = [] 
 
     try:
         service = service_jobs.objects.get(job_id=job.job_id)
@@ -113,12 +111,11 @@ def get_status_info(job):
     # Cause of this exception would be the service being deleted from the table.
     except:
         label = "Not Found"
+        details = [("None", "No Info Found")]
 
     info = ["Service name: {0}".format(label)]
 
-    return info
-
-    
+    return info, details
 
 
 def get_actions(job):
