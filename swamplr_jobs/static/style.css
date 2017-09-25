@@ -99,7 +99,7 @@ a.btn.btn-lg.btn-outline-dark {
 
 .job-row, .app-row {
     width: 97%;
-    height: 50px;
+    min-height: 50px;
     text-align: left!important;
     line-height: 20px;
     margin: auto;
@@ -130,6 +130,7 @@ a.btn.btn-lg.btn-outline-dark {
     align-items:center;
     justify-content:center;
     margin: 12px 0;
+    border-radius:10px;
 }
 
 .panel-heading > div {
@@ -254,4 +255,14 @@ a.btn.btn-lg.btn-outline-dark {
     margin-bottom: 10px;
     margin-top: 0;
     padding-top:2px;
+}
+
+.message {
+    line-height:normal;
+    height: auto;
+}
+
+.job-row.message-row {
+    height:auto;
+    overflow:overlay;
 }

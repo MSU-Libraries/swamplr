@@ -44,9 +44,9 @@
             <div class="job-column message-data">Message</div>
         </div>
         {% for m in job.messages %}
-        <div class="job-row">
+        <div class="job-row message-row">
             <div class="job-column message-data">{{ m.0 }}</div>
-            <div class="job-column message-data"><code>{{ m.1 }}</code></div>
+            <div class="job-column message-data message"><pre>{{ m.1 }}</pre></div>
         </div>
         {% endfor %}
     </div>

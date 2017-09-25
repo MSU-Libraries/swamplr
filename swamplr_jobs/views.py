@@ -121,12 +121,6 @@ def set_default_actions(job):
          "class": "btn-danger",
          "args": str(job.job_id)
         }
-    cancel_job = {
-        "label": "Cancel Job",
-        "action": "cancel_job",
-        "class": "btn-warning",
-        "args": str(job.job_id)
-    }
     rerun_job = {
         "label": "Run same job",
         "action": "add_job",
@@ -141,10 +135,7 @@ def set_default_actions(job):
         "args": str(job.job_id)
     }
 
-    if job.status.default == "y":
-        actions.append(cancel_job)
-
-    elif job.status.running == "y": 
+    if job.status.default == "y" or job.status.running == "y":
         actions.append(stop_job)
 
     elif not job.archived:
@@ -199,7 +190,7 @@ def process_job(current_job):
 
     load_installed_apps()
 
-    current_job.status = status_obj
+    current_job.status_id = status_obj
     current_job.started = timezone.now()
     current_job.process_id = os.getpid()
     current_job.save()
@@ -242,7 +233,29 @@ def remove_job(request, job_id):
     job_object.save()
     return job_status(request, response={"result_messages": ["Job ID #{0} successfully removed.".format(job_id)]})
    
-def cancel_job(requests, job_id):
+def stop_job(request, job_id):
+    
+    result_message = []
+    error_message = []
+    job_object = jobs.objects.get(job_id=job_id)
+    status_obj = status.objects.get(failure="manual")
+    job_object.status_id = status_obj 
+    job_object.save()
 
-    return HttpResponse("hello")
+    if job_object.process_id != 0:
+        # Attempt to kill job 'nicely'.
+        try:
+            os.kill(job_object.process_id, 15)
+            logging.info("Job ID #{0} successfully canceled.".format(job_id))
+            result_message = ["Job ID #{0} successfully canceled.".format(job_id)]
+        except:
+            error_message = ["Unable to cancel job {0} at process ID: {1}".format(job_id, job_object.process_id)]
+            logging.warning("Unable to cancel job {0} at process ID: {1}".format(job_id, job_object.process_id))
+
+    else:
+
+        logging.info("Job ID #{0} successfully canceled.".format(job_id))
+        result_message = ["Job ID #{0} successfully canceled.".format(job_id)]
+
+    return job_status(request, response={"result_messages": result_message, "error_message": error_message})
  

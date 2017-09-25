@@ -5,6 +5,10 @@ from forms import ServicesForm
 from swamplr_jobs.views import add_job
 from datetime import datetime
 import logging
+import os
+import shlex
+import subprocess
+from pwd import getpwnam 
 
 # Create your views here.
 
@@ -15,11 +19,32 @@ def manage(request, response={}):
 
 def run_process(current_job):
     """Run process from swamplr_jobs.views."""
-    
-    status_id = service_status.objects.get(status="Success").service_status_id_id
-    messages = ["Success - Job Completed."]
 
-    return (status_id, messages)
+    service_job = service_jobs.objects.get(job_id=current_job)
+    service = services.objects.get(service_id=service_job.service_id_id)
+    service.last_started = current_job.started
+    service.save()
+
+    command = service.command
+    user = service.run_as_user
+
+    if not user:
+        user = ServicesConfig.run_as_user
+
+    user_id = getpwnam(user).pw_uid
+    os.setuid(user_id)
+
+    args = shlex.split(command)
+
+    try:
+        output = subprocess.check_output(args)
+        status_id = service_status.objects.get(status="Success").service_status_id_id
+
+    except Exception as e:
+        output = e
+        status_id = service_status.objects.get(status="Script error").service_status_id_id
+
+    return (status_id, [output])
 
 def load_manage_data():
     """Load data for manage page."""
@@ -68,7 +93,7 @@ def run_service(request, service_id):
 
     results_messages = ["Added job successfully."]
 
-    return manage(request, response={"results_messages": results_messages, "error_messages": error_messages})
+    return manage(request, response={"result_messages": results_messages, "error_messages": error_messages})
 
 def add_service(request):
 
