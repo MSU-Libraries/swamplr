@@ -7,7 +7,7 @@ from crispy_forms.layout import Submit, Layout
 
 class ServicesForm(ModelForm):
 
-    MY_CHOICES = (
+    FREQUENCY_CHOICES = (
         ('Minutes', 'MIN'),
         ('Hours', 'HOUR'),
         ('Days', 'DAY'),
@@ -47,8 +47,8 @@ class ServicesForm(ModelForm):
                                                              "size": "41"}))
     frequency = forms.CharField(widget=forms.TextInput(
                                                       attrs={"placeholder": "frequency",
-                                                             "size": "3"}))
-    frequency_time = forms.ChoiceField(required=False,  choices=MY_CHOICES )
+                                                             "size": "10"}))
+    frequency_time = forms.ChoiceField(required=False,  choices=FREQUENCY_CHOICES, css_class="btn btn-primary dropdown-toggle"  )
 
     last_started = forms.CharField(required=False, widget=forms.HiddenInput())
   
