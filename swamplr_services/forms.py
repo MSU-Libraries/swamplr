@@ -28,7 +28,7 @@ class ServicesForm(ModelForm):
             "description",
             "command",
             "frequency",
-            Field("frequency_time",css_class=" btn btn-danger dropdown-toggle" ),
+            Field("frequency_time",css_class=" btn btn-info dropdown-toggle" ),
             "last_started",
             "run_as_user",
             Submit("add-service", "Add Service", css_class="btn btn-outline-success"),
