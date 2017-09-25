@@ -84,7 +84,7 @@ def add_service(request):
         if form_data.cleaned_data['frequency']:
             frequency = form_data.cleaned_data['frequency']
             frequency_time  = form_data.cleaned_data['frequency_time']
-            frequency = (frequency if frequency_time=='MIN' else frequency*60 if frequency_time=='HOUR' else  frequency*60*24 if frequency_time=='DAY' else  frequency*60*24 if frequency_time=='WEEK' )
+            frequency = (frequency if frequency_time=='MIN' else frequency*60 if frequency_time=='HOUR' else  frequency*60*24 if frequency_time=='DAY' else  frequency*60*24 if frequency_time=='WEEK'  else 0)
             new_service.frequency = frequency
         new_service.run_as_user = form_data.cleaned_data['run_as_user']
         new_service.save()
