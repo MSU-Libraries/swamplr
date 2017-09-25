@@ -8,10 +8,10 @@ from crispy_forms.layout import Submit, Layout, Field
 class ServicesForm(ModelForm):
 
     FREQUENCY_CHOICES = (
-        ('Minutes', 'MIN'),
-        ('Hours', 'HOUR'),
-        ('Days', 'DAY'),
-        ('Weeks', 'WEEK'),
+        ( 'MIN', 'Minutes'),
+        ( 'HOUR', 'Hours'),
+        ( 'DAY','Days'),
+        ( 'WEEK', 'Weeks'),
     )
  
     def __init__(self, *args, **kwargs):
@@ -46,7 +46,7 @@ class ServicesForm(ModelForm):
                                                       attrs={"placeholder": "Command",
                                                              "size": "41"}))
     frequency = forms.CharField(widget=forms.TextInput(
-                                                      attrs={"placeholder": "frequency",
+                                                      attrs={"placeholder": "Frequency",
                                                              "size": "10"}))
     frequency_time = forms.ChoiceField(required=False,  choices=FREQUENCY_CHOICES )
 
