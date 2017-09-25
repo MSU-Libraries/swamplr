@@ -45,7 +45,7 @@ class ServicesForm(ModelForm):
     command = forms.CharField(widget=forms.TextInput(
                                                       attrs={"placeholder": "Command",
                                                              "size": "41"}))
-    frequency = forms.CharField(widget=forms.TextInput(
+    frequency = forms.CharField(required=False, widget=forms.TextInput(
                                                       attrs={"placeholder": "Frequency",
                                                              "size": "10"}))
     frequency_time = forms.ChoiceField(required=False,  choices=FREQUENCY_CHOICES )
