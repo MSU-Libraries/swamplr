@@ -6,6 +6,12 @@ from crispy_forms.layout import Submit, Layout
 
 
 class ServicesForm(ModelForm):
+
+    MY_CHOICES = (
+        ('1', 'Option 1'),
+        ('2', 'Option 2'),
+        ('3', 'Option 3'),
+    )
  
     def __init__(self, *args, **kwargs):
         super(ServicesForm, self).__init__(*args, **kwargs)
@@ -37,8 +43,7 @@ class ServicesForm(ModelForm):
     command = forms.CharField(widget=forms.TextInput(
                                                       attrs={"placeholder": "Command",
                                                              "size": "41"}))
-    frequency = forms.CharField(required=False, widget=forms.TextInput(
-                                                      attrs={"placeholder": "Frequency"}))
+    frequency = forms.ChoiceField(required=False,  choices=MY_CHOICES )
 
     last_started = forms.CharField(required=False, widget=forms.HiddenInput())
   
