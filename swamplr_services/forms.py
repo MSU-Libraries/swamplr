@@ -2,7 +2,7 @@ from django import forms
 from django.forms import ModelForm
 from swamplr_services.models import services
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Fields
+from crispy_forms.layout import Submit, Layout, Field
 
 
 class ServicesForm(ModelForm):
