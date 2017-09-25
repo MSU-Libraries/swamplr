@@ -81,7 +81,7 @@ def add_service(request):
         new_service.label = form_data.cleaned_data['label']
         new_service.description = form_data.cleaned_data['description'] 
         new_service.command = form_data.cleaned_data['command']
-        if form_data.cleaned_data['frequency']:
+        # if form_data.cleaned_data['frequency']:
             # print(form_data.cleaned_data['frequency'])
             # frequency = form_data.cleaned_data['frequency']
             # frequency_time  = form_data.cleaned_data['frequency_time']
