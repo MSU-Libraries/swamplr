@@ -8,9 +8,10 @@ from crispy_forms.layout import Submit, Layout
 class ServicesForm(ModelForm):
 
     MY_CHOICES = (
-        ('1', 'Option 1'),
-        ('2', 'Option 2'),
-        ('3', 'Option 3'),
+        ('Minutes', 'MIN'),
+        ('Hours', 'HOUR'),
+        ('Days', 'DAY'),
+        ('Weeks', 'WEEK'),
     )
  
     def __init__(self, *args, **kwargs):
@@ -27,6 +28,7 @@ class ServicesForm(ModelForm):
             "description",
             "command",
             "frequency",
+            "frequency_time",
             "last_started",
             "run_as_user",
             Submit("add-service", "Add Service", css_class="btn btn-outline-success"),
@@ -43,7 +45,10 @@ class ServicesForm(ModelForm):
     command = forms.CharField(widget=forms.TextInput(
                                                       attrs={"placeholder": "Command",
                                                              "size": "41"}))
-    frequency = forms.ChoiceField(required=False,  choices=MY_CHOICES )
+    frequency = forms.CharField(widget=forms.TextInput(
+                                                      attrs={"placeholder": "frequency",
+                                                             "size": "3"}))
+    frequency_time = forms.ChoiceField(required=False,  choices=MY_CHOICES )
 
     last_started = forms.CharField(required=False, widget=forms.HiddenInput())
   
