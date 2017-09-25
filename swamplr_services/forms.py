@@ -28,10 +28,10 @@ class ServicesForm(ModelForm):
             "description",
             "command",
             "frequency",
-            "frequency_time",
+            Field("frequency_time",css_class="btn btn-outline-success" ),
             "last_started",
             "run_as_user",
-            Submit("add-service", "Add Service", css_class="btn btn-outline-success"),
+            Submit("add-service", "Add Service", css_class="btn btn-danger dropdown-toggle"),
         )
         # self.helper.add_input(Submit('submit', 'Add Service'))
 
