@@ -48,7 +48,7 @@ class ServicesForm(ModelForm):
     frequency = forms.CharField(widget=forms.TextInput(
                                                       attrs={"placeholder": "frequency",
                                                              "size": "10"}))
-    frequency_time = forms.ChoiceField(required=False,  choices=FREQUENCY_CHOICES, css_class="btn btn-primary dropdown-toggle"  )
+    frequency_time = forms.ChoiceField(required=False,  choices=FREQUENCY_CHOICES, attrs={"css_class":"btn btn-primary dropdown-toggle" } )
 
     last_started = forms.CharField(required=False, widget=forms.HiddenInput())
   
