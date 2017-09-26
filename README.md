@@ -20,7 +20,7 @@ A more generic app that lets users create custom scripts that can be run on a sc
 
 ### Install
 The site requires a number of non-standard Python libraries to run. These can be installed via aptitude or pip, a Python-specific package manager. See below for list of dependencies, followed by installation instructions.  
- - [Django](https://www.djangoproject.com/): Python web framework required for Repository Tools
+ - [Django](https://www.djangoproject.com/): Python web framework required for Swamplr
  - [Requests](http://docs.python-requests.org/en/latest/): HTTP library.
  - [crispy-forms](http://django-crispy-forms.readthedocs.io/en/latest/): Form library, helpful in using both Django's form helpers and bootstrap styling.
 
