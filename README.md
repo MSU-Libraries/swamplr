@@ -239,6 +239,17 @@ Each app connects to the larger Django project which runs it. The project's sett
   
 
 * **manage-[name]**: A function and view that allows users to view/edit the functionality of the app.
+* **run_process**: The base function called when a new job is begun. This function will be passed a job object, and should then proceed to run the given job, providing updates to the database and to the log file where appropriate. The function should return a tuple compopsed of the final status ID and 1 or more messages to be stored in job_messages table.
+* **get_status_info**: When the job dashboard page or the job detail page is loaded, this function provides data about the job status. It should return two variables, the first containing a list of human readable data to post to the job status page; the second a list (of tuples) containing data about each app-specific data point to be shown on the job detail page.
+* **get_actions**: Return list of actions to be loaded on the job status page. Each action should take this form:
+```
+action = {
+    "label": "Stop Job", # the name to display to users.
+    "action": "stop_job", # a function name in views.py to be matched to a url.
+    "class": "btn-danger", # a class used to style the button, typically a bootstrap button class.
+    "args": "job_id", # a string of arguments separated by spaces to be passed to the function set in the 'action' field.
+}
+```
 
 
 #### Database Connections
