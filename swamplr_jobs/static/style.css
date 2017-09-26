@@ -27,6 +27,7 @@ kbd {
 
 a:hover, button:hover {
     cursor:pointer;
+    text-decoration:none;
 }
 
 a.btn.btn-lg.btn-outline-dark {
@@ -233,6 +234,7 @@ a.btn.btn-lg.btn-outline-dark {
 .job-container {
     margin-right:auto;
     margin-left:auto;
+    margin-bottom:10px;
     padding:20px;
     width: 45%;
     background-color:white;
