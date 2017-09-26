@@ -80,9 +80,7 @@ WSGI_APPLICATION = 'swamplr.wsgi.application'
 DATABASES = {'default': dict(configs.items("database.default"))}
 # Check for ATOMIC_REQUESTS setting. If not set, defaults to True.
 ATOMIC_REQUESTS = DATABASES['default'].get('ATOMIC_REQUESTS', "True").lower() == "true"
-print ATOMIC_REQUESTS, type(ATOMIC_REQUESTS)
 DATABASES['default']['ATOMIC_REQUESTS'] = ATOMIC_REQUESTS
-print DATABASES
 
 # Activating STRICT_ALL_TABLES mode forces truncated strings inserted into
 # the database to produce errors instead of warnings.

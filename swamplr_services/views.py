@@ -8,7 +8,7 @@ import logging
 import os
 import shlex
 import subprocess
-from pwd import getpwnam 
+from pwd import getpwnam
 
 # Create your views here.
 
@@ -45,6 +45,36 @@ def run_process(current_job):
         status_id = service_status.objects.get(status="Script error").service_status_id_id
 
     return (status_id, [output])
+
+def pre_process():
+    """Determine if there are any services that are scheduled to be run now."""
+    # Get the Jobs that are scheduled to be run
+    # Based both on frequency/last_started as well as if they have 
+    # active jobs running for that service
+    pending_jobs = services.objects.raw("""
+        SELECT DISTINCT s.* FROM swamplr_services_services s
+        LEFT JOIN swamplr_services_service_jobs sj ON (s.service_id = sj.service_id_id)
+        LEFT JOIN swamplr_jobs_jobs j ON (sj.job_id_id = j.job_id)
+        LEFT JOIN swamplr_jobs_status t ON (t.status_id = j.status_id_id AND t.running='y')
+        WHERE s.frequency IS NOT NULL
+        AND ((NOW() >= DATE_ADD(s.last_started, INTERVAL s.frequency MINUTE) 
+              AND t.status_id IS NULL)|| s.last_started IS NULL)
+    """);
+
+    # Add new jobs for all services found
+    logging.info("swamplr_services: Found {0} services that are scheduled to run.".format(len(list(pending_jobs))))
+    for job in pending_jobs:
+        logging.info("swamplr_service: Creating new job for service_id {0}".format(job.service_id))
+        # Get service information from service id.
+        service = services.objects.get(service_id=job.service_id)
+
+        # Pass in app name from apps.py.
+        new_job = add_job(ServicesConfig.name)
+
+        new_service_job = service_jobs.objects.create(job_id=new_job, service_id=job)
+        new_service_job.save()
+	
+
 
 def load_manage_data():
     """Load data for manage page."""

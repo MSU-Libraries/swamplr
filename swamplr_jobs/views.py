@@ -172,6 +172,19 @@ def add_job(app_name):
 
     return new_job
 
+def pre_process():
+    """ Check each installed app to see if they have any steps to run before processing
+        to be run every time, even if there are no pending jobs for it.
+    """
+    load_installed_apps()
+    for app_name in import_apps:
+        if app_name == "swamplr_jobs":
+            continue
+        app = import_apps[app_name]
+        logging.info("Checking {0} for pre_process function.".format(app_name))
+        if hasattr(app.views, "pre_process") and callable(getattr(app.views, "pre_process")):
+             app.views.pre_process()
+
 def process_job(current_job):
     """Initiate job and check for type.
 
