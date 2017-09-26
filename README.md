@@ -5,7 +5,7 @@ Swamplr is a modular set of tools primarily designed to interact with a Fedora C
 ## Available Apps
 
 ### Jobs (Core): swamplr_jobs
-This is the core app that comes re-installed with Swamplr. It's purpose is to run and display results from jobs created by other apps. Part of its design is to have a scheduled task that will run available jobs on a regular interval so it is not up to the individual apps to have to kick them off. It displays the job progress along with relavent information as it runs and success or failure on completion with an error message if applicable. 
+This is the core app that comes pre-installed with Swamplr. It's purpose is to run and display results from jobs created by other apps. Part of its design is to have a scheduled task that will run available jobs on a regular interval so it is not up to the individual apps to have to kick them off. It displays the job progress along with relavent information as it runs and success or failure on completion with an error message if applicable. 
 
 ### Ingest: swamplr_ingest
 An app that allows ingesting new content into a Fedora Commons repository and automatically triggers a Solr reindex of those items.  
