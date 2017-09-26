@@ -42,8 +42,6 @@ sudo -H -u www-data git clone git@git.lib.msu.edu:digital-information/swamplr.gi
 cd swamplr
 ```
 
-TODO dependencies, download code, create database
-
 ### Configure
 To set the necessary configurations, copy the example config file and make modifications to it.
 
