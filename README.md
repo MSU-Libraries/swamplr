@@ -1,4 +1,3 @@
-
 # Swamplr
 
 Swamplr is a modular set of tools primarily designed to interact with a Fedora Commons repository ([vers. 3.8](https://wiki.duraspace.org/display/FEDORA38/Fedora+3.8+Documentation)) as well as other components of the Fedora software stack ([Solr](https://lucene.apache.org/solr/guide/), [Gsearch](https://github.com/fcrepo3/gsearch), [Islandora](https://wiki.duraspace.org/display/ISLANDORA/Islandora), etc.)
@@ -6,7 +5,7 @@ Swamplr is a modular set of tools primarily designed to interact with a Fedora C
 ## Available Apps
 
 ### Jobs (Core): swamplr_jobs
-This is the core app that comes re-installed with Swamplr. It's purpose is to run and display results from jobs created by other apps. Part of its design is to have a scheduled task that will run available jobs on a regular interval so it is not up to the individual apps to have to kick them off. It displays the job progress along with relavent information as it runs and success or failure on completion with an error message if applicable. 
+This is the core app that comes pre-installed with Swamplr. It's purpose is to run and display results from jobs created by other apps. Part of its design is to have a scheduled task that will run available jobs on a regular interval so it is not up to the individual apps to have to kick them off. It displays the job progress along with relavent information as it runs and success or failure on completion with an error message if applicable. 
 
 ### Ingest: swamplr_ingest
 An app that allows ingesting new content into a Fedora Commons repository and automatically triggers a Solr reindex of those items.  
@@ -18,14 +17,171 @@ An app that creates various derivatives for files that are to be ingested. The t
 A more generic app that lets users create custom scripts that can be run on a scheduled interval. The user just has to specify the command to run on the server and optionally the user to run it as (if not the same user that runs Swamplr). 
 
 ## How to install and setup Swamplr
-TODO
+
+### Install
+The site requires a number of non-standard Python libraries to run. These can be installed via aptitude or pip, a Python-specific package manager. See below for list of dependencies, followed by installation instructions.  
+ - [Django](https://www.djangoproject.com/): Python web framework required for Swamplr
+ - [Requests](http://docs.python-requests.org/en/latest/): HTTP library.
+ - [crispy-forms](http://django-crispy-forms.readthedocs.io/en/latest/): Form library, helpful in using both Django's form helpers and bootstrap styling.
+
+```
+pip install django
+aptitude install python-pip
+apt-get install python-mysqldb 
+aptitude install libxml2-dev libxslt-dev python-dev zlib1g-dev libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk
+aptitude install python-requests
+pip install django-crispy-forms
+```
+
+Download the Swamplr application:  
+```
+cd /var/www
+mkdir swamplr
+chown www-data:www-data swamplr/
+sudo -H -u www-data git clone git@git.lib.msu.edu:digital-information/swamplr.git swamplr/
+cd swamplr
+```
+
+### Configure
+To set the necessary configurations, copy the example config file and make modifications to it.
+
+```
+cp swamplr_example.cfg swamplr.cfg
+vim swamplr.cfg
+```
+
+The file contains sections for the database connection information, the allowed hosts, the debug flag, and a secret key. 
+
+The database information should match the database created in the previous step that stores the Swamplr data.  
+
+The allowed hosts can be a comma separated list of the host names for the Swamplr site. For example, if you host the site at: http://swamplr.example.edu 
+the allowed host would simply be: swamplr.example.edu.  
+
+When the debug flag is set to true, stack trace information will be displayed on the page when an unexpected error occurs. 
+This setting should not be enabled in a production environment.
+
+The secret key is used internally by Django and should be a random alphanumeric string, which can be created using online key generators.
+
+### Setting up Apache
+Install and setup Apache (not part of this documentation). 
+
+The Python standard deployment platform for web servers and applications is WSGI. For more information, see the [Django documentation](https://docs.djangoproject.com/en/1.7/howto/deployment/wsgi/). And the Apache module used to host any Python application is called `mod_wsgi`.  
+```
+aptitude install libapache2-mod-wsgi
+```
+
+To set up the Django site as a virtual host, create a file called `swmplr.conf` inside `/etc/apache2/sites-available` and include the following text:  
+```
+<VirtualHost *:80>
+        ServerName swmamplr.example.edu
+        # Include any ServerAlias here as well, for example if the machine has a mirror
+
+        ServerAdmin webmaster@swamplr
+        DocumentRoot /var/www/swamplr/swamplr
+
+        # The group name is not related to the server domain name; it's just a label
+        WSGIDaemonProcess swamplr.example.edu processes=2 threads=15 display-name=swamplr
+        WSGIProcessGroup swamplr.example.edu
+        WSGIScriptAlias / /var/www/swamplr/swamplr/wsgi.py
+
+        <Directory /var/www/swamplr/swamplr>
+                SetHandler wsgi-script
+                DirectoryIndex wsgi.py
+                Options +ExecCGI
+                <RequireAny>
+                    Require ip [LIST OF IPS THAT CAN ACCESS THE SITE]
+                    Require local
+                </RequireAny>
+        </Directory>
+
+        Alias /static/ /var/www/swamplr/eulcom/static/
+        <Directory /var/www/swampy/eulcom/static>
+                Options -Indexes
+                Require all granted
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/swamplr-error.log
+        CustomLog ${APACHE_LOG_DIR}/swamplr-access.log combined
+</VirtualHost>
+```
+
+Access to the Swamplr site is currently done by IP. Anyone who needs access to the site will need to have their IP added to the list of IPs
+on the `Require ip` line above.  
+
+WSGI settings can be edited in `wsgi.conf`.  
+```
+cd /etc/apache2/mods-enabled
+vim wsgi.conf
+```
+
+Under the `WSGIPythonPath` section of the file, add the following lines:  
+```
+WSGIPythonPath /var/www/swamplr
+```
+
+Go to `/etc/apache2/sites-enable` and run the following command to enable the site.  
+```
+a2ensite swamplr
+```
+
+Restart Apache with:  
+```
+service apache2 restart
+```
+
+The Repo Ingest site relies on a MariaDB database stored on a remote database server, that needs to be manually created 
+before the site will work. Ensure that the connection information matches what was put in the `swamplr.cfg` file. 
+Provided with the site is a file called manage.py, which can be used to create/update the database structure with the migrate argument.  
+```
+cd /var/www/swamplr
+sudo -Hu www-data python manage.py migrate
+```
+
+The site should now be available. 
+
 
 ## How to Install & Enable Apps
 Currently all of the apps are included in the same code repository as the core Swamplr app, so there are no special steps required to download the code.
 
 The code for each app is located at the top level of the directory structure, at the same level as the core `swamplr_jobs` app.
 
-TODO - describe config changes and any app specific instructions
+### Services: swamplr_services
+Since the App is included in the same code repository as the core app, there are no extra steps required to download the code.
+
+The services app does not have any additional depenencies that need to be installed.
+
+To enable the app, edit the settings.py file and add it to the INSTALL_APPS:
+```
+vim swamplr/settings.py
+```
+
+That section of the file should now look like:
+```
+INSTALLED_APPS = (
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.humanize',
+    'crispy_forms',
+    'swamplr_jobs',
+    'swamplr_services',
+)
+```
+
+There may be some additional items in that section if you have already enabled other apps. 
+
+The configurations for the services app is in the `swamplr_services/apps.py` file.
+```
+class ServicesConfig(AppConfig):
+    name = 'swamplr_services'
+    run_as_user = 'root'
+```
+The `name` should not be changed, as that is just the name of the app.  
+The `run_as_user` is the user that will be used to run services as in the event one is not provided by the user when adding a service.  
+
 
 ## System Design
 ### Technologies
@@ -83,6 +239,17 @@ Each app connects to the larger Django project which runs it. The project's sett
   
 
 * **manage-[name]**: A function and view that allows users to view/edit the functionality of the app.
+* **run_process**: The base function called when a new job is begun. This function will be passed a job object, and should then proceed to run the given job, providing updates to the database and to the log file where appropriate. The function should return a tuple compopsed of the final status ID and 1 or more messages to be stored in job_messages table.
+* **get_status_info**: When the job dashboard page or the job detail page is loaded, this function provides data about the job status. It should return two variables, the first containing a list of human readable data to post to the job status page; the second a list (of tuples) containing data about each app-specific data point to be shown on the job detail page.
+* **get_actions**: Return list of actions to be loaded on the job status page. Each action should take this form:
+```
+action = {
+    "label": "Stop Job", # the name to display to users.
+    "action": "stop_job", # a function name in views.py to be matched to a url.
+    "class": "btn-danger", # a class used to style the button, typically a bootstrap button class.
+    "args": "job_id", # a string of arguments separated by spaces to be passed to the function set in the 'action' field.
+}
+```
 
 
 #### Database Connections
