@@ -61,6 +61,7 @@ INSTALLED_APPS = (
     'crispy_forms',
     'swamplr_jobs',
     'swamplr_services',
+    'swamplr_ingest',
 )
 
 MIDDLEWARE_CLASSES = (

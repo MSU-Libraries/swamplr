@@ -7,7 +7,7 @@ from django.db import models
 class ingest_jobs(models.Model):
     """Information needed to start ingest-specific jobs."""
     ingest_id = models.AutoField(primary_key=True)
-    job_id = models.ForeignKey('jobs')
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
     source_dir = models.CharField(max_length=255)
     # The collection name determines the particular ingest class created for the job.
     collection_name = models.CharField(max_length=255)
@@ -16,6 +16,8 @@ class ingest_jobs(models.Model):
     process_new = models.CharField(max_length=1)
     process_existing = models.CharField(max_length=1)
     subset = models.IntegerField(default=0)
+    rels_ext_from_file = models.CharField(max_length=1)
+    rels_ext_generated = models.CharField(max_length=1)
 
 class job_datastreams(models.Model):
 
@@ -33,7 +35,7 @@ class datastreams(models.Model):
 class job_objects(models.Model):
     """Table to relate filename to PID."""
     object_id = models.AutoField(primary_key=True)
-    job_id = models.ForeignKey('jobs')
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
     created = models.DateTimeField()
     # Filepath
     obj_file = models.CharField(max_length=255, null=True)
@@ -41,7 +43,7 @@ class job_objects(models.Model):
     result_id = models.ForeignKey('object_results')
     pid = models.CharField(max_length=64, null=True)
 
-class object_results(models.Model)
+class object_results(models.Model):
 
     result_id = models.AutoField(primary_key=True)
     label = models.CharField(max_length=32)
