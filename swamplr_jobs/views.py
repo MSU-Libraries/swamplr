@@ -181,6 +181,8 @@ def pre_process():
         if app_name == "swamplr_jobs":
             continue
         app = import_apps[app_name]
+        print app.__dict__
+        print app
         logging.info("Checking {0} for pre_process function.".format(app_name))
         if hasattr(app.views, "pre_process") and callable(getattr(app.views, "pre_process")):
              app.views.pre_process()

@@ -1,0 +1,618 @@
+{
+    "image": {
+        "name": "image",
+        "label": "Image",
+        "type": "default",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "content_model": "large_image",
+        "exclude_strings": [],
+        "objects": {
+            "object": {
+                "label": "Large Image",
+                "namespace": "image_test",
+                "content_model": "large_image",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".tif"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "JP2": {
+                        "marker": ["_JP2.jp2"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_HIGH.jpg"],
+                        "required": "true"
+                    }
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_DC.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml"],
+                        "required": "true"
+                    }
+                }
+            },
+            "compound_object": {
+                "label": "Compound Object (Parent)",
+                "namespace": "michilac",
+                "content_model": "compound",
+                "datastreams": {
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "pdf":{
+        "name":"pdf",
+        "label":"Pdf",
+        "type":"default",
+        "status":"active",
+        "use_dynamic_label": "True",
+        "content_model": "pdf",
+        "exclude_strings": [],
+        "objects":{
+            "object":{
+                "namespace": "pdf",
+                "content_model":"pdf",
+                "datastreams":{
+                    "OBJ": {
+                        "marker": [".pdf"],
+                        "required": "true",
+                         "mimetype": "application/pdf"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "PREVIEW":{
+                        "marker":["_PREVIEW.jpg"]
+                    },
+                    "FULL_TEXT": {
+                        "marker": [".txt"],
+                        "required": "true"
+                    }
+                },
+                "metadata":{
+                    "DC": {
+                        "marker": ["_DC.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+
+    },
+"newspaper": {
+        "name": "newspaper",
+        "label": "Newspaper",
+        "type": "default",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "newspaper_issue": {
+                "label": "Newspaper Issue",
+                "content_model": "newspaper_issue",
+                "namespace": "newspaper",
+                "datastreams": {
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "PDF": {
+                        "marker": [".pdf"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_DC.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml"],
+                        "required": "true"
+                    }
+                }
+            },
+            "newspaper_page": {
+                "label": "Newspaper Page",
+                "namespace": "newspaper",
+                "content_model": "newspaper_page",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".tif"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "JP2": {
+                        "marker": ["_JP2.jp2"],
+                        "required": "true"
+                    },
+                    "FULL_TEXT": {
+                        "marker": [".txt"],
+                        "required": "true"
+                    },
+                    "HOCR": {
+                        "marker": [".html"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_HIGH.jpg"],
+                        "required": "true"
+                    }
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "false"
+                    },
+                    "TECHMD": {
+                        "marker": ["_FITS.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "etd": {
+        "name": "etd",
+        "label": "ETD",
+        "type": "collection",
+        "use_dynamic_label": "True",
+        "status": "active",
+        "exclude_strings": ["supplemental_data"],
+        "objects": {
+            "object": {
+                "label": "PDF Object",
+                "content_model": "pdf",
+                "namespace": "etd",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".pdf"],
+                        "mimetype": "application/pdf",
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "PREVIEW": {
+                        "marker": ["_PREVIEW.jpg"],
+                        "required": "true"
+                    },
+                    "FULL_TEXT": {
+                        "marker": [".txt"],
+                        "required": "true"
+                    },
+                    "DATA": {
+                        "marker": ["data.zip"],
+                        "required": "false"
+                    }
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_DC.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml"],
+                        "required": "true"
+                    },
+                    "MARCXML": {
+                        "marker": ["_MARCXML.xml"],
+                        "required": "true"
+                    },
+                    "NDLTD": {
+                        "marker": ["_NDLTD.xml"],
+                        "required": "true"
+                    },
+                    "CUSTOM": {
+                        "marker": ["_CUSTOM.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "fa": {
+        "name": "fa",
+        "label": "Feeding America",
+        "type": "collection",
+        "use_dynamic_label": "True",
+        "status": "active",
+        "exclude_strings": [],
+        "objects": {
+            "object": {
+                "label": "PDF Object",
+                "content_model": "pdf",
+                "namespace": "fa",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".pdf"],
+                        "mimetype": "application/pdf",
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "PREVIEW": {
+                        "marker": ["_PREVIEW.jpg"],
+                        "required": "true"
+                    },
+                    "FULL_TEXT": {
+                        "marker": [".txt"],
+                        "required": "true"
+                    },
+                    "MARKUP": {
+                        "marker": ["_MARKUP.xml"],
+                        "required": "true"
+                    }
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "true"
+                    },
+                    "MARCXML": {
+                        "marker": ["_marc.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "dmhsp": {
+        "name": "dmhsp",
+        "label": "DMHSP",
+        "type": "collection",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "object": {
+                "label": "Large Image Object",
+                "content_model": "large_image",
+                "namespace": "dmhsp",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".tif"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "JP2": {
+                        "marker": ["_JP2.jp2"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_LOW.jpg"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "true"
+                    },
+                    "MARCXML": {
+                        "marker": ["_marcxml.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "michilac": {
+        "name": "michilac",
+        "label": "MICHILAC",
+        "type": "collection",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "object": {
+                "label": "Large Image Object",
+                "content_model": "large_image",
+                "namespace": "michilac",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".tif"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "JP2": {
+                        "marker": ["_JP2.jp2"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_HIGH.jpg"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "true"
+                    }
+                }
+            },
+            "compound_object": {
+                "label": "Compound Object (Parent)",
+                "namespace": "michilac",
+                "content_model": "compound",
+                "datastreams": {
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "grange": {
+        "name": "grange",
+        "label": "GRANGE",
+        "type": "collection",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "newspaper_issue": {
+                "label": "Newspaper Issue",
+                "content_model": "newspaper_issue",
+                "namespace": "grange",
+                "datastreams": {
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "PDF": {
+                        "marker": [".pdf"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_DC.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml"],
+                        "required": "true"
+                    },
+                    "MARCXML": {
+                        "marker": ["_MARCXML.xml"],
+                        "required": "true"
+                    }
+                }
+            },
+            "newspaper_page": {
+                "label": "Newspaper Page",
+                "namespace": "grange",
+                "content_model": "newspaper_page",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".tif"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "JP2": {
+                        "marker": ["_JP2.jp2"],
+                        "required": "true"
+                    },
+                    "OCR": {
+                        "marker": [".txt"],
+                        "required": "true"
+                    },
+                    "HOCR": {
+                        "marker": [".html"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_LOW.jpg"],
+                        "required": "true"
+                    }
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "false"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml"],
+                        "required": "false"
+                    },
+                    "TECHMD": {
+                        "marker": ["_FITS.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "mtopp": {
+        "name": "mtopp",
+        "label": "M-TOPP",
+        "type": "collection",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "object": {
+                "label": "Audio Object",
+                "content_model": "audio",
+                "namespace": "mtopp",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".wav"],
+                        "required": "true",
+                        "mimetype": "audio/wav"
+                    },
+                    "PROXY_MP3": {
+                        "marker": [".mp3"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "WAVEFORM": {
+                        "marker": ["_JSON.json"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "CUSTOM": {
+                        "marker": ["_CUSTOM.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    },
+    "wosl": {
+        "name": "wosl",
+        "label": "WOSL",
+        "type": "collection",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "object": {
+                "label": "Oral History Object",
+                "content_model": "oral_histories",
+                "namespace": "wosl",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".wav"],
+                        "required": "true",
+                        "mimetype": "audio/wav"
+                    },
+                    "PROXY_MP3": {
+                        "marker": [".mp3"],
+                        "required": "true"
+                    },
+                    "TEXTPDF": {
+                        "marker": [".pdf"],
+                        "required": "false"
+                    },
+                    "TEXTWORD": {
+                        "marker": [".docx"],
+                        "required": "false"
+                    },
+                    "MEDIATRACK": {
+                        "marker": ["_vtt.vtt"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_HIGH.jpg"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "WAVEFORM": {
+                        "marker": ["_JSON.json"],
+                        "required": "true"
+                    },
+                    "FULL_TEXT": {
+                        "marker": [".txt"],
+                        "required": "false"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MARC": {
+                        "marker": ["_marc.xml"],
+                        "required": "true"
+                    },
+                    "TRANSCRIPT": {
+                        "marker": ["_transcript.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "true"
+                    }
+                }
+            }
+        }
+    }
+}

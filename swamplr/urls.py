@@ -29,4 +29,6 @@ urlpatterns = [
 
 if 'swamplr_services' in settings.INSTALLED_APPS:
     urlpatterns += [url(r'^services/', include('swamplr_services.urls'))]
+if 'swamplr_ingest' in settings.INSTALLED_APPS:
+    urlpatterns += [url(r'^ingest/', include('swamplr_ingest.urls'))]
 

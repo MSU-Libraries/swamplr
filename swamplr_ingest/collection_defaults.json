@@ -1,0 +1,221 @@
+{
+  "content_models": {
+    "audio": {
+      "has_model": "info:fedora/islandora:sp-audioCModel"
+    },
+    "large_image": {
+      "has_model": "info:fedora/islandora:sp_large_image_cmodel"
+    },
+    "newspaper_issue": {
+      "has_model": "info:fedora/islandora:newspaperIssueCModel"
+    },
+    "newspaper_page": {
+      "has_model": "info:fedora/islandora:newspaperPageCModel"
+    },
+    "compound": {
+      "has_model": "info:fedora/islandora:compoundCModel"
+    },
+    "pdf": {
+      "has_model": "info:fedora/islandora:sp_pdf"
+    },
+    "oral_histories": {
+      "has_model": "info:fedora/islandora:oralhistoriesCModel" 
+    }
+  },
+  "datastreams": {
+    "TN": {
+      "id": "TN",
+      "label": "Thumbnail Image",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "image/jpeg"
+    },
+    "WAVEFORM": {
+      "id": "WAVEFORM",
+      "label": "JSON Data to produce waveform",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "application/json"
+    },
+    "DATA": {
+      "id": "DATA",
+      "label": "Supplemental Data",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "application/zip"
+    },
+    "OBJ": {
+      "id": "OBJ",
+      "label": "Image Object",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "image/tiff"
+    },
+    "PREVIEW": {
+      "id": "PREVIEW",
+      "label": "Preview Image",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "image/jpeg"
+    },
+    "JPG": {
+      "id": "JPG",
+      "label": "Image Derivative",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "image/jpeg"
+    },
+    "JP2": {
+      "id": "JP2",
+      "label": "JPEG 2000 Image Derivative",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "image/jp2"
+    },
+    "MEDIATRACK": {
+      "id": "MEDIATRACK",
+      "label": "Timed Transcript",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/plain"
+    },
+    "PROXY_MP3": {
+      "id": "PROXY_MP3",
+      "label": "MP3 Derivative",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "audio/mpeg"
+    },
+    "FULL_TEXT": {
+      "id": "FULL_TEXT",
+      "label": "Full Text",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/plain"
+    },
+    "OCR": {
+      "id": "OCR",
+      "label": "Full Text",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/plain"
+    },
+    "HOCR": {
+      "id": "HOCR",
+      "label": "Full Text",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/html"
+    },
+    "PDF": {
+      "id": "PDF",
+      "label": "PDF",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "application/pdf"
+    },
+    "TEXTPDF": {
+      "id": "TEXTPDF",
+      "label": "PDF Transcript",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "application/pdf"
+    },
+    "TEXTWORD": {
+      "id": "TEXTWORD",
+      "label": "Microsoft Word Transcript",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    },
+    "MARKUP": {
+      "id": "MARKUP",
+      "label": "MARKUP",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    }
+  },
+  "metadata":{
+    "DC": {
+      "id": "DC",
+      "label": "Dublin Core Metadata",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
+    "MODS": {
+      "id": "MODS",
+      "label": "MODS Metadata",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
+    "MARCXML": {
+      "id": "MARCXML",
+      "label": "MARC XML Metadata",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
+    "MARC": {
+      "id": "MARC",
+      "label": "MARC XML Metadata",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
+    "NDLTD": {
+      "id": "NDLTD",
+      "label": "NDLTD Metadata",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
+    "CUSTOM": {
+      "id": "CUSTOM",
+      "label": "Custom Metadata",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
+    "TRANSCRIPT": {
+      "id": "Transcript",
+      "label": "Timed Transcript in XML",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
+    "TECHMD": {
+      "id": "TECHMD",
+      "label": "Technical Metadata",
+      "type": "X",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    }
+  }
+}
