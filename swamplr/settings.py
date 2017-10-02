@@ -64,6 +64,8 @@ INSTALLED_APPS = (
     'swamplr_ingest',
 )
 
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
+
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

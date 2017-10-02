@@ -149,7 +149,6 @@ def build_nav_bar():
     """Check installed apps for nav bar items."""
     nav_bar_items = []
     for app, data in import_apps.items():
-        print hasattr(data, "get_nav_bar")
         if hasattr(data.views, "get_nav_bar") and callable(getattr(data.views, "get_nav_bar")):
             nav_bar_items.append(data.views.get_nav_bar())
     return nav_bar_items
@@ -181,8 +180,6 @@ def pre_process():
         if app_name == "swamplr_jobs":
             continue
         app = import_apps[app_name]
-        print app.__dict__
-        print app
         logging.info("Checking {0} for pre_process function.".format(app_name))
         if hasattr(app.views, "pre_process") and callable(getattr(app.views, "pre_process")):
              app.views.pre_process()

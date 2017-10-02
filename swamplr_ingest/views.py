@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import HttpResponse
 from apps import SwamplrIngestConfig
 from models import ingest_jobs
 from forms import IngestForm
@@ -13,68 +14,41 @@ def manage(request, response={}):
     response.update(load_manage_data())
     return render(request, 'swamplr_services/manage.html', response)
 
-def run_process(current_job):
-    """Run process from swamplr_jobs.views."""
-
-    service_job = service_jobs.objects.get(job_id=current_job)
-    service = services.objects.get(service_id=service_job.service_id_id)
-    service.last_started = current_job.started
-    service.save()
-
-    command = service.command
-    user = service.run_as_user
-
-    if not user:
-        user = ServicesConfig.run_as_user
-
-    user_id = getpwnam(user).pw_uid
-    os.setuid(user_id)
-
-    args = shlex.split(command)
-
-    try:
-        output = subprocess.check_output(args)
-        status_id = service_status.objects.get(status="Success").service_status_id_id
-
-    except Exception as e:
-        output = e
-        status_id = service_status.objects.get(status="Script error").service_status_id_id
-
-    return (status_id, [output])
-
-def run_ingest(request):
-
-    return HttpResponse("hello")
-
-
-def pre_process():
-    """Determine if there are any services that are scheduled to be run now."""
-    # Get the Jobs that are scheduled to be run
-    # Based both on frequency/last_started as well as if they have 
-    # active jobs running for that service
-    pending_jobs = services.objects.raw("""
-        SELECT DISTINCT s.* FROM swamplr_services_services s
-        LEFT JOIN swamplr_services_service_jobs sj ON (s.service_id = sj.service_id_id)
-        LEFT JOIN swamplr_jobs_jobs j ON (sj.job_id_id = j.job_id)
-        LEFT JOIN swamplr_jobs_status t ON (t.status_id = j.status_id_id AND t.running='y')
-        WHERE s.frequency IS NOT NULL
-        AND ((NOW() >= DATE_ADD(s.last_started, INTERVAL s.frequency MINUTE) 
-              AND t.status_id IS NULL)|| s.last_started IS NULL)
-    """);
-
-    # Add new jobs for all services found
-    logging.info("swamplr_services: Found {0} services that are scheduled to run.".format(len(list(pending_jobs))))
-    for job in pending_jobs:
-        logging.info("swamplr_service: Creating new job for service_id {0}".format(job.service_id))
-        # Get service information from service id.
-        service = services.objects.get(service_id=job.service_id)
-
-        # Pass in app name from apps.py.
-        new_job = add_job(ServicesConfig.name)
-
-        new_service_job = service_jobs.objects.create(job_id=new_job, service_id=job)
-        new_service_job.save()
-	
+#def run_process(current_job):
+#    """Run process from swamplr_jobs.views."""
+#
+#    service_job = service_jobs.objects.get(job_id=current_job)
+#    service = services.objects.get(service_id=service_job.service_id_id)
+#    service.last_started = current_job.started
+#    service.save()
+#
+#    command = service.command
+#    user = service.run_as_user
+#
+#    if not user:
+#        user = ServicesConfig.run_as_user
+#
+#    user_id = getpwnam(user).pw_uid
+#    os.setuid(user_id)
+#
+#    args = shlex.split(command)
+#
+#    try:
+#        output = subprocess.check_output(args)
+#        status_id = service_status.objects.get(status="Success").service_status_id_id
+#
+#    except Exception as e:
+#        output = e
+#        status_id = service_status.objects.get(status="Script error").service_status_id_id
+#
+#    return (status_id, [output])
+#
+def run_ingest(request, collection_name):
+   
+    form = IngestForm()
+    form.set_fields(collection_name)
+    form.set_form_action(collection_name)
+    return render(request, "swamplr_ingest/ingest.html", {"form": form})
 
 
 def load_manage_data():
@@ -138,12 +112,9 @@ def add_service(request):
         new_service.description = form_data.cleaned_data['description'] 
         new_service.command = form_data.cleaned_data['command']
         if form_data.cleaned_data['frequency']:
-            print form_data.cleaned_data['frequency']
             frequency = int(form_data.cleaned_data['frequency'])
             frequency_time  = form_data.cleaned_data['frequency_time']
             frequency = (frequency if frequency_time =='MIN' else frequency*60 if frequency_time =='HOUR' else  frequency*60*24 if frequency_time =='DAY' else  frequency*60*24*7 if frequency_time =='WEEK'  else 0)
-            print "frequency"
-            print frequency
             new_service.frequency = frequency
         new_service.run_as_user = form_data.cleaned_data['run_as_user']
         new_service.save()
