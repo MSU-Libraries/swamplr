@@ -18,7 +18,7 @@ class ServicesForm(ModelForm):
         super(ServicesForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = 'form-inline'
-        self.helper.field_class = "col-lg-8 app-column"
+        self.helper.field_class = 'service-form'
         self.helper.form_method = 'post'
         self.helper.form_show_labels = False
         self.helper.help_text_inline = True

@@ -126,9 +126,11 @@ def run_service(request, service_id):
     return manage(request, response={"result_messages": results_messages, "error_messages": error_messages})
 
 def add_service(request):
+    """Add new service based on form input."""
 
-    form = ServicesForm()
-    response = {"form": form}
+    response = {}
+
+    # Check if form data is valid.
     form_data = ServicesForm(request.POST)
     if form_data.is_valid():
 
@@ -136,19 +138,20 @@ def add_service(request):
         new_service.label = form_data.cleaned_data['label']
         new_service.description = form_data.cleaned_data['description'] 
         new_service.command = form_data.cleaned_data['command']
+        
         if form_data.cleaned_data['frequency']:
-            print form_data.cleaned_data['frequency']
             frequency = int(form_data.cleaned_data['frequency'])
             frequency_time  = form_data.cleaned_data['frequency_time']
             frequency = (frequency if frequency_time =='MIN' else frequency*60 if frequency_time =='HOUR' else  frequency*60*24 if frequency_time =='DAY' else  frequency*60*24*7 if frequency_time =='WEEK'  else 0)
-            print "frequency"
-            print frequency
             new_service.frequency = frequency
+        
         new_service.run_as_user = form_data.cleaned_data['run_as_user']
         new_service.save()
+        
         response["result_messages"] = ["New service successfully added."]
 
     else:
+
         response["error_messages"] = ["Failed to add service."]
 
     return manage(request, response=response)
