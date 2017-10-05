@@ -13,8 +13,8 @@ class IngestForm(forms.Form):
         super(IngestForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal ingest-form'
-        self.helper.field_class = "col-lg-8"
-        self.helper.label_class = "col-lg-2"
+        self.helper.field_class = "col-lg-7"
+        self.helper.label_class = "col-lg-5"
         self.helper.form_method = 'post'
         self.helper.form_show_labels = True
         self.helper.help_text_inline = True

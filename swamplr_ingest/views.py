@@ -43,6 +43,18 @@ def manage(request, response={}):
 #
 #    return (status_id, [output])
 #
+def add_ingest_job(request):
+    
+    form = IngestForm(request.POST)
+    if form.is_valid():
+        clean = form.cleaned_data
+        
+        new_job = add_job(SwamplrIngestConfig.name)
+        ingest_job = ingest_jobs.objects.create(
+            job_id=new_job,
+            source_dir=clean["source_dir"]            
+
+
 def run_ingest(request, collection_name):
    
     form = IngestForm()

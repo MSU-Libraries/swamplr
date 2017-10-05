@@ -18,10 +18,9 @@
     <div class="table table-responsive table-condensed">
 
     <div class="app-row">
-        <div class="app-column">Label</div>
-        <div class="app-column">Description</div>
-        <div class="app-column">Command</div>
-        <div class="app-column">Frequency (min)</div>
+        <div class="app-column">Service</div>
+        <div class="app-column command-column">Command</div>
+        <div class="app-column">Frequency (mins.)</div>
         <div class="app-column">Last Started</div>
         <div class="app-column">User</div>
         <div class="app-column">Actions</div>
@@ -32,8 +31,7 @@
 
     <div class="app-row">
         <div class="app-column">{{ s.label }}</div>
-        <div class="app-column">{{ s.description }}</div>
-        <div class="app-column"><code>{{ s.command }}</code></div>
+        <div class="app-column command-column" id="command-text"><code>{{ s.command }}</code></div>
         <div class="app-column">{{ s.frequency }}</div>
         <div class="app-column">{{ s.last_started }}</div>
         <div class="app-column">{{ s.run_as_user }}</div>

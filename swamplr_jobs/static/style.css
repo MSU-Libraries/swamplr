@@ -111,7 +111,7 @@ a.btn.btn-lg.btn-outline-dark {
     background: #ffffff;
 }
 
-.panel-primary, .panel-heading {
+.panel-primary, .panel-heading, #ingest-panel {
     color: #18453b !important;
     background-color: #e3e3e3;
     border-color: #e3e3e3 !important;
@@ -119,6 +119,13 @@ a.btn.btn-lg.btn-outline-dark {
     margin-left:1%;
     margin-right:1%;
     }
+
+#ingest-panel {
+    text-align:left;
+    padding:2% 1%;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
 
 .panel-primary {
     border-radius: 10px;
@@ -156,6 +163,14 @@ a.btn.btn-lg.btn-outline-dark {
 
 .app-column {
     width: 13%;
+}
+
+.command-column {
+    width: 27.1%;
+}
+
+.command-text {
+    text-align:left;
 }
 
 .message-data {
@@ -231,6 +246,7 @@ input#submit-id-add-service {
 
 .app-button {
     margin-top:1px;
+    text-align:left;
 }
 
 #status-container {
