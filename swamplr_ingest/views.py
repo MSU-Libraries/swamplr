@@ -1,9 +1,9 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from apps import SwamplrIngestConfig
-from models import ingest_jobs
+from models import ingest_jobs, job_datastreams, datastreams, job_objects, object_results
 from forms import IngestForm
-from swamplr_jobs.views import add_job
+from swamplr_jobs.views import add_job, job_status 
 from datetime import datetime
 import logging
 import os
@@ -43,16 +43,61 @@ def manage(request, response={}):
 #
 #    return (status_id, [output])
 #
-def add_ingest_job(request):
-    
+def add_ingest_job(request, collection_name):
+   
+    response = {"error_messages": [],
+                "result_messages": [],
+               } 
+    collection_data = get_ingest_data(collection_name)   
+ 
     form = IngestForm(request.POST)
     if form.is_valid():
+    
         clean = form.cleaned_data
-        
+ 
+        object_datastreams = get_all_datastreams(collection_data, clean)
+        metadata_datastreams = get_all_metadata(collection_data, clean)
+        all_datastreams = object_datastreams + metadata_datastreams
+    
+        process_new = "y" if "process_new" in clean["process"] else ""
+        process_existing = "y" if "process_existing" in clean["process"] else ""
+        subset = int(clean["subset"])
+
         new_job = add_job(SwamplrIngestConfig.name)
         ingest_job = ingest_jobs.objects.create(
             job_id=new_job,
-            source_dir=clean["source_dir"]            
+            source_dir=clean["source_dir"],          
+            collection_name=collection_name,
+            namespace=clean["namespace"],
+            replace_on_duplicate=clean["replace_on_duplicate"],
+            process_new=process_new,
+            process_existing=process_existing,
+            subset=subset,
+        )
+        ds_options = datastreams.objects.all()
+        existing_ds = [ds.datastream_label for ds in ds_options]
+        for ds, otype, dtype in all_datastreams:
+            if ds not in existing_ds:
+                is_object = "y" if dtype == "datastream" else "" 
+                new_ds = datastreams.objects.create(
+                    datastream_label=ds,
+                    is_object=is_object,
+                )
+
+            job_datastream = job_datastreams.objects.create(
+                ingest_id=ingest_job,
+                object_type=otype,
+                datastream_id=datastreams.objects.get(datastream_label=ds),
+            )
+        message = "Successfully added {0} job: {1}".format(SwamplrIngestConfig.name, new_job.job_id)
+        response["result_messages"].append(message)
+    
+    else:
+
+        message = "Unable to add job: Missing or invalid form data."
+        message["error_messages"].append(message)
+        
+    return job_status(request, response)
 
 
 def run_ingest(request, collection_name):
@@ -60,7 +105,7 @@ def run_ingest(request, collection_name):
     form = IngestForm()
     form.set_fields(collection_name)
     form.set_form_action(collection_name)
-    return render(request, "swamplr_ingest/ingest.html", {"form": form})
+    return render(request, "swamplr_ingest/ingest.html", {"form": form, "cname": collection_name})
 
 
 def load_manage_data():
@@ -112,31 +157,6 @@ def run_service(request, service_id):
 
     return manage(request, response={"result_messages": results_messages, "error_messages": error_messages})
 
-def add_service(request):
-
-    form = ServicesForm()
-    response = {"form": form}
-    form_data = ServicesForm(request.POST)
-    if form_data.is_valid():
-
-        new_service = services()
-        new_service.label = form_data.cleaned_data['label']
-        new_service.description = form_data.cleaned_data['description'] 
-        new_service.command = form_data.cleaned_data['command']
-        if form_data.cleaned_data['frequency']:
-            frequency = int(form_data.cleaned_data['frequency'])
-            frequency_time  = form_data.cleaned_data['frequency_time']
-            frequency = (frequency if frequency_time =='MIN' else frequency*60 if frequency_time =='HOUR' else  frequency*60*24 if frequency_time =='DAY' else  frequency*60*24*7 if frequency_time =='WEEK'  else 0)
-            new_service.frequency = frequency
-        new_service.run_as_user = form_data.cleaned_data['run_as_user']
-        new_service.save()
-        response["result_messages"] = ["New service successfully added."]
-
-    else:
-        response["error_messages"] = ["Failed to add service."]
-
-    return manage(request, response=response)
-
 def get_status_info(job):
     """Required function: return info about current job for display."""
     job_id = job.job_id
@@ -170,11 +190,6 @@ def get_actions(job):
     actions = []
     return actions
 
-def delete_service(request, s_id):
-    """Delete service based on id."""
-    services.objects.filter(service_id=s_id).delete()
-    result_message = ["Successfully deleted service."]
-    return manage(request, response={"result_messages": result_message})    
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
@@ -218,4 +233,34 @@ def load_ingest_data():
     with open(config_path) as configs:
         data = json.load(configs)
     return data
+
+def get_all_metadata(collection_data, form_data):
+    """Wrapper to get metadata types via get_all_datastreams function."""
+    return get_all_datastreams(collection_data, form_data, value_type="metadata")
+
+
+def get_all_datastreams(collection_data, form_data, value_type="datastreams"):
+    """Transfer datastreams from form values to database ready values.
+
+    args:
+        collection_data(dict): data from json-configured collection configs.
+        form_data(dict): data from collection upload form.
+    kwargs:
+        values(str): either 'datastreams' or 'metadata'; the type of user input to retrieve.
+    """
+    # list to be populated with 2-tuples of datastream name and object type
+    # it's associated with.
+    datastreams = []
+    object_types = collection_data["objects"].keys()
+    # For each type of object associated with the given collection.
+    for otype in object_types:
+        # This key structure is set in forms.py
+        # The structure there will have to match the format here.
+        key = "{0}-{1}".format(otype, value_type)
+        ds_values = form_data[key]
+        # For each checked box for each object type, add value and type.
+        for ds_value in ds_values:
+            datastreams.append((ds_value, otype, value_type))
+
+    return datastreams
 

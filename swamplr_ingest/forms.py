@@ -22,7 +22,7 @@ class IngestForm(forms.Form):
 
     def set_form_action(self, collection_name):
 
-        self.helper.form_action = reverse("add-job", args=[collection_name])
+        self.helper.form_action = reverse("add-ingest-job", args=[collection_name])
 
     def set_fields(self, collection_name):
         """Dynamically set fields on upload form depending on collection."""

@@ -23,6 +23,7 @@ class job_datastreams(models.Model):
 
     job_datastream_id = models.AutoField(primary_key=True)
     ingest_id = models.ForeignKey('ingest_jobs')
+    object_type = models.CharField(max_length=1)
     datastream_id = models.ForeignKey('datastreams')
 
 class datastreams(models.Model):
