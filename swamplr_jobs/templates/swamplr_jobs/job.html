@@ -4,13 +4,13 @@
 {% block content %}
 
 <div class="panel panel-primary">
-    <div class="panel-heading">
+    <div id="job-status-heading" class="panel-heading">
         <div>Job Status</div>
         <div id="kbd"><kbd>As of {% now 'm/d/Y f a' %}</kbd></div>
     </div>
     <div id="status-container">
     <div class="job-container">
-        <div class="panel-heading job-detail-heading">Job Details</div>
+        <div id="job-details" class="panel-heading job-detail-heading">Job Details</div>
         {% for e in job.card %}
             <div class="job-details">
                 <div class=details-field">{{ e.0 }}</div>
@@ -27,7 +27,7 @@
             </div>
         </div>
     <div class="job-container">
-        <div class="panel-heading job-detail-heading">{{ job.job_type|title }} Details</div>
+        <div id="job-type-details" class="panel-heading job-detail-heading">{{ job.job_type|title }} Details</div>
         {% for e in job.details %}
             <div class="job-details">
                 <div class="details-field">{{ e.0 }}</div>
@@ -37,7 +37,7 @@
     </div>
     </div>
     {% if job.messages %}
-    <div class="panel-heading">Messages</div> 
+    <div id="messages-heading" class="panel-heading">Messages</div> 
     <div class="table table-responsive table-condensed">
         <div class="job-row">
             <div class="job-column message-data">Time</div>

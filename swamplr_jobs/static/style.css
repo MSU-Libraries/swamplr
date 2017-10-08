@@ -54,7 +54,7 @@ a.btn.btn-lg.btn-outline-dark {
 }
 
 #header {
-    margin-top:25px;
+    margin-top:0;
     margin-bottom:25px;
     margin-left: 2%;
     margin-right: 3%;
@@ -98,6 +98,10 @@ a.btn.btn-lg.btn-outline-dark {
     margin-right: 15px;
 }
 
+#job-status-heading, #messages-heading {
+    background-color:#e3e3e3;
+}
+
 .job-row, .app-row {
     width: 97%;
     min-height: 50px;
@@ -130,7 +134,12 @@ a.btn.btn-lg.btn-outline-dark {
 .ingest-heading {
     width:100%;
     margin-left:3.1%;
-    margin-bottom:15px;
+    text-align:center;
+    margin-bottom:40px;
+}
+
+.ingest-heading h2 {
+    margin-top:10px;
 }
 
 .panel-primary {
@@ -227,12 +236,22 @@ a.btn.btn-lg.btn-outline-dark {
 }
 
 .controls {
-    margin-right:10px;
 }
 
 .controls input {
     line-height:26px;
     padding-left:5px;
+}
+
+div#div_id_path_list_selected .controls {
+    width: 50%;
+}
+div#div_id_pid_namespace .controls {
+    width: 25%; 
+}
+
+input#id_subset_value {
+    width:75px;
 }
 
 .service-form {
@@ -279,11 +298,15 @@ input#submit-id-add-service {
     padding: 3px 5px;
 }
 
+#job-details, #job-type-details {
+    background-color:white;
+}
+
 .job-details > div {
     flex: 0 1 auto;
 }
 
-.job-detail-heading {
+.job-container .job-detail-heading {
     background-color:white;
     border-bottom: 1px solid lightblue;
     padding-bottom: 5px;

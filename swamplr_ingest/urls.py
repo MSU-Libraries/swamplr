@@ -5,5 +5,6 @@ urlpatterns = [
     url(r'^([a-z]{1,20})/submit', views.add_ingest_job, name="add-ingest-job"),
     url(r'^([a-z]{1,20})$', views.run_ingest, name="run-ingest"),
     url(r'^manage', views.manage, name="manage-ingest"),
+    url(r'^ajax/browse/$', views.browse, name='browse'),
 ]
 

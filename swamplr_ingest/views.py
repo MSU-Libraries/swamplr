@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from apps import SwamplrIngestConfig
 from models import ingest_jobs, job_datastreams, datastreams, job_objects, object_results
 from forms import IngestForm
@@ -47,10 +47,14 @@ def add_ingest_job(request, collection_name):
    
     response = {"error_messages": [],
                 "result_messages": [],
-               } 
+                "base_dir": SwamplrIngestConfig.ingest_paths,
+    }
+
     collection_data = get_ingest_data(collection_name)   
  
     form = IngestForm(request.POST)
+    form.set_fields(collection_name)
+
     if form.is_valid():
     
         clean = form.cleaned_data
@@ -61,15 +65,16 @@ def add_ingest_job(request, collection_name):
     
         process_new = "y" if "process_new" in clean["process"] else ""
         process_existing = "y" if "process_existing" in clean["process"] else ""
-        subset = int(clean["subset"])
+        replace_on_duplicate = "y" if clean["replace_on_duplicate"] else ""
+        subset = int(clean["subset_value"]) if clean["subset_value"] else 0
 
         new_job = add_job(SwamplrIngestConfig.name)
         ingest_job = ingest_jobs.objects.create(
             job_id=new_job,
-            source_dir=clean["source_dir"],          
+            source_dir=clean["path_list_selected"],          
+            replace_on_duplicate = replace_on_duplicate,
             collection_name=collection_name,
-            namespace=clean["namespace"],
-            replace_on_duplicate=clean["replace_on_duplicate"],
+            namespace=clean["pid_namespace"],
             process_new=process_new,
             process_existing=process_existing,
             subset=subset,
@@ -95,17 +100,23 @@ def add_ingest_job(request, collection_name):
     else:
 
         message = "Unable to add job: Missing or invalid form data."
-        message["error_messages"].append(message)
+        response["error_messages"].append(message)
         
-    return job_status(request, response)
+    return job_status(request, response=response)
 
 
 def run_ingest(request, collection_name):
    
     form = IngestForm()
+    cname = get_ingest_data(collection_name)["label"]
     form.set_fields(collection_name)
     form.set_form_action(collection_name)
-    return render(request, "swamplr_ingest/ingest.html", {"form": form, "cname": collection_name})
+    response = {
+        "form": form,
+        "cname": cname,
+        "base_dir": SwamplrIngestConfig.ingest_paths,
+    }          
+    return render(request, "swamplr_ingest/ingest.html", response)
 
 
 def load_manage_data():
@@ -133,29 +144,6 @@ def load_manage_data():
         "services": all_services,
     }   
     return response
-
-def run_service(request, service_id):
-    """Run service given by name.
-    Use id of service to retrieve it from a database.
-
-    args:
-        service_id(str): id of service to run.
-    """
-    results_messages = ""
-    error_messages = ""
-
-    # Get service information from service id.
-    service = services.objects.get(service_id=service_id)
-
-    # Pass in app name from apps.py.
-    new_job = add_job(ServicesConfig.name)
-
-    new_service_job = service_jobs.objects.create(job_id=new_job, service_id=service)
-    new_service_job.save()
-
-    results_messages = ["Added job successfully."]
-
-    return manage(request, response={"result_messages": results_messages, "error_messages": error_messages})
 
 def get_status_info(job):
     """Required function: return info about current job for display."""
@@ -263,4 +251,44 @@ def get_all_datastreams(collection_data, form_data, value_type="datastreams"):
             datastreams.append((ds_value, otype, value_type))
 
     return datastreams
+
+
+def browse(request):
+    """Return the list of directories  along with the parent directory as a json value."""
+    data = []
+    repo_directory = request.GET.get('selected_dir', None)
+    navigateBack = True if request.GET.get('back') == 'true' else False
+    base_dirs = []
+    for path in SwamplrIngestConfig.ingest_paths:
+        base_dirs.append(path)
+        if path in repo_directory:
+            base_path = path
+
+    # check to see if the back button is pressed .
+    if navigateBack:
+        if repo_directory == base_path:
+            isRoot = True
+        else:
+            parent = os.path.abspath(os.path.join(repo_directory, os.pardir))
+            isRoot = False
+            for child in os.listdir(parent):
+                child_path = os.path.join(parent, child)
+                if os.path.isdir(child_path):
+                    data.append(child_path)
+            # To associate the back button with the parent of the list.
+            if parent == base_path:
+                repo_directory = base_path
+            else:
+                repo_directory = parent
+    else:
+        # the selected directory is set as the parent while navigating forward.
+        isRoot = False
+        for child in os.listdir(repo_directory):
+                child_path = os.path.join(repo_directory, child)
+                if os.path.isdir(child_path):
+                    data.append(child_path)
+
+    data.sort()
+    base_dirs.sort()
+    return JsonResponse({'data': data, 'parent': repo_directory, "isRoot": isRoot, 'base_dirs': base_dirs})
 

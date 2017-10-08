@@ -3,18 +3,27 @@ from django.forms import ModelForm
 from django.core.urlresolvers import reverse
 from swamplr_ingest.models import ingest_jobs
 import views
+from apps import SwamplrIngestConfig
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
+from django.core.exceptions import ValidationError
+from django.utils.translation import ugettext_lazy as _
 
+def validate_path(value):
+    if not any([value.startswith(path) for path in SwamplrIngestConfig.ingest_paths]): 
+        raise ValidationError(
+            _('%(value)s is not an allowed path.'),
+            params={'value': value},
+        )
 
 class IngestForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(IngestForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.form_class = 'form-horizontal ingest-form'
-        self.helper.field_class = "col-lg-7"
-        self.helper.label_class = "col-lg-5"
+        self.helper.form_class = 'form-horizontal'
+        self.helper.field_class = "col-lg-9"
+        self.helper.label_class = "col-lg-3"
         self.helper.form_method = 'post'
         self.helper.form_show_labels = True
         self.helper.help_text_inline = True
@@ -27,14 +36,26 @@ class IngestForm(forms.Form):
     def set_fields(self, collection_name):
         """Dynamically set fields on upload form depending on collection."""
         collection_data = views.get_ingest_data(collection_name)
+    
+        # Get any object type, and use it to retrieve namespace. 
+        namespace_key = collection_data["objects"].keys()[0]
+        namespace = collection_data["objects"][namespace_key]["namespace"]
+
+        # Use first listed ingest path as default value.
+        ingest_paths = SwamplrIngestConfig.ingest_paths
+        ingest_path = ingest_paths[0]
+
         self.fields["pid_namespace"] = forms.CharField(
             label="PID Namespace",
             required=True,
+            initial=namespace, 
             max_length="20",
         )
         self.fields["path_list_selected"] = forms.CharField(
             required=True,
-            label="Select directory"
+            label="Select directory",
+            initial=ingest_path,
+            validators=[validate_path],
         )
         for objectx, data in collection_data["objects"].items():
             # Gather datastream choices; these should be a tuple of 2-tuples containing label and ID.

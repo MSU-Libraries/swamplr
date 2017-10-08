@@ -4,11 +4,13 @@
 
 {% block content %}
 
+{% include "swamplr_ingest/browse_helper.html" %}
+
 <div class="container-fluid" id="ingest-panel">
-    <div class="row">
-    <div class="ingest-heading"><h2>{{ cname|title }} Ingest</h2></div>
-    {% crispy form form.helper %}
-    </div>
+    <div class="ingest-heading"><h2>Ingest: <span class="collection-name">{{ cname|title }}</span></h2></div>
+    {% crispy form  %}
 </div>
+
+{% include "swamplr_ingest/browse_button.html" %}
 
 {% endblock %}
