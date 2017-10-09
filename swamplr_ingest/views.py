@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from apps import SwamplrIngestConfig
 from models import ingest_jobs, job_datastreams, datastreams, job_objects, object_results
+from collection import CollectionIngest
 from forms import IngestForm
 from swamplr_jobs.views import add_job, job_status 
 from datetime import datetime
@@ -9,40 +10,35 @@ import logging
 import os
 import json
 
+
 def manage(request, response={}):
     """Manage existing services and add new ones."""
     response.update(load_manage_data())
     return render(request, 'swamplr_services/manage.html', response)
 
-#def run_process(current_job):
-#    """Run process from swamplr_jobs.views."""
-#
-#    service_job = service_jobs.objects.get(job_id=current_job)
-#    service = services.objects.get(service_id=service_job.service_id_id)
-#    service.last_started = current_job.started
-#    service.save()
-#
-#    command = service.command
-#    user = service.run_as_user
-#
-#    if not user:
-#        user = ServicesConfig.run_as_user
-#
-#    user_id = getpwnam(user).pw_uid
-#    os.setuid(user_id)
-#
-#    args = shlex.split(command)
-#
-#    try:
-#        output = subprocess.check_output(args)
-#        status_id = service_status.objects.get(status="Success").service_status_id_id
-#
-#    except Exception as e:
-#        output = e
-#        status_id = service_status.objects.get(status="Script error").service_status_id_id
-#
-#    return (status_id, [output])
-#
+
+def run_process(current_job):
+    """Run process from swamplr_jobs.views."""
+
+    ingest_job = ingest_jobs.objects.get(job_id=current_job)
+
+    datastreams = []
+    for ds_id in job_datastreams.objects.filter(ingest_id=ingest_job):
+        otype = ds_id.object_type
+        ds = datastreams.objects.get(datastream_id=ds_id).datastream_label
+        datastreams.append((ds, otype))
+    
+    try:
+        c = CollectionIngest()
+        c.start_ingest(ingest_job, datastreams)
+
+    except Exception as e:
+        output = e
+        status_id = service_status.objects.get(status="Script error").service_status_id_id
+
+    return (status_id, [output])
+
+
 def add_ingest_job(request, collection_name):
    
     response = {"error_messages": [],
@@ -83,7 +79,7 @@ def add_ingest_job(request, collection_name):
         existing_ds = [ds.datastream_label for ds in ds_options]
         for ds, otype, dtype in all_datastreams:
             if ds not in existing_ds:
-                is_object = "y" if dtype == "datastream" else "" 
+                is_object = "y" if dtype == "datastreams" else "" 
                 new_ds = datastreams.objects.create(
                     datastream_label=ds,
                     is_object=is_object,
@@ -150,25 +146,45 @@ def get_status_info(job):
     job_id = job.job_id
 
     try:
-        service = service_jobs.objects.get(job_id=job.job_id)
-        service_info = services.objects.get(service_id=service.service_id_id)
-        label = service_info.label
+        ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
+        ingest_data = get_ingest_data(ingest_job.collection_name)
+        collection_label = ingest_data["label"]
         details = [
-            ("Service ID", service_info.service_id),
-            ("Label", label),
-            ("Description", service_info.description),
-            ("Command", service_info.command),
-            ("User", service_info.run_as_user),
-            ("Frequency", service_info.frequency),
-            ("Last Started", service_info.last_started),
+            ("Ingest ID", ingest_job.ingest_id),
+            ("Collection Type", ingest_job.collection_name),
+            ("Namespace", ingest_job.namespace),
+            ("Process New Objects", ingest_job.process_new.upper()),
+            ("Process Existing Objects", ingest_job.process_existing.upper()),
+            ("Replace Duplicate Datastreams", ingest_job.replace_on_duplicate.upper()),
+            ("Items To Process", ingest_job.subset if ingest_job.subset != 0 else "All"),
         ]
+        ds_data = {}
+        job_ds = job_datastreams.objects.filter(ingest_id=ingest_job.ingest_id)
+        for j in job_ds:
+            ds = datastreams.objects.get(datastream_id=j.datastream_id_id)
+            label = ds.datastream_label
+            ds_type = "Datastreams" if ds.is_object == "y" else "Metadata"
+            object_type = j.object_type
+            print ingest_data["objects"][object_type]
+            if "label" in ingest_data["objects"][object_type]:
+                object_type_label = ingest_data["objects"][object_type]["label"]
+            else:
+                object_type_label = object_type
+            key = ", ".join([object_type_label, ds_type])
+            if key not in ds_data:
+                ds_data[key] = [label]
+            else:
+                ds_data[key].append(label)
+        for k, v in ds_data.items():
+            details.append((k, " ".join(v)))
 
     # Cause of this exception would be the service being deleted from the table.
-    except:
+    except Exception as e:
         label = "Not Found"
         details = [("None", "No Info Found")]
+        print e.message
 
-    info = ["Service name: {0}".format(label)]
+    info = ["Namespace: {0}".format(ingest_job.namespace), "Collection {0}".format(collection_label)]
 
     return info, details
 
@@ -212,6 +228,7 @@ def get_ingest_data(ingest_type):
             config key.
     """
     data = load_ingest_data()
+    default = load_collection_defaults()
     return data[ingest_type]
 
 
@@ -221,6 +238,11 @@ def load_ingest_data():
     with open(config_path) as configs:
         data = json.load(configs)
     return data
+
+def load_collection_defaults():
+    """Load json file of collection data."""
+    default_path = SwamplrIngestConfig.collection_defaults
+    
 
 def get_all_metadata(collection_data, form_data):
     """Wrapper to get metadata types via get_all_datastreams function."""

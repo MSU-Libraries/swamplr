@@ -324,3 +324,57 @@ input#submit-id-add-service {
     height:auto;
     overflow:overlay;
 }
+
+.dir{
+	cursor: pointer;
+    border: 1px solid #e3e3e3;
+    margin-top: 7px;
+    padding: 5px;
+    border-radius: 5px;
+
+}
+.back_dir{
+  border:0px #ffffff solid !important;
+  width:70px;
+
+}
+ .back_dir img{
+  height:40px;
+
+}
+.select_disable{
+	border: 1px solid #e3e3e3;
+	background:#e3e3e3;
+}
+.select_disable:hover{
+    cursor: initial;
+	border: 1px solid #e3e3e3;
+	background:#e3e3e3;
+}
+.select_enable{
+	border: 1px solid ##286090;
+	background:##286090;
+}
+
+.browse_msg{
+	text-align: center;
+    border: 1px solid #e3e3e3;
+    line-height: 50px;
+    border-radius: 5px;
+    margin: 30px;
+}
+.modal-header{
+	text-align: center;
+    background: #41B48B;
+    color: #fff;
+}
+
+.modal_help_msg{
+	border: 1px solid #e3e3e3;
+    padding: 10px;
+    font-size: 12px;
+    color: #666666;
+    border-radius: 5px;
+    text-align: center;
+}
+

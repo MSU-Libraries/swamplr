@@ -4,12 +4,10 @@ from lxml import etree
 from upload import Upload, LocalObject
 from rdflib import URIRef, XSD
 from rdflib.namespace import Namespace
-from eulfedora.models import XmlDatastream, FileDatastream, Relation, DigitalObject, DatastreamObject
-from eul_proj import settings
-from job_queue import JobQueue
-from msulrepo import repo
+from swamplr import settings
 from hint import HintFiles
 from operator import itemgetter
+from apps import SwamplrIngestConfig
 import os
 import re
 import json
@@ -25,10 +23,9 @@ class Ingest:
 
     """Process ingest of collection to Fedora Commons."""
 
-    def __init__(self, path, ingest_job, collection_configs, datastreams, object_type,
-                 job_id, compound=False, child=False, parent_pid=None, sequence=None):
+    def __init__(self, path, ingest_job, collection, datastreams, object_type,
+                 compound=False, child=False, parent_pid=None, sequence=None):
         """Prepare for ingest."""
-
         # Path to object directory (containing datastream files).
         self.path = path
 
@@ -36,97 +33,58 @@ class Ingest:
         self.object_type = object_type
 
         # All job details from database.
-        self._ingest_job = ingest_job
-        self._job_id = job_id
-        self._namespace = self._ingest_job.namespace
+        self.ingest_job = ingest_job
+        self.namespace = self.ingest_job.namespace
 
         # All collection configs for the given collection name.
-        self._collection_configs = collection_configs
-        self._objects = self._collection_configs["objects"]
-        self._content_model = self._collection_configs["objects"][object_type]["content_model"]
+        self.collection = collection
+        self.objects = collection_["objects"]
+        self.content_model = self.collection["objects"][object_type]["content_model"]
         
         # Configs compiled from collection_defaults.json and collections.json.
         self.metadata_configs = {}
         self.datastream_configs = {}
 
-        # Load default settings.
-        self._load_datastream_settings()
-
-        self._compound = compound
-        self._child = child
-        self._parent_pid = parent_pid
-        self._sequence = sequence
+        self.compound = compound
+        self.child = child
+        self.parent_pid = parent_pid
+        self.sequence = sequence
 
         # List of datastreams as 2-tuple (name, associated object type).
-        self._datastreams = datastreams
-
-        # Future Upload class.
-        self._object_upload = ""
+        self.datastreams = datastreams
 
         # Future title.
         self.title = ""
-
-        # Connect to Fedora repository.
-        repo_server = settings.CURRENT_INGEST_SERVER
-        self._repo = repo.repo_connect(repo_server)
-        self._api = repo.api_connect(repo_server)
 
         # Outlook and outcome.
         self.prognosis = "skip"
         self.result = "failed"
 
         # True if a new object is being created, false if one already exists.
-        self._new_object = False
+        self.new_object = False
 
         # Just datastreams at the current layer, e.g. compound parent objects.
-        self._object_datastreams = []
+        self.object_datastreams = []
 
         # Extract and separate file datastreams from metadata according to current object layer.
-        self.file_datastreams, self.metadata_datastreams = self._set_datastreams()
+        self.file_datastreams, self.metadata_datastreams = self.set_datastreams()
 
         # Dictionary containing datastream id as key, path to file as value.
-        self.datastream_paths = self._gather_paths()
+        self.datastream_paths = self.gather_paths()
        
-        # Treat given object as new.
-        if self._ingest_job.ingest_only_new_objects:
-        
-            # Create object as new, not using existing pid.
-            self._new_object = True
-
-            # Create new pid.
-            self.pid = self._get_next_pid(self._namespace)
-
-            # Ingest shall proceed.
-            self.prognosis = "ingest"
-        
-        # Otherwise check for given object in the repository.
-        else:
-            self._check_for_existing_object()
+        self.check_for_existing_object()
 
     def create_object(self):
         """Create object for upload, whether a new object or amended."""
 
-        # Create object class that extends DigitalObject.
-        object_class = self._create_object_class()
-
         # Title is pulled from Dublin Core, and used as FC label.
-        self.title = self._get_title(self.datastream_paths.get("DC", None))
-
-        # This method attempts to find root directory in a sub- or parent directory.
-        self._root_dir = self._get_root_dir()
+        self.title = self.get_title(self.datastream_paths.get("DC", None))
 
         # Get data from hint files.
         hint = HintFiles(self._root_dir, self.path)
         self._hint_data = hint.get_hint_data()
         
         logging.info(u"Processing object at {0}: {1}".format(self.pid, self.title))
-
-        # Pass data over to upload class to begin upload to Fedora.
-        self._object_upload = Upload(
-            self.pid, self._repo, self._api, self._job_id, object_class,
-            new_object=self._new_object,
-            object_label=self.title
-        )
 
         # Add rels-ext, metadata, files, then check outcome.
         self._add_rels_ext()
@@ -178,6 +136,10 @@ class Ingest:
 
                 sequence_predicate = self._set_sequence_predicate()
                 self._object_upload.build_rels_ext(sequence_predicate, self._sequence)
+                # Using build_rels_ext method instead of set_attr method because the latter does not seem to be able to handle
+                # URIs as objects, only literals.
+                self._object_upload.build_rels_ext("info:fedora/fedora-system:def/relations-external#isMemberOfCollection",
+                                                   "info:fedora/{0}".format(root_pid))
 
         else:
 
@@ -470,7 +432,7 @@ class Ingest:
         element = root.xpath(xpath, namespaces=ns)
         return element[0].text
 
-    def _check_for_existing_object(self):
+    def check_for_existing_object(self):
         """Check if object already exists in repository based on unique ID."""
         # In the event this is an object type that was not selected to have any datastreams ingested/replaced
         # then we want to skip the object. For example, if it is a compound object and the parent object was
@@ -485,12 +447,13 @@ class Ingest:
             object_id = self._get_identifier(self.datastream_paths["DC"])
             logging.info("Checking object ID: {0}".format(object_id))
 
-        self.pid = self._get_pid_by_filename(object_id, self._namespace, return_all_objects=(self._compound or self._child))
         
-        if self._compound:
+        self.pid = self.get_pids(object_id, self.namespace, return_all_objects=(self.compound or self.child))
+        
+        if self.compound:
             self.pid = self._get_compound_pid()
 
-        if self._child:
+        if self.child:
             self.pid = self._get_child_pid()
 
         # If no pid returned in search.
@@ -651,10 +614,10 @@ class Ingest:
         root = xml.getroot()
         ns = {"dc": "http://purl.org/dc/elements/1.1/"}
         ids = root.xpath(id_xpath, namespaces=ns)
-        idlist = [i.text for i in ids]
+        idlist = [i.text for i in ids if i.text is not None]
         return idlist
 
-    def _get_pid_by_filename(self, fileid, pidspace, return_all_objects=False):
+    def get_pids(self, fileid, pidspace, return_all_objects=False):
         """Use base filename to check for existing object in repo.
 
         args:
@@ -730,3 +693,4 @@ class Ingest:
         else:
             logging.info("Failed to ingest {0}".format(self.pid))
             return False
+

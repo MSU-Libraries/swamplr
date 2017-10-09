@@ -49,6 +49,11 @@ else:
 # respond to. e.g. swamplr.example.edu, etc
 ALLOWED_HOSTS = [host.strip() for host in configs.get("hosts", "ALLOWED_HOSTS").split(",")]
 
+# Fedora connection information.
+FEDORA_URL = configs.get("fedora", "FEDORA_URL")
+FEDORA_USER = configs.get("fedora", "FEDORA_USER")
+FEDORA_PASSWORD = configs.get("fedora", "FEDORA_PASSWORD")
+
 # Application definition
 INSTALLED_APPS = (
     'django.contrib.admin',

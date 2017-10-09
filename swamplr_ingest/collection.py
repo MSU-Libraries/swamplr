@@ -13,76 +13,69 @@ class CollectionIngest(object):
 
     """General collection-oriented methods."""
 
-    def __init__(self, ingest_job):
+    def __init__(self):
         """Initiate ingest of collection.
 
         args:
+            job_id (int): id of this ingest job.
         """
         self.datastreams = None
 
-        self._id_prefix = ""
-        self._root_dir = ""
-
-        self._ingest_job = None
+        self.id_prefix = ""
+        self.root_dir = ""
 
         # Count outcomes for display to user.
         self.successful_objects = 0
         self.failed_objects = 0
         self.skipped_objects = 0
 
-        self.job_data = {}
-        self.collection_configs = {}
+        self.job = {}
+        self.collection = {}
      
         # 'Compound' content models are those with hierarchical directory structures.
         self.compound_content_models = ["compound", "newspaper_issue", "book"]
         self.simple_content_models = ["large_image", "pdf", "newspaper_page", "oral_histories", "audio"]
 
         self.pidcounter = 0
-        self.deletedPid = ""
+        self.deleted_pid = ""
 
         self.error_messages = []
 
-        self._set_object_types()
-
         logging.info("Initializing Ingest for Job {0}".format(job_id))
 
-    def start_ingest(self, ingest_job, datastreams):
+    def start_ingest(self, ingest_job, datastreams, collection_configs):
         """Initiate ingest according to parameters from job in database and settings in collections.json.
 
         """
-        self._ingest_job = ingest_job
+        self.job = ingest_job
         self.datastreams = datastreams
+        self.collection = collection_configs
 
-        # Establish class-level variables.
-        self._load_job_data()
-        self._load_collection_configs()
-
-        # Get root directory, e.g. etd_root.
-        path = self.job_data["path_to_upload"]
-        self._root_dir = JobQueue.get_root_dir(path)
+        # Find root_dir (folder should end in '_root'
+        self.root_dir = self.get_root_dir()
         
         # Check if selected dir might perchance be an object directory itself. If so, process that object directory only. 
-        if any([f.endswith(".xml") for f in os.listdir(self._root_dir)]):
-            logging.info("Found object dir at root: {0}".format(self._root_dir))
+        if any([f.endswith(".xml") for f in os.listdir(self.root_dir)]):
+            logging.info("Found object dir at root: {0}".format(self.root_dir))
 
-            full_path = self._root_dir
+            full_path = self.root_dir
             
-            if not any([ex in full_path for ex in self._exlude_strings]):
+            if not any([ex in full_path for ex in self.collection["exclude_strings"]]):
                 self._prepare(full_path, sequence=1)
 
         else:
-            for i, dir_x in enumerate(self._get_sub_dirs(self._root_dir)):
+            for i, dir_x in enumerate(self.get_sub_dirs(self.root_dir)):
 
                 logging.info("Checking {0}".format(dir_x))
 
                 # Stop after processing specified number of items.
-                if ((self.successful_objects + self.failed_objects) >= self.job_data["subset"]) and self.job_data["subset"] > 0:
+                if ((self.successful_objects + self.failed_objects) >= self.job.subset_value > 0):
                     break
 
-                full_path = os.path.join(self._root_dir, dir_x)
+                full_path = os.path.join(self.root_dir, dir_x)
 
                 # Move to next item if this path is set out to be excluded.
-                if any([ex in full_path for ex in self._exlude_strings]):
+                if any([ex in full_path for ex in self.collection["exclude_strings"]]):
                     continue
 
                 self._prepare(full_path, sequence=i)
@@ -100,12 +93,13 @@ class CollectionIngest(object):
         if self.object_type:
 
             logging.info("Now preparing for ingest: {0}".format(full_path))
-            self._process_for_ingest(full_path, sequence=sequence)
+            self._ingest(full_path, sequence=sequence)
 
         else:
+
             logging.error("Unable to process {0}".format(full_path))
 
-    def _process_for_ingest(self, path, child=False, parent_pid=None, sequence=None):
+    def _ingest(self, path, child=False, parent_pid=None, sequence=None):
         """Begin ingest following check of repo for item.
 
         args:
@@ -114,18 +108,18 @@ class CollectionIngest(object):
 
         compound = True if self._object_types[self.object_type]["content_model"] in self.compound_content_models else False
 
-        in_object = Ingest(path, self._ingest_job, self.collection_configs,
-                           self.datastreams, self.object_type, self.job_id, child=child,
-                           compound=compound, parent_pid=parent_pid, sequence=sequence)
+        iobject = Ingest(path, self.job, self.collection, self.datastreams, 
+                    self.object_type, child=child, compound=compound, 
+                    parent_pid=parent_pid, sequence=sequence)
 
         # Check 'prognosis' for value of 'ingest' or 'skip'.
-        if in_object.prognosis == "ingest":
+        if iobject.prognosis == "ingest":
 
             # Main function for building/updating objects.
-            in_object.create_object()
+            iobject.create_object()
 
             # Check success and process accordingly.
-            if in_object.result == "success":
+            if iobject.result == "success":
                 self.successful_objects += 1
 
             else:
@@ -148,7 +142,7 @@ class CollectionIngest(object):
             parent_pid(str): pid of parent object.
         """
         logging.info("Processing child objects")
-        subdirs = self._get_sub_dirs(path)
+        subdirs = self.get_sub_dirs(path)
         for index, s in enumerate(sorted(subdirs)):
 
             full_path = os.path.join(path, s)
@@ -174,12 +168,6 @@ class CollectionIngest(object):
             "namespace": self._ingest_job.namespace,
             "subset": subset
         }
-
-    def _load_collection_configs(self):
-        """Access collection- or type-level settings and set class variables."""
-        self.collection_configs = self._get_ingest_data(self.job_data["collection_name"])
-        self._exlude_strings = self.collection_configs["exclude_strings"]
-        self._object_types = self.collection_configs["objects"]
 
     def _get_ingest_data(self, ingest_config):
         """Load ingest data and return values based on type.
@@ -242,7 +230,7 @@ class CollectionIngest(object):
         args:
             path(str): full path to directory to check.
         """
-        subdirs = self._get_sub_dirs(path)
+        subdirs = self.get_sub_dirs(path)
 
         # Check if there are subdirs *not* specified as excluded patterns.
         if len(subdirs) > 0 and any(s not in self._exlude_strings for s in subdirs):
@@ -276,13 +264,9 @@ class CollectionIngest(object):
             self.object_type = object_definitions[oclass][0]
             logging.info("Determined object type: %s" % self.object_type)
 
-    def _get_sub_dirs(self, path):
+    def get_sub_dirs(self, path):
         """Check for subdirectories in path."""
         return [f for f in sorted(os.listdir(path)) if os.path.isdir(os.path.join(path, f))]
-
-    def _set_object_types(self):
-        """Get object types associated with the collection."""
-        self.collection_defaults = self._load_configs("COLLECTION_DEFAULTS")
 
     def _load_configs(self, setting):
         """Load json data from settings."""
@@ -337,3 +321,20 @@ class CollectionIngest(object):
             directory(str): where to look
         """
         return len([f for f in os.listdir(directory) if f.endswith(file_ending)])
+
+    def get_root_dir():
+        """Find root directory, which should end in _root.
+
+        args:
+            path(str): path to files to tally
+        """
+        path = self.job.source_dir 
+        root_dir = path
+        for root, dirs, files in os.walk(path):
+            for dirx in dirs:
+                if dirx.endswith("_root"):
+                    root_dir = os.path.join(root, dirx)
+                    break
+
+        return root_dir
+
