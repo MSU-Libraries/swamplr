@@ -111,7 +111,6 @@ a.btn.btn-lg.btn-outline-dark {
     width: 97%;
     min-height: 50px;
     text-align: left!important;
-    line-height: 20px;
     margin: auto;
     margin-top: 7px;
     margin-bottom: 7px;
@@ -173,7 +172,7 @@ a.btn.btn-lg.btn-outline-dark {
     width: auto;
     height: 50px;
     text-align: center;
-    line-height: 40px;
+    line-height: normal;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -250,6 +249,7 @@ a.btn.btn-lg.btn-outline-dark {
 
 div#div_id_path_list_selected .controls {
     width: 50%;
+    display: inline-block;
 }
 div#div_id_pid_namespace .controls {
     width: 25%; 
@@ -275,7 +275,6 @@ input#submit-id-add-service {
 }
 
 .app-button {
-    margin-top:1px;
     text-align:center;
 }
 
