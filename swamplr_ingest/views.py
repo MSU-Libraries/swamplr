@@ -170,13 +170,13 @@ def get_status_info(job):
                 object_type_label = ingest_data["objects"][object_type]["label"]
             else:
                 object_type_label = object_type
-            key = ", ".join([object_type_label, ds_type])
+            key = " ".join([object_type_label.capitalize(), ds_type])
             if key not in ds_data:
                 ds_data[key] = [label]
             else:
                 ds_data[key].append(label)
         for k, v in ds_data.items():
-            details.append((k, " ".join(v)))
+            details.append((k, ", ".join(v)))
 
     # Cause of this exception would be the service being deleted from the table.
     except Exception as e:
@@ -184,7 +184,7 @@ def get_status_info(job):
         details = [("None", "No Info Found")]
         print e.message
 
-    info = ["Namespace: {0}".format(ingest_job.namespace), "Collection {0}".format(collection_label)]
+    info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0}".format(collection_label)]
 
     return info, details
 

@@ -118,7 +118,7 @@ def set_default_actions(job):
     stop_job = {
          "label": "Stop Job",
          "action": "stop_job",
-         "class": "btn-danger",
+         "class": "btn-warning",
          "args": str(job.job_id)
         }
     rerun_job = {
@@ -131,7 +131,7 @@ def set_default_actions(job):
     archive_job = {
         "label": "Remove Job",
         "action": "remove_job",
-        "class": "btn-secondary",
+        "class": "btn-primary",
         "args": str(job.job_id)
     }
 

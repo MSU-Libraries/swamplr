@@ -50,7 +50,11 @@ a.btn.btn-lg.btn-outline-dark {
 #menu button {
     background-color:white;
     border: 1px solid darkgray;
-    margin-right:10px;
+    margin-right:5px;
+}
+
+#menu a.btn {
+    margin-right:5px;
 }
 
 #header {
@@ -80,6 +84,7 @@ a.btn.btn-lg.btn-outline-dark {
 
 #navbar {
     width:auto;
+    margin-right:2.8%;
 }
 
 #header > div {
@@ -98,7 +103,7 @@ a.btn.btn-lg.btn-outline-dark {
     margin-right: 15px;
 }
 
-#job-status-heading, #messages-heading {
+#job-status-heading, #messages-heading, #info-heading, #info-form-heading {
     background-color:#e3e3e3;
 }
 
@@ -271,7 +276,7 @@ input#submit-id-add-service {
 
 .app-button {
     margin-top:1px;
-    text-align:left;
+    text-align:center;
 }
 
 #status-container {

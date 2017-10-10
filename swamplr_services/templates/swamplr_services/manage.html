@@ -9,7 +9,7 @@
 
 {% if services %}
 
-    <div class="panel-heading">
+    <div id="info-heading" class="panel-heading">
 
         <div>Services</div> <div id="kbd"><kbd>{% now 'm/d/Y f a' %}</kbd></div>
 
@@ -38,10 +38,10 @@
         <div class="app-column app-button">
 
             <a href="{% url 'run-services' s.id %}">
-                <button type="button" class="btn btn-outline-success">Run</button>
+                <button type="button" class="btn btn-success">Run</button>
             </a>
             <a href="{% url 'delete-services' s.id %}">
-                <button type="button" class="btn btn-outline-danger">Delete</button>
+                <button type="button" class="btn btn-danger">Delete</button>
             </a>
 
         </div>
@@ -49,7 +49,7 @@
     {% endfor %}
     </div>
 {% endif %}
-    <div class="panel-heading">
+    <div id="info-form-heading" class="panel-heading">
 
         <div>Add a Service</div>
 

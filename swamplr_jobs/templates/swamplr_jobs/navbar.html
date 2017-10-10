@@ -4,13 +4,13 @@
     {% for app in nav_bar_options %}
     <div class="dropdown">
         <button class="btn btn-outline-dark btn-lg dropdown-toggle {{ app.name }}-button" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">{{ app.label }} <span class="caret"></span></button>
-        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
         {% for child in app.children %}
-            <a class="dropdown-item" href="{% url "run-"|add:app.name child.id %}">{{ child.label }}</a>
+            <li><a class="dropdown-item" href="{% url "run-"|add:app.name child.id %}">{{ child.label }}</a></li>
         {% endfor %}
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="{% url 'manage-'|add:app.name %}">{{ "Manage "|add:app.label }}</a>
-        </div>
+            <li role="separator" class="divider"></li>
+            <li><a class="dropdown-item" href="{% url 'manage-'|add:app.name %}">{{ "Manage "|add:app.label }}</a></li>
+        </ul>
     </div>
     {% endfor %}
   </div>
