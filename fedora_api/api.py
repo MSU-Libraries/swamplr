@@ -17,6 +17,14 @@ class FedoraApi():
         self.static_params = {"resultFormat": "xml"}
         self.dynamic_params = {}
 
+        self.valid_datatype_uris = [
+            "http://www.w3.org/2001/XMLSchema#int",
+            "http://www.w3.org/2001/XMLSchema#double",
+            "http://www.w3.org/2001/XMLSchema#float",
+            "http://www.w3.org/2001/XMLSchema#dateTime",
+            "http://www.w3.org/2001/XMLSchema#long",
+        ]
+
     def set_static_param(self, field, value):
         self.static_params[field] = value 
 
@@ -60,7 +68,11 @@ class FedoraApi():
         return self.call_api()
        
     def add_datastream(self, pid, ds_id, filepath, **kwargs):
+        """Add datastream to specified object.
 
+        kwargs should correspond to parameters passed to the API:
+        [controlGroup] [dsLocation] [altIDs] [dsLabel] [versionable] [dsState] [formatURI] [checksumType] [checksum] [mimeType] [logMessage]
+        """
         self.set_method("POST")
         self.set_url("objects/{0}/datastreams/{1}".format(pid, ds_id))
         for f, v in kwargs.items():
@@ -69,3 +81,42 @@ class FedoraApi():
             self.file = {'file': f}
             res = self.call_api()
         return res
+
+    def add_relationship(self, pid, predicate, obj, isLiteral=False, datatype=None):
+        """Add relationship to RELS-EXT."""
+        self.set_method("POST")
+        self.set_url("objects/{0}/relationships/new".format(pid))
+        self.set_dynamic_param("isLiteral", "true" if isLiteral else "false")
+        self.set_dynamic_param("predicate", predicate)
+        self.set_dynamic_param("object", obj)
+        if datatype and isLiteral:
+            dt = self.validate_datatype(datatype)
+            if not dt:
+                return (-1, "Please provide valid datatype. Allowed types are: int, float, long, dateTime, and double.")     
+            self.set_dynamic_param("datatype", dt)
+        return self.call_api()
+
+    def delete_relationship(self, pid, predicate, obj, isLiteral=False, datatype=None):
+        """Delete relationship in RELS-EXT."""
+        self.set_method("DELETE")
+        self.set_url("objects/{0}/relationships".format(pid))
+        self.set_dynamic_param("predicate", predicate)
+        self.set_dynamic_param("isLiteral", "true" if isLiteral else "false")
+        self.set_dynamic_param("object", obj)
+        if datatype and isLiteral:
+            dt = self.validate_datatype(datatype)
+            if not dt:
+                return (-1, "Please provide valid datatype. Allowed types are: int, float, long, dateTime, and double.")     
+            self.set_dynamic_param("datatype", dt)
+        return self.call_api()
+
+    def modify_relationship(self, pid, predicate, obj, new_obj, isLiteral=False, datatype=None):
+        self.delete_relationship(pid, predicate, obj, isLiteral=isLiteral, datatype=datatype)
+        return self.add_relationship(pid, predicate, new_obj, isLiteral=isLiteral, datatype=datatype)
+    
+    def validate_datatype(self, datatype):
+
+        dt = [d for d in self.valid_datatype_uris if datatype == d or datatype == d.split("#")[1]] 
+        if dt:
+            return dt[0]
+        return None
