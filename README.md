@@ -2,6 +2,13 @@
 
 Swamplr is a modular set of tools primarily designed to interact with a Fedora Commons repository ([vers. 3.8](https://wiki.duraspace.org/display/FEDORA38/Fedora+3.8+Documentation)) as well as other components of the Fedora software stack ([Solr](https://lucene.apache.org/solr/guide/), [Gsearch](https://github.com/fcrepo3/gsearch), [Islandora](https://wiki.duraspace.org/display/ISLANDORA/Islandora), etc.)
 
+*Contents:*  
+* [Available Apps](#available-apps)  
+* [Install and Setup](#install-and-setup)
+* [Install and Enable Apps](#install-and-enable-apps)
+* [System Design](#system-design)  
+
+
 ## Available Apps
 
 ### Jobs (Core): swamplr_jobs
@@ -16,7 +23,7 @@ An app that creates various derivatives for files that are to be ingested. The t
 ### Services: swamplr_services
 A more generic app that lets users create custom scripts that can be run on a scheduled interval. The user just has to specify the command to run on the server and optionally the user to run it as (if not the same user that runs Swamplr). 
 
-## How to install and setup Swamplr
+## Install and Setup
 
 ### Install
 The site requires a number of non-standard Python libraries to run. These can be installed via aptitude or pip, a Python-specific package manager. See below for list of dependencies, followed by installation instructions.  
@@ -140,7 +147,7 @@ sudo -Hu www-data python manage.py migrate
 The site should now be available. 
 
 
-## How to Install & Enable Apps
+## Install and Enable Apps
 Currently all of the apps are included in the same code repository as the core Swamplr app, so there are no special steps required to download the code.
 
 The code for each app is located at the top level of the directory structure, at the same level as the core `swamplr_jobs` app.
@@ -240,6 +247,7 @@ Each app connects to the larger Django project which runs it. The project's sett
 
 * **manage-[name]**: A function and view that allows users to view/edit the functionality of the app.
 * **run_process**: The base function called when a new job is begun. This function will be passed a job object, and should then proceed to run the given job, providing updates to the database and to the log file where appropriate. The function should return a tuple compopsed of the final status ID and 1 or more messages to be stored in job_messages table.
+* **pre_process**: The function called before processing of any job begings. This function takes no parameters.
 * **get_status_info**: When the job dashboard page or the job detail page is loaded, this function provides data about the job status. It should return two variables, the first containing a list of human readable data to post to the job status page; the second a list (of tuples) containing data about each app-specific data point to be shown on the job detail page.
 * **get_actions**: Return list of actions to be loaded on the job status page. Each action should take this form:
 ```
