@@ -145,23 +145,7 @@ class Upload:
         self.obj.label = "{0} Page {1}".format(title, page)
         self.obj.save()
 
-    def generate_checksum(self, file_path):
-        """Return SHA-512 checksum for given file.
 
-        Could cause errors if file is extremely large.
-        args:
-            file_path(str)
-        returns:
-            (str) containing only hexadecimal digits.
-        """
-        sha = hashlib.sha512()
-        with open(file_path, "rb") as f:
-            while True:
-                data = f.read(2**10)
-                if not data:
-                    break
-                sha.update(data)
-        return sha.hexdigest()
 
     def set_attr(self, attr, value, sub_attr=""):
         """Add specified attribute and value to object."""

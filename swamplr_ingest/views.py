@@ -21,6 +21,8 @@ def run_process(current_job):
     """Run process from swamplr_jobs.views."""
 
     ingest_job = ingest_jobs.objects.get(job_id=current_job)
+    collection_defaults = load_collection_defaults()
+    collection_data = get_ingest_data(collection_name)
 
     datastreams = []
     for ds_id in job_datastreams.objects.filter(ingest_id=ingest_job):
@@ -30,7 +32,7 @@ def run_process(current_job):
     
     try:
         c = CollectionIngest()
-        c.start_ingest(ingest_job, datastreams)
+        c.start_ingest(ingest_job, datastreams, collection_data, collection_defaults)
 
     except Exception as e:
         output = e
@@ -46,8 +48,8 @@ def add_ingest_job(request, collection_name):
                 "base_dir": SwamplrIngestConfig.ingest_paths,
     }
 
-    collection_data = get_ingest_data(collection_name)   
- 
+    collection_data = get_ingest_data(collection_name)
+
     form = IngestForm(request.POST)
     form.set_fields(collection_name)
 
@@ -242,7 +244,9 @@ def load_ingest_data():
 def load_collection_defaults():
     """Load json file of collection data."""
     default_path = SwamplrIngestConfig.collection_defaults
-    
+    with open(default_path) as configs:
+        data = json.load(configs)
+    return data
 
 def get_all_metadata(collection_data, form_data):
     """Wrapper to get metadata types via get_all_datastreams function."""
@@ -274,6 +278,11 @@ def get_all_datastreams(collection_data, form_data, value_type="datastreams"):
 
     return datastreams
 
+def load_json(self, path):
+    with open(path) as f:
+        data = json.load(f)
+
+    return data
 
 def browse(request):
     """Return the list of directories  along with the parent directory as a json value."""

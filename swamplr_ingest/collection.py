@@ -31,8 +31,10 @@ class CollectionIngest(object):
 
         self.job = {}
         self.collection = {}
+        self.collection_defaults = {}
      
         # 'Compound' content models are those with hierarchical directory structures.
+        # All items in subdirectories will be processed as 'children' of the main item directory.
         self.compound_content_models = ["compound", "newspaper_issue", "book"]
         self.simple_content_models = ["large_image", "pdf", "newspaper_page", "oral_histories", "audio"]
 
@@ -41,15 +43,16 @@ class CollectionIngest(object):
 
         self.error_messages = []
 
-        logging.info("Initializing Ingest for Job {0}".format(job_id))
-
-    def start_ingest(self, ingest_job, datastreams, collection_configs):
+    def start_ingest(self, ingest_job, datastreams, collection_configs, collection_defaults):
         """Initiate ingest according to parameters from job in database and settings in collections.json.
 
         """
         self.job = ingest_job
         self.datastreams = datastreams
         self.collection = collection_configs
+        self.collection_defaults = collection_defaults
+
+        logging.info("Initializing Ingest for Job {0}".format(ingest_job.job_id))
 
         # Find root_dir (folder should end in '_root'
         self.root_dir = self.get_root_dir()
@@ -61,7 +64,7 @@ class CollectionIngest(object):
             full_path = self.root_dir
             
             if not any([ex in full_path for ex in self.collection["exclude_strings"]]):
-                self._prepare(full_path, sequence=1)
+                self.prepare(full_path, sequence=1)
 
         else:
             for i, dir_x in enumerate(self.get_sub_dirs(self.root_dir)):
@@ -78,9 +81,9 @@ class CollectionIngest(object):
                 if any([ex in full_path for ex in self.collection["exclude_strings"]]):
                     continue
 
-                self._prepare(full_path, sequence=i)
+                self.prepare(full_path, sequence=i)
 
-    def _prepare(self, full_path, sequence=1):
+    def prepare(self, full_path, sequence=1):
         """Assign object type if possible, otherwise skip.
 
         args:
@@ -88,53 +91,53 @@ class CollectionIngest(object):
         kwargs:
             sequence(int): the position of this object within a sequence (used for some collection types).
         """
-        self._assess_object_directory(full_path)
+        self.assess(full_path)
 
         if self.object_type:
 
             logging.info("Now preparing for ingest: {0}".format(full_path))
-            self._ingest(full_path, sequence=sequence)
+            self.ingest(full_path, sequence=sequence)
 
         else:
 
             logging.error("Unable to process {0}".format(full_path))
 
-    def _ingest(self, path, child=False, parent_pid=None, sequence=None):
+    def ingest(self, path, child=False, parent_pid=None, sequence=None):
         """Begin ingest following check of repo for item.
 
         args:
             path(str): path to dir containing object(s) for upload.
         """
 
-        compound = True if self._object_types[self.object_type]["content_model"] in self.compound_content_models else False
+        compound = True if self.object_types[self.object_type]["content_model"] in self.compound_content_models else False
 
-        iobject = Ingest(path, self.job, self.collection, self.datastreams, 
-                    self.object_type, child=child, compound=compound, 
-                    parent_pid=parent_pid, sequence=sequence)
+        in_object = Ingest(
+            path, self.job, self.collection, self.collection_defaults, self.datastreams,
+            self.object_type, child=child, compound=compound, parent_pid=parent_pid, sequence=sequence
+        )
 
         # Check 'prognosis' for value of 'ingest' or 'skip'.
-        if iobject.prognosis == "ingest":
+        if in_object.prognosis == "ingest":
 
             # Main function for building/updating objects.
-            iobject.create_object()
+            in_object.create_object()
 
             # Check success and process accordingly.
-            if iobject.result == "success":
+            if in_object.result == "success":
                 self.successful_objects += 1
 
             else:
                 self.failed_objects += 1
 
             if compound:
-                self._process_child_objects(path, in_object.pid)
+                self.process_child_objects(path, in_object.pid)
 
         elif in_object.prognosis == "skip":
 
             self.skipped_objects += 1
-            JobQueue.insert_job_objects(self.job_id, path, "skipped")
             logging.info("Skipping object at {0}".format(path))
 
-    def _process_child_objects(self, path, parent_pid):
+    def process_child_objects(self, path, parent_pid):
         """Check for sub-objects and process accordingly.
 
         args:
@@ -143,56 +146,40 @@ class CollectionIngest(object):
         """
         logging.info("Processing child objects")
         subdirs = self.get_sub_dirs(path)
+
         for index, s in enumerate(sorted(subdirs)):
 
             full_path = os.path.join(path, s)
             
-            if any([ex in full_path for ex in self._exlude_strings]):
+            if any([ex in full_path for ex in self.collection["exlude_strings"]):
                 continue
 
-            self._assess_object_directory(full_path)
+            self.assess(full_path)
 
             if self.object_type:
-                self._process_for_ingest(full_path, child=True, parent_pid=parent_pid, sequence=(index + 1))
+                self.process_for_ingest(full_path, child=True, parent_pid=parent_pid, sequence=(index + 1))
 
             else:
                 logging.error("Unable to process {0}".format(full_path))
 
-    def _load_job_data(self):
-        """Load pertinent job data from database."""
-        subset = int(self._ingest_job.subset)
-        self.job_data = {
-            "path_to_upload": self._ingest_job.source_dir,
-            "replace": self._ingest_job.replace,
-            "collection_name": self._ingest_job.collection_name,
-            "namespace": self._ingest_job.namespace,
-            "subset": subset
-        }
-
-    def _get_ingest_data(self, ingest_config):
-        """Load ingest data and return values based on type.
-
-        args:
-            ingest_config(str): ingest type or collection name. Should match
-                config key.
-        """
-        data = self._load_configs("COLLECTION_CONFIGS")
-        return data[ingest_config]
-
-    def _assess_object_directory(self, path):
+    def assess(self, path):
         """Check which content model object seems to belong to.
 
         args:
             path(str): full path to directory to check.
         """
         # Get type as defined in hint files.
-        hint = HintFiles(self._root_dir, path)
+        # Hint file data takes precedence over all other indicators, as long as it exists in configs.
+        hint = HintFiles(self.root_dir, path)
         hint_data = hint.get_hint_data()
         object_type = hint_data.get("type", "none")
 
+        # Convenience variable: each object type as top-level key, includes all object configs.
+        self.object_types = self.collection["objects"]
+
         # Confirm hint file type included in collection definition.
         content_models = {}
-        for obj, values in self._object_types.items():
+        for obj, values in self.object_types.items():
             content_models[values["content_model"]] = obj                
 
         if object_type in content_models.keys():
@@ -200,31 +187,31 @@ class CollectionIngest(object):
 
         # If no type defined in hint file, use collection configs.
         elif object_type == "none":
-            self._assign_collection_type(path)
+            self.assign_collection_type(path)
 
         # In the case that the hint file type doesn't match the collection definition.
         else:
             logging.warning("Object type in hint file ({0}) does not match collection definition.".format(object_type))
-            logging.warning("Found only: {0}".format(self._object_types))
+            logging.warning("Found only: {0}".format(self.object_types))
             logging.warning("Using type defined in collection.")
-            self._assign_collection_type(path)
+            self.assign_collection_type(path)
 
-    def _assign_collection_type(self, path):
+    def assign_collection_type(self, path):
         """Check collection definition for type to use in given directory.
 
         args:
             path(str): full path to directory to check.
         """
 
-        type_count = len(self._object_types.keys())
+        type_count = len(self.object_types.keys())
         if type_count == 1:
-            self.object_type = self._object_types.keys()[0]
+            self.object_type = self.object_types.keys()[0]
 
         else:
             logging.info("More than 1 collection type found in configs.")
-            self._guess_collection_type(path)
+            self.guess_collection_type(path)
 
-    def _guess_collection_type(self, path):
+    def guess_collection_type(self, path):
         """Attempt simple guess of collection type to use.
 
         args:
@@ -234,12 +221,12 @@ class CollectionIngest(object):
 
         # Check if there are subdirs *not* specified as excluded patterns.
         if len(subdirs) > 0 and any(s not in self._exlude_strings for s in subdirs):
-            self._assign_type("compound")
+            self.assign_type("compound")
 
         else:
-            self._assign_type("simple")
+            self.assign_type("simple")
 
-    def _assign_type(self, oclass):
+    def assign_type(self, oclass):
         """Check configs and assign type based on class: "simple" or "compound".
 
         args:
@@ -247,7 +234,7 @@ class CollectionIngest(object):
         """
         object_definitions = {"simple": [],
                               "compound": []}
-        for key, value in self._object_types.items():
+        for key, value in self.object_types.items():
             if value["content_model"] in self.compound_content_models:
                 object_definitions["compound"].append(key)
             else:
@@ -274,20 +261,6 @@ class CollectionIngest(object):
         with open(config_path) as configs:
             data = json.load(configs)
         return data
-
-    def get_next_pid(self, namespace):
-        """Get next pid in namespace."""
-        response = self.api.getNextPID(namespace=namespace)
-        return self._extract_pid(response.content)
-
-    def _extract_pid(self, xml):
-        """Extract pid from xml string.
-
-        args:
-            xml(str): xml content in string.
-        """
-        tree = etree.fromstring(xml)
-        return tree.getchildren()[0].text
 
     def gather_files_back_up(self, file_ending=".xml"):
         """Gather files of suitable type to begin ingest.
@@ -337,4 +310,3 @@ class CollectionIngest(object):
                     break
 
         return root_dir
-

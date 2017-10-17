@@ -2,3 +2,5 @@
 *.pyc
 *.cfg
 !swamplr_example.cfg
+!fedora_example.cfg
+.idea

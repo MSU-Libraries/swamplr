@@ -60,18 +60,51 @@ class FedoraApi():
         self.set_dynamic_param("pid", "true")
         return self.call_api()
        
-    def ingest(self, namespace):
-        # returns string of pid on success.
+    def ingest_new(self, namespace, **kwargs):
+        """Create new object and generate new pid.
+        Returns string of pid on success.
+
+        Allowed kwargs:
+        [label] [format] [encoding] [namespace] [ownerId] [logMessage] [ignoreMime] [state]
+        """
         self.set_method("POST")
         self.set_url("objects/new")
         self.set_dynamic_param("namespace", namespace)
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
+        return self.call_api()
+
+    def ingest_at_pid(self, pid, **kwargs):
+        """Create new object and generate new pid.
+        Returns string of pid on success.
+
+        Allowed kwargs:
+        [label] [format] [encoding] [namespace] [ownerId] [logMessage] [ignoreMime] [state]
+        """
+        self.set_method("POST")
+        self.set_url("objects/{0}".format(pid))
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
+        return self.call_api()
+
+    def modify_object(self, pid, **kwargs):
+        """Modify existing object.
+
+        Allowed kwargs:
+        [label] [ownerId] [state] [logMessage] [\lastModifiedDate]
+        """
+        self.set_method("POST")
+        self.set_url("objects/{0}".format(pid))
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
         return self.call_api()
        
     def add_datastream(self, pid, ds_id, filepath, **kwargs):
         """Add datastream to specified object.
 
-        kwargs should correspond to parameters passed to the API:
-        [controlGroup] [dsLocation] [altIDs] [dsLabel] [versionable] [dsState] [formatURI] [checksumType] [checksum] [mimeType] [logMessage]
+        Allowed kwargs:
+        [controlGroup] [dsLocation] [altIDs] [dsLabel] [versionable] [dsState] [formatURI] [checksumType] [checksum]
+        [mimeType] [logMessage]
         """
         self.set_method("POST")
         self.set_url("objects/{0}/datastreams/{1}".format(pid, ds_id))
@@ -79,6 +112,25 @@ class FedoraApi():
             self.set_dynamic_param(f, v)
         with open(filepath, 'rb') as f:
             self.file = {'file': f}
+            res = self.call_api()
+        return res
+
+    def modify_datastream(self, pid, ds_id, filepath=None, **kwargs):
+        """Modify datastream of specified object.
+
+        Allowed kwargs:
+        [controlGroup] [dsLocation] [altIDs] [dsLabel] [versionable] [dsState] [formatURI] [checksumType] [checksum]
+        [mimeType] [logMessage]
+        """
+        self.set_method("PUT")
+        self.set_url("objects/{0}/datastreams/{1}".format(pid, ds_id))
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
+        if filepath:
+            with open(filepath, 'rb') as f:
+                self.file = {'file': f}
+                res = self.call_api()
+        else:
             res = self.call_api()
         return res
 
@@ -113,7 +165,35 @@ class FedoraApi():
     def modify_relationship(self, pid, predicate, obj, new_obj, isLiteral=False, datatype=None):
         self.delete_relationship(pid, predicate, obj, isLiteral=isLiteral, datatype=datatype)
         return self.add_relationship(pid, predicate, new_obj, isLiteral=isLiteral, datatype=datatype)
-    
+
+    def get_relationships(self, pid, format="n-triples", predicate=None):
+        """Return all relationship associated with given pid, limited by predicate if supplied."""
+        self.set_url("objects/{0}/relationships".format(pid))
+        self.set_dynamic_param("format", format)
+        if predicate:
+            self.set_dynamic_param("predicate", predicate)
+        return self.call_api()
+
+    def get_next_pid(self, namespace):
+        """Get next available pid from within given namespace."""
+        self.set_method("POST")
+        self.set_url("objects/nextPID")
+        self.set_dynamic_param("namespace", namespace)
+        self.set_dynamic_param("format", "xml")
+        return self.call_api()
+
+    def get_object_profile(self, pid):
+        """Get details about a given object."""
+        self.set_url("objects/{0}".format(pid))
+        self.set_dynamic_param("format", "xml")
+        return self.call_api()
+
+    def list_datastreams(self, pid):
+        """List datastreams for given object."""
+        self.set_url("objects/{0}/datastreams".format(pid))
+        self.set_dynamic_param("format", "xml")
+        return self.call_api()
+
     def validate_datatype(self, datatype):
 
         dt = [d for d in self.valid_datatype_uris if datatype == d or datatype == d.split("#")[1]] 

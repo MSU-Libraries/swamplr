@@ -2,15 +2,15 @@
 import logging
 from lxml import etree
 from upload import Upload, LocalObject
-from rdflib import URIRef, XSD
 from rdflib.namespace import Namespace
 from swamplr import settings
 from hint import HintFiles
 from operator import itemgetter
-from apps import SwamplrIngestConfig
+from ConfigParser import ConfigParser
 import os
 import re
-import json
+from rdflib.graph import Graph
+from rdflib.term import URIRef
 
 fedora_ns = Namespace(URIRef("info:fedora/fedora-system:def/relations-external#"))
 islandora_ns = Namespace(URIRef("http://islandora.ca/ontology/relsext#"))
@@ -23,7 +23,7 @@ class Ingest:
 
     """Process ingest of collection to Fedora Commons."""
 
-    def __init__(self, path, ingest_job, collection, datastreams, object_type,
+    def __init__(self, path, ingest_job, collection, defaults, datastreams, object_type,
                  compound=False, child=False, parent_pid=None, sequence=None):
         """Prepare for ingest."""
         # Path to object directory (containing datastream files).
@@ -38,9 +38,12 @@ class Ingest:
 
         # All collection configs for the given collection name.
         self.collection = collection
-        self.objects = collection_["objects"]
+        self.objects = collection["objects"]
         self.content_model = self.collection["objects"][object_type]["content_model"]
-        
+
+        # Default configs.
+        self.defaults = defaults
+
         # Configs compiled from collection_defaults.json and collections.json.
         self.metadata_configs = {}
         self.datastream_configs = {}
@@ -56,12 +59,21 @@ class Ingest:
         # Future title.
         self.title = ""
 
+        # Hint data.
+        hint = HintFiles(self.root_dir, path)
+        self.hint_data = hint.get_hint_data()
+
+        # Pid progress.
+        self.pids = None
+        self.pid = None
+
         # Outlook and outcome.
         self.prognosis = "skip"
         self.result = "failed"
 
         # True if a new object is being created, false if one already exists.
         self.new_object = False
+        self.current_ds_list = []
 
         # Just datastreams at the current layer, e.g. compound parent objects.
         self.object_datastreams = []
@@ -71,122 +83,164 @@ class Ingest:
 
         # Dictionary containing datastream id as key, path to file as value.
         self.datastream_paths = self.gather_paths()
+
+        # Connect to Fedora API
+        self.fedora_api = self.connect_to_fedora()
        
         self.check_for_existing_object()
+
+    def connect_to_fedora(self):
+        """Use credentials to establish class for making API calls."""
+        configs = ConfigParser()
+        # Load configs preserving case
+        configs.optionxform = str
+        # Individual configs accessed via configs object.
+        configs.reCad_file(open(path_to_configs))
+
+        username = configs.get("fedora", "username")
+        password = configs.get("fedora", "password")
+
+        return FedoraApi(username=username, password=password)
 
     def create_object(self):
         """Create object for upload, whether a new object or amended."""
 
+        if not self.new_object:
+            self.current_ds_list = self.get_current_datastreams()
+
         # Title is pulled from Dublin Core, and used as FC label.
         self.title = self.get_title(self.datastream_paths.get("DC", None))
 
-        # Get data from hint files.
-        hint = HintFiles(self._root_dir, self.path)
-        self._hint_data = hint.get_hint_data()
-        
         logging.info(u"Processing object at {0}: {1}".format(self.pid, self.title))
 
-        # Add rels-ext, metadata, files, then check outcome.
-        self._add_rels_ext()
-        self._add_metadata()
-        self._add_files()
-        self._check_object()
+        status, response = self.fedora_api.ingest_at_pid(
+            self.pid, label=self.title, ownerId="MSUL", logMessage="New object created at {0}".format(self.pid)
+        )
 
-    def _add_rels_ext(self):
+        if status == 201 and response == self.pid:
+            # Add rels-ext, metadata, files, then check outcome.
+            self.add_rels_ext()
+            self.add_metadata()
+            self.add_files()
+            if self.object_exists:
+                self.result = "success"
+
+        else:
+            logging.info("Error ingesting object at PID: {0}. Error: {1}: {2}".format(self.pid, status, response))
+
+    def get_current_datastreams(self):
+        """Retrieve current datastreams for given object."""
+        status, xml = self.fedora_api.list_datastreams(self.pid)
+        ds_list = []
+        tree = etree.fromstring(xml)
+        dss = tree.xpath("//f:datastream", namespaces={"f":"http://www.fedora.info/definitions/1/0/access/"})
+        for d in dss:
+            ds_list.append(d.get("dsid"))
+        return ds_list
+
+    def add_rels_ext(self):
         """Add basic rels-ext for object."""
 
         # Load default settings for content model.
-        cmodels = self._load_content_model_settings()
-        has_model_object = cmodels[self._content_model]["has_model"]
+        has_model_object = self.defaults[self.object_type]["has_model"]
 
         # Root pid, e.g. "etd:root" made by joining namespace and "root".
         root_pid = ":".join([self.pid.split(":")[0], "root"])
 
-        logging.info("Adding relations at {0}".format(self.pid))
+        logging.info("Adding relationships at {0}".format(self.pid))
 
-        # self._object_upload.set_attr("is_member_of_collection", 'info:fedora/{0}'.format(root_pid))
-        # self._object_upload.set_attr("has_model", has_model_object)
+        self.fedora_api.add_relationship(self.pid, "info:fedora/fedora-system:def/model#hasModel", has_model_object)
 
-        self._object_upload.build_rels_ext("info:fedora/fedora-system:def/model#hasModel", has_model_object)
+        if self.content_model == "newspaper_issue":
+            self.fedora_api.add_relationship(
+                self.pid, "info:fedora/fedora-system:def/relations-external#isMemberOf",
+                "info:fedora/{0}".format(root_pid.replace("root", "1"))
+            )
+            self.fedora_api.add_relationship(
+                self.pid, "http://islandora.ca/ontology/relsext#isSequenceNumber", self.sequence, isLiteral=True, datatype="int"
+            )
+            self.fedora_api.add_relationship(
+                self.pid, "http://islandora.ca/ontology/relsext#dateIssued",
+                self.get_date(self.datastream_paths.get("DC", None)), isLiteral=True, datatype="dateTime"
+            )
 
-        if self._content_model == "newspaper_issue":
-            self._object_upload.build_rels_ext("info:fedora/fedora-system:def/relations-external#isMemberOf",
-                                               "info:fedora/{0}".format(root_pid.replace("root", "1")))
-            self._object_upload.build_rels_ext("http://islandora.ca/ontology/relsext#isSequenceNumber", self._sequence)
-            self._object_upload.build_rels_ext("http://islandora.ca/ontology/relsext#dateIssued",
-                                               self._get_date(self.datastream_paths.get("DC", None)))
+        elif self.child:
 
-        elif self._child:
-
-            if self._content_model == "newspaper_page":
-                self._object_upload.build_rels_ext("http://islandora.ca/ontology/relsext#isSequenceNumber", self._sequence)
-                self._object_upload.build_rels_ext("http://islandora.ca/ontology/relsext#isPageNumber", self._sequence)
-
-                self._object_upload.build_rels_ext("http://islandora.ca/ontology/relsext#isPageOf",
-                                                   "info:fedora/{0}".format(self._parent_pid))
-
-                self._object_upload.build_rels_ext("info:fedora/fedora-system:def/relations-external#isMemberOf",
-                                                   "info:fedora/{0}".format(self._parent_pid))
-                self._object_upload.update_title(self.title, self._sequence)
+            if self.content_model == "newspaper_page":
+                self.fedora_api.add_relationship(
+                    self.pid, "http://islandora.ca/ontology/relsext#isSequenceNumber", self.sequence, isLiteral="true",
+                    datatype="int"
+                )
+                self.fedora_api.add_relationship(
+                    self.pid, "http://islandora.ca/ontology/relsext#isPageNumber", self.sequence, isLiteral="true",
+                    datatype="int"
+                )
+                self.fedora_api.add_relationship(
+                    self.pid, "http://islandora.ca/ontology/relsext#isPageOf", "info:fedora/{0}".format(self.parent_pid)
+                )
+                self.fedora_api.add_relationship(
+                    self.pid, "info:fedora/fedora-system:def/relations-external#isMemberOf",
+                    "info:fedora/{0}".format(self.parent_pid)
+                )
+                new_title = "{0} Page {1}".format(self.title, self.sequence)
+                self.fedora_api.modify_object(self.pid, label=new_title, logMessage="Update newspaper title")
 
             else:
                 # Child object is 'constituent of' parent.
-                self._object_upload.build_rels_ext("info:fedora/fedora-system:def/relations-external#isConstituentOf",
-                                                   "info:fedora/{0}".format(self._parent_pid))
+                self.fedora_api.add_relationship(
+                    self.pid, "info:fedora/fedora-system:def/relations-external#isConstituentOf",
+                    "info:fedora/{0}".format(self.parent_pid))
 
-                sequence_predicate = self._set_sequence_predicate()
-                self._object_upload.build_rels_ext(sequence_predicate, self._sequence)
-                # Using build_rels_ext method instead of set_attr method because the latter does not seem to be able to handle
-                # URIs as objects, only literals.
-                self._object_upload.build_rels_ext("info:fedora/fedora-system:def/relations-external#isMemberOfCollection",
-                                                   "info:fedora/{0}".format(root_pid))
+                sequence_predicate = self.set_sequence_predicate()
+                self.fedora_api.add_relationship(self.pid, sequence_predicate, self.sequence, isLiteral="true", datatype="int")
+                self.fedora_api.add_relationship(
+                    self.pid, "info:fedora/fedora-system:def/relations-external#isMemberOfCollection",
+                    "info:fedora/{0}".format(root_pid)
+                )
 
         else:
 
-            # Using build_rels_ext method instead of set_attr method because the latter does not seem to be able to handle
-            # URIs as objects, only literals.
-            self._object_upload.build_rels_ext("info:fedora/fedora-system:def/relations-external#isMemberOfCollection",
-                                               "info:fedora/{0}".format(root_pid))
+            self.fedora_api.add_relationship(
+                self.pid, "info:fedora/fedora-system:def/relations-external#isMemberOfCollection",
+                "info:fedora/{0}".format(root_pid)
+            )
 
-        if self._hint_data.get("sequence", "false") == "true":
+        if self.hint_data.get("sequence", "false") == "true":
  
             # Set values for sequence name and sequence value.
-            self._process_dir_sequence()
-            """
-            self._object_upload._add_attr("is_sequence_of", sequence_name)
-            self._object_upload._add_attr("is_sequence_number", sequence_number)
-            """
-            self._object_upload.build_rels_ext("http://islandora.ca/ontology/relsext#isSequenceNumber", self.sequence_value)
-            self._object_upload.build_rels_ext("http://islandora.ca/ontology/relsext#isSequenceOf", self.sequence_term)
-            
+            self.process_dir_sequence()
+            self.fedora_api.add_relationship(
+                self.pid, "http://islandora.ca/ontology/relsext#isSequenceNumber", self.sequence_value,
+                isLiteral="true", datatype="int"
+            )
+            self.fedora_api.add_relationship(
+                self.pid, "http://islandora.ca/ontology/relsext#isSequenceOf", self.sequence_term,
+                isLiteral="true"
+            )
 
-    def _process_dir_sequence(self):
+    def process_dir_sequence(self):
         """Use sequence settings in hint file to assign appropriate sequence RELS-EXT."""
         
         # Regex pattern to match and use for sorting.
-        pattern = self._hint_data["sequence_match"]
+        pattern = self.hint_data["sequence_match"]
       
         # Remove trailing slash.
         object_path = self._normalize_path()
-        # logging.info("object path: {0}".format(object_path))
 
         # The sort directory is the root directory plus a number of steps down.
         path_length = len(self._root_dir.split("/")) + self._hint_data["sort_level"]
-        # logging.info("path lengthi: {0}".format(path_length))
 
         # Divide and re-combine path of appropriate depth.
         sort_path_parts = object_path.split("/")[:path_length]
 
         # sort_path is the directory *containing* the elements that should be sorted.
         sort_path = "/" + os.path.join(*sort_path_parts)
-        # logging.info("sort path: {0}".format(sort_path))
 
         # object_leaf is the sortable element for the given object and settings.
         object_leaf = object_path.split("/")[path_length]
-        # logging.info("object leaf: {0}".format(object_leaf))
 
-        filter_key = self._hint_data["filter_by"]
-        sort_key = self._hint_data["sort_by"]
+        filter_key = self.hint_data["filter_by"]
+        sort_key = self.hint_data["sort_by"]
 
         filter_term, sort_value = self._get_matches(pattern, object_leaf, filter_key, sort_key)
 
@@ -204,18 +258,18 @@ class Ingest:
             if subterm == filter_term:
                 filtered.append((subterm, float(subkey), current_object))
         
-        self._set_sequence_values(filtered)
+        self.set_sequence_values(filtered)
 
-    def _set_sequence_values(self, slist):
+    def set_sequence_values(self, slist):
 
-        sort_order = self._hint_data["sort_direction"]
+        sort_order = self.hint_data["sort_direction"]
         slist.sort(key=itemgetter(1), reverse=(sort_order=="desc"))
         for index, values in enumerate(slist):
             if values[2]:
                 self.sequence_value = index + 1
                 self.sequence_term = values[0]
 
-    def _get_matches(self, pattern, text, *keys):
+    def get_matches(self, pattern, text, *keys):
         """Get named matches from string."""
         values = []
         match = re.match(pattern, text)
@@ -227,14 +281,14 @@ class Ingest:
 
         return values
 
-    def _normalize_path(self):
+    def normalize_path(self):
         """Remove trailing slash."""
         path = self.path
         if self.path.endswith("/"):
             path = path[:-1]
         return path
 
-    def _get_root_dir(self):
+    def get_root_dir(self):
         """Get dirpath that ends in '*:root'."""
         root_dir = JobQueue.get_root_dir(self.path)
         path_sub_dirs = root_dir.rsplit("/")[1:]
@@ -245,84 +299,135 @@ class Ingest:
                 break
         return "/" + os.path.join(*dirs)
 
-    def _set_sequence_predicate(self):
+    def set_sequence_predicate(self):
         """Set up predicate to record/check sequence number of child object."""
-        if self._content_model == "newspaper_page":
+        if self.content_model == "newspaper_page":
             predicate = "http://islandora.ca/ontology/relsext#isSequenceNumber"
         else:
             # Sequence predicate for compound object children.
-            pid_underscore = self._parent_pid.replace(":", "_")
+            pid_underscore = self.parent_pid.replace(":", "_")
             predicate = "http://islandora.ca/ontology/relsext#isSequenceNumberOf{0}".format(pid_underscore)
         return predicate
 
-    def _add_metadata(self):
+    def add_metadata(self):
         """Add metadata datastreams."""
         logging.info("Adding metadata at {0}".format(self.pid))
         for ds in self.metadata_datastreams:
+
+            path = self.datastream_paths.get(ds, None)
+            name = os.path.splitext(os.path.basename(path))[0]
+            label = self.set_ds_label(ds, name)
+
             # 3 ways to move forward with adding datastream:
             # The object is new to the repository, the object is not new, but the datastream should be replaced,
             # or the object is not new and the datastream doesn't yet exist.
+            if ((self.new_object and self.ingest_job.process_new == 'y') or (ds not in self.current_ds_list and self.ingest_job.process_existing == 'y'))\
+                and ds in self.datastream_paths:
 
-            if (self._new_object or
-               self._ingest_job.replace or
-               ds not in self._object_upload.obj.ds_list) and ds in self.datastream_paths:
+                status, result = self.fedora_api.add_datastream(
+                    self.pid, ds, path,
+                    dsLabel=label,
+                    checksumType="SHA-512",
+                    checksum=self.generate_checksum(path),
+                    mimeType=self.get_datastream_value(ds, "mimetype"),
+                    logMessage="Adding DS: {0} to PID: {1}".format(ds, self.pid)
+                )
 
-                # ds_lower = ds.lower()
-                path = self.datastream_paths[ds]
-                name = os.path.splitext(os.path.basename(path))[0]
-                label = self._set_ds_label(ds, name)
+            elif self.ingest_job.replace and ds in self.datastream_paths:
 
-                self._object_upload.add_xml_datastream(
-                    path, ds, label,
-                    self.metadata_configs[ds]["type"],
-                    self.metadata_configs[ds]["mimetype"],
-                    self.metadata_configs[ds]["checksum_type"])
+                status, result = self.fedora_api.modify_datastream(
+                    self.pid, ds,
+                    filepath=path,
+                    dsLabel=label,
+                    checksumType="SHA-512",
+                    checksum=self.generate_checksum(path),
+                    mimeType=self.get_datastream_value(ds, "mimetype"),
+                    logMessage="Adding DS: {0} to PID: {1}".format(ds, self.pid)
+                )
 
-        if self._child:
+            else:
+                status = 200
+                logging.info("Not updating or creating datastream: {0} for PID: {1}".format(ds, self.pid))
+
+            if status not in [200, 201]:
+                logging.info("Failed to add or modify datastream: {0} for pid: {1} with error {2}: {3}".format(ds, self.pid, status, result))
+
+"""
+        if self.child:
             # For child objects, establish additional unique ID that combines generic ID and sequence number.
             object_id = self._get_identifier(self.datastream_paths["DC"])
             child_object_id = "{0}-{1}".format(object_id, "{:03d}".format(int(self._sequence)))
 
             self._object_upload.set_dc_ident_attr(child_object_id)
+"""
+    def get_datastream_value(self, ds, key):
+        """Check default configs and use unless overwritten in collection settings."""
+        default = self.defaults["datastreams"][ds].get(keys, None)
+        return self.collection["objects"][self.object_type]["datastreams"][ds].get(key, default)
 
-    def _add_files(self):
+    def add_files(self):
         """Create file datastreams for large image objects."""
         logging.info("Adding objects at {0}".format(self.pid))
 
         for ds in self.file_datastreams:
 
+            path = self.datastream_paths.get(ds, None)
+            name = os.path.splitext(os.path.basename(path))[0]
+            label = self.set_ds_label(ds, name)
+
             # 3 ways to move forward with adding datastream:
-            # The object is new to the repository, the object is not new, but the datastream should be replaced,
+            # The object is new to the repository,
+            # the object is not new, but the datastream should be replaced,
             # or the object is not new and the datastream doesn't yet exist.
 
-            if (self._new_object or
-               self._ingest_job.replace or
-               ds not in self._object_upload.ds_list) and ds in self.datastream_paths:
-                # ds_lower = ds.lower()
-                path = self.datastream_paths[ds]
-                name = os.path.splitext(os.path.basename(path))[0]
+            if ((self.new_object and self.ingest_job.process_new == 'y') or (ds not in self.current_ds_list and self.ingest_job.process_existing == 'y'))\
+                and ds in self.datastream_paths:
 
-                label = self._set_ds_label(ds, name)
-                self._object_upload.add_file_datastream(path, ds, label,
-                                                        self.datastream_configs[ds]["mimetype"],
-                                                        self.datastream_configs[ds]["checksum_type"],
-                                                        self.datastream_configs[ds]["versionable"])
+                status, result = self.fedora_api.add_datastream(
+                    self.pid, ds, path,
+                    controlGroup="M",
+                    dsLabel=label,
+                    versionable="false",
+                    checksumType="SHA-512",
+                    checksum=self.generate_checksum(path),
+                    mimeType=self.get_datastream_value(ds, "mimetype"),
+                    logMessage="Adding DS: {0} to PID: {1}".format(ds, self.pid)
+                )
+            elif self.ingest_job.replace and ds in self.datastream_paths:
 
-    def _set_ds_label(self, ds, name):
+                status, result = self.fedora_api.modify_datastream(
+                    self.pid, ds,
+                    filepath=path,
+                    controlGroup="M",
+                    dsLabel=label,
+                    versionable="false",
+                    checksumType="SHA-512",
+                    checksum=self.generate_checksum(path),
+                    mimeType=self.get_datastream_value(ds, "mimetype"),
+                    logMessage="Adding DS: {0} to PID: {1}".format(ds, self.pid)
+                )
+            else:
+                status = 200
+                logging.info("Not updating or creating datastream: {0} for PID: {1}".format(ds, self.pid))
+
+            if status not in [200, 201]:
+                logging.info("Failed to add or modify datastream: {0} for pid: {1} with error {2}: {3}".format(ds, self.pid, status, result))
+
+    def set_ds_label(self, ds, name):
         """Establish label for datastream.
 
         args:
             ds(str): name of datastream, e.g. TN, MODS, JPG
             name(str): current name value based on file name.
         """
-        if self._collection_configs["use_dynamic_label"] == "True":
+        if self.collection_configs["use_dynamic_label"] == "True":
             label = name
         else:
             label = self.metadata_configs[ds]["label"]
 
         return label
 
-    def _create_object_class(self):
+    def create_object_class(self):
         """Create object class to extend DigitalObject."""
         """
         attributes = {
@@ -364,7 +469,7 @@ class Ingest:
         
         return ingest_meta_class
 
-    def _load_datastream_settings(self):
+    def load_datastream_settings(self):
         """Load default- and collection-level settings for datastreams and metadata."""
         
         default_configs = self._load_json(settings.COLLECTION_DEFAULTS)
@@ -379,7 +484,7 @@ class Ingest:
         collection_datastream_configs = self._collection_configs["objects"][self.object_type]["datastreams"]
         self.datastream_configs = self._combine_settings(datastream_configs, collection_datastream_configs)
 
-    def _combine_settings(self, dict1, dict2):
+    def combine_settings(self, dict1, dict2):
         """Combine *sub*-dictionaries within dictionaries.
         
         Note: argument order matters! The dict1 is the base, whose values will
@@ -398,30 +503,19 @@ class Ingest:
 
         return new_dict
 
-    def _load_content_model_settings(self):
-        """Load content model default settings."""
-        default_configs = self._load_json(settings.COLLECTION_DEFAULTS)
-        return default_configs["content_models"]
-
-    def _load_json(self, path):
-        with open(path) as f:
-            data = json.load(f)
-
-        return data
-
-    def _get_date(self, dc_path):
+    def get_date(self, dc_path):
         """Return DC date from xml."""
-        return self._get_dc_element(dc_path, "//dc:date")
+        return self.get_dc_element(dc_path, "//dc:date")
 
-    def _get_title(self, dc_path):
+    def get_title(self, dc_path):
         """Check DC xml file for title."""
-        title = self._get_dc_element(dc_path, "//dc:title")
+        title = self.get_dc_element(dc_path, "//dc:title")
         # Adjust title to stay under Fedora's 256 character limit.
         if len(title) > 255:
             title = title[:252] + "..."
         return title
 
-    def _get_dc_element(self, dc_path, xpath):
+    def get_dc_element(self, dc_path, xpath):
         """Use dc_path and xpath to retrieve element content."""
 
         if dc_path is None:
@@ -439,30 +533,36 @@ class Ingest:
         # not selected to have datastreams ingested/replaced
         if "DC" not in self.datastream_paths:
             self.prognosis = "skip"
+            logging.info("Object folder missing 'DC' metadata: {0}".format(self.path))
             return
 
         # Try to get DC identifier with "local:" as prefix. If doesn't exist, get other ID.
-        object_id = self._get_preferred_identifier(self.datastream_paths["DC"])
-        if not object_id:
-            object_id = self._get_identifier(self.datastream_paths["DC"])
-            logging.info("Checking object ID: {0}".format(object_id))
+        object_id = self.get_preferred_identifier(self.datastream_paths["DC"])
 
+        if not object_id:
+            object_id = self.get_identifier(self.datastream_paths["DC"])
+
+        logging.info("Checking for objects with ID: {0}".format(object_id))
         
-        self.pid = self.get_pids(object_id, self.namespace, return_all_objects=(self.compound or self.child))
+        self.pids = self.get_pids_in_namespace(object_id, self.namespace)
         
         if self.compound:
-            self.pid = self._get_compound_pid()
+            self.pid = self.get_compound_pid()
 
         if self.child:
-            self.pid = self._get_child_pid()
+            self.pid = self.get_child_pid()
 
         # If no pid returned in search.
-        if self.pid is None:
+        if self.pids is None:
 
-            self._no_pid_returned()
-            logging.info("Unable to find an object matching {0} in {1}".format(object_id, self._namespace))
+            logging.info("Unable to find an object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
+            self.no_pid_returned()
+            logging.info("Assigned new pid: {0}".format(self.pid))
+            self.prognosis = "ingest"
+            self.new_object = True
 
-        elif self._ingest_job.replace:
+
+        elif self.ingest_job.replace:
         
             self.prognosis = "ingest"
 
@@ -470,55 +570,82 @@ class Ingest:
 
             self.prognosis = "skip"
 
-    def _get_child_pid(self):
+    def get_compound_pid(self):
+        """In cases where multiple pids are returned, find compound object Pid."""
+        compound_pid = None
+        for pid in self.pids
+            status, object_profile = self.fedora_api.get_object_profile(pid=pid)
+            if status == 200:
+                if self.is_compound(object_profile):
+                    compound_pid = pid
+                    break
+        return compound_pid
+
+    def get_child_pid(self):
         """Method of returning child object's PID by checking for sequence matches."""
         child_pid = None
         sequence_match = None
-        predicate = self._set_sequence_predicate()
-        pids = [p for p in self.pid if p.split(":")[0] == self._namespace]
-        for pid in pids:
-            do = self._repo.get_object(pid=pid)
-            for s, p, o in do.rels_ext.content:
-                if str(p) == predicate:
-                    sequence_match = o
-                    break
-            if not self._is_compound(do) and int(sequence_match) == int(self._sequence):
+        predicate = self.set_sequence_predicate()
+        for pid in self.pids:
+            # Get content models.
+            status, object_profile = self.fedora_api.get_object_profile(pid=pid)
+
+            # Get RELS-EXT data.
+            status, rels_ext = self.fedora_api.get_relationships(pid)
+            predicates = get_predicates(rels_ext)
+
+            if predicate in predicates:
+                sequence_match = get_predicate_value(predicate)
+
+            if not self.is_compound(object_profile) and int(sequence_match) == int(self.sequence):
                 child_pid = pid
 
         return child_pid
 
-    def _is_compound(self, digital_object):
+    def is_compound(self, object_profile):
         """Check to see if a particular content model corresponds to a compound type.
 
         args:
-            digital_object(DigitalObject): object returned from repo.
+            object_profile(xml string): object profile returned from repo.
         """
         compound = False
         compound_types = ["info:fedora/islandora:compoundCModel",
                           "info:fedora/islandora:newspaperIssueCModel"]
-        for ct in compound_types:
-            if digital_object.has_model(ct):
-                compound = True
-                break
+        cmodels = get_content_models(object_profile)
+        if any([c in compound_types for c in cmodels]):
+            compound = True
         return compound
 
-    def _get_compound_pid(self):
-        """In cases where multiple pids are returned, find compound object Pid."""
-        compound_pid = None
-        for pid in self.pid:
-            do = self._repo.get_object(pid=pid)
-            if self._is_compound(do) and pid.split(":")[0] == self._namespace:
-                compound_pid = pid
-                break
-        return compound_pid
+    def get_predicates(self, rels_ext, format="nt"):
+        """Return all predicates in a given rels_ext datastream."""
+        g = Graph()
+        content = g.parse(rels_ext, format=format)
+        return list(content.predicates())
 
-    def _no_pid_returned(self):
-        """If no pid is found for current object."""
-        self.prognosis = "ingest"
-        self._new_object = True
-        self.pid = self._get_next_pid(self._namespace)
+    def get_predicate_value(self, rels_ext, predicate, format="nt"):
+        return self.get_predicate_values(rels_ext, predicate, format=format)[0]
 
-    def _gather_paths(self):
+    def get_predicate_values(self, rels_ext, predicate, format="nt"):
+        values = []
+        g = Graph()
+        content = g.parse(rels_ext, format=format)
+        for subject, object in content.subject_objects(URIRef(predicate)):
+            values.append(str(object))
+        return values
+
+    def get_content_models(self, object_profile):
+        """Get content models from object profile xml."""
+        tree = etree.fromstring(object_profile)
+        ns = {"f": "http://www.fedora.info/definitions/1/0/access/"}
+        models = tree.xpath("//f:objModels/f:model", namespaces=ns)
+        return [m.text for m in models]
+
+    def no_pid_returned(self):
+        """If no pid is found for current object, create new one."""
+        status, pid_xml = self.fedora_api.get_next_pid(self.namespace)
+        self.pid = self.extract_pid(pid_xml)
+
+    def gather_paths(self):
         """Gather paths for all derivatives.
 
         Use dictionary in which key is the datastream name and value is
@@ -536,7 +663,7 @@ class Ingest:
                     datastream_paths[ds_name] = os.path.join(self.path, f)
         return datastream_paths
 
-    def _get_preferred_identifier(self, dc_path):
+    def get_preferred_identifier(self, dc_path):
         """Attempt to get valid identifier.
 
         Check first for PID in the Dublin Core. Failing that look for "local:" ID.
@@ -545,17 +672,17 @@ class Ingest:
             dc_path(str): path to dublin core file.
         """
         idmatch = None
-        idlist = self._get_identifiers(dc_path)
+        idlist = self.get_identifiers(dc_path)
         for i in idlist:
             if self._is_pid(i):
                 idmatch = i
                 break
         if not idmatch:
-            idmatch = self._get_identifier_with_prefix(idlist, "local:")
+            idmatch = self.get_identifier_with_prefix(idlist, "local:")
 
         return idmatch
 
-    def _is_pid(self, identifier):
+    def is_pid(self, identifier):
         """Check to see if given ID is 'pid-like.'
 
         args:
@@ -572,7 +699,7 @@ class Ingest:
 
         return pid1 and pid2
 
-    def _get_identifier_with_prefix(self, idlist, prefix):
+    def get_identifier_with_prefix(self, idlist, prefix):
         """Get identifiers and limit by a prefix at its start.
 
         args:
@@ -586,7 +713,7 @@ class Ingest:
                 break
         return idmatch
 
-    def _get_identifier(self, dc_path):
+    def get_identifier(self, dc_path):
         """Return first result from identifier search.
 
         In many cases, only 1 id will be returned; this represents
@@ -598,10 +725,10 @@ class Ingest:
         returns:
             (str): string of first id in list.
         """
-        idlist = self._get_identifiers(dc_path)
+        idlist = self.get_identifiers(dc_path)
         return idlist[0]
 
-    def _get_identifiers(self, dc_path):
+    def get_identifiers(self, dc_path):
         """Search for identifier from DC and return all matches.
 
         args:
@@ -617,46 +744,51 @@ class Ingest:
         idlist = [i.text for i in ids if i.text is not None]
         return idlist
 
-    def get_pids(self, fileid, pidspace, return_all_objects=False):
+    def get_pids_in_namespace(self, fileid, pidspace):
         """Use base filename to check for existing object in repo.
 
         args:
             filename(str): filename of object, which should be included in dc:identifier.
             pidspace(str): pid namespace for which to return a pid.
-        kwargs:
-            return_all_objects(bool): return all matching pids or just one in defined pidspace.
         """
-        return repo.get_pid_by_filename(self._repo, fileid, pidspace, return_all_objects=return_all_objects)
+        pids = None
+        status, xml = self.fedora_api.find_objects_by_id(fileid)
+        if status == 200:
+            tree = etree.parse(xml)
+            ns = {"f": "http://www.fedora.info/definitions/1/0/types/"}
+            objs = tree.xpath("//f:pid", namespaces=ns)
+            pids = [o.text for o in objs if o.text.split(":")[0] == pidspace]
+        return pids
 
-    def _set_datastreams(self):
+    def set_datastreams(self):
         """Set metadata and file datastreams according to collection configs and object layer."""
 
         # Datastreams are labeled according to object type. Extract just those from current object type.
 
-        self._object_datastreams = [ds[0] for ds in self._datastreams if ds[1] == self.object_type]
-        return self._sort_datastreams()
+        self.object_datastreams = [ds[0] for ds in self._datastreams if ds[1] == self.object_type]
+        return self.sort_datastreams()
 
-    def _sort_datastreams(self):
+    def sort_datastreams(self):
         """"Sort datastreams as either relating to files or to metadata."""
         files = {}
         metadata = {}
  
-        for ds in self._object_datastreams:
+        for ds in self.object_datastreams:
             # Check in collection profile to see if the datastream corresponds to a file object or metadata.
-            if ds in self._objects[self.object_type]["datastreams"]:
-                files[ds] = self.datastream_configs[ds]['marker']
-            elif ds in self._objects[self.object_type]["metadata"]:
-                metadata[ds] = self.metadata_configs[ds]['marker']
+            if ds in self.objects[self.object_type]["datastreams"]:
+                files[ds] = self.get_collection_value(ds, "marker")
+            elif ds in self.objects[self.object_type]["metadata"]:
+                metadata[ds] = self.get_collection_value(ds, "marker")
             else:
                 logging.warning("Datastream label '{0}' not found in collection profile. Skipping.".format(ds))
         return files, metadata
 
-    def _get_next_pid(self, namespace):
+    def get_next_pid(self, namespace):
         """Get next pid in namespace."""
         response = self._api.getNextPID(namespace=namespace)
         return self._extract_pid(response.content)
 
-    def _extract_pid(self, xml):
+    def extract_pid(self, xml):
         """Extract pid from xml string.
 
         args:
@@ -665,23 +797,7 @@ class Ingest:
         tree = etree.fromstring(xml)
         return tree.getchildren()[0].text
 
-    def _check_object(self):
-        """Check result and update database.
-
-        args:
-            pid(str): typical pid
-            obj_name(str): the path name of the object
-        """
-
-        if self._object_exists():
-            self.result = "success"
-            JobQueue.insert_job_objects(self._job_id, self.path, "success")
-            JobQueue.insert_object_pids(self._job_id, self.pid)
-        else:
-            self.result = "failed"
-            JobQueue.insert_job_objects(self._job_id, self.path, "failure")
-
-    def _object_exists(self):
+    def object_exists(self):
         """Check if object exists to confirm success of ingest.
 
         args:
@@ -694,3 +810,20 @@ class Ingest:
             logging.info("Failed to ingest {0}".format(self.pid))
             return False
 
+    def generate_checksum(self, file_path):
+        """Return SHA-512 checksum for given file.
+
+        Could cause errors if file is extremely large.
+        args:
+            file_path(str)
+        returns:
+            (str) containing only hexadecimal digits.
+        """
+        sha = hashlib.sha512()
+        with open(file_path, "rb") as f:
+            while True:
+                data = f.read(2**10)
+                if not data:
+                    break
+                sha.update(data)
+        return sha.hexdigest()
