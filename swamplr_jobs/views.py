@@ -54,7 +54,10 @@ def view_job(request, job_id):
     
     job = jobs.objects.get(job_id=job_id)
     job_type_object = job_types.objects.get(type_id=job.type_id_id)
-    
+
+    app_name = job_type_object.app_name
+    app = import_apps[app_name]
+
     job = set_job_info(job)
     if job.completed:
         elapsed = job.completed - job.created
@@ -80,7 +83,9 @@ def view_job(request, job_id):
         job.messages.append((mtime, mcontent))
 
     job.objects = []
-    #TODO - get objects.
+    if hasattr(app.views, "get_job_objects") and callable(getattr(app.views, "get_job_objects")):
+        object_data = app.views.get_job_objects(job_id)
+        job.objects = object_data
 
     return render(request, 'swamplr_jobs/job.html', {"job": job})
 

@@ -57,11 +57,13 @@
         <div class="job-row">
             <div class="job-column job-data">Path</div>
             <div class="job-column job-data">PID</div>
+            <div class="job-column job-data">Result</div>
         </div>
         {% for o in job.objects %}
         <div class="job-row">
-            <div class="job-column job-data">{{ o.0 }}</div>
-            <div class="job-column job-data"><code>{{ o.1 }}</code></div>
+            <div class="job-column job-data">{{ o.path }}</div>
+            <div class="job-column job-data"><code>{{ o.pid }}</code></div>
+            <div class="job-column job-data">{{ o.result }}</div>
         </div>
         {% endfor %}
     </div>
