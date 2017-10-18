@@ -207,7 +207,7 @@ def process_job(current_job):
     current_job.process_id = os.getpid()
     current_job.save()
  
-    logging.info("Starting Job ID: {0} for: {1}".format(job_id, type_obj.label))
+    logging.info("Starting {1} Job ID: {0}".format(job_id, type_obj.label))
     
     type_name = type_obj.app_name    
 

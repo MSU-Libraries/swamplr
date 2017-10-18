@@ -43,6 +43,7 @@ class job_objects(models.Model):
     # "Success" or "Failure" (or "Skip")
     result_id = models.ForeignKey('object_results')
     pid = models.CharField(max_length=64, null=True)
+    datastream_id = models.ForeignKey('datastreams')
 
 class object_results(models.Model):
 

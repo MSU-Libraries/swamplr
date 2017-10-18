@@ -253,6 +253,7 @@ div#div_id_path_list_selected .controls {
 }
 div#div_id_pid_namespace .controls {
     width: 25%; 
+    display: inline-block;
 }
 
 input#id_subset_value {

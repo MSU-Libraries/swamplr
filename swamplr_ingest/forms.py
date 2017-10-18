@@ -102,7 +102,7 @@ class IngestForm(forms.Form):
         self.fields["replace_on_duplicate"] = forms.BooleanField(
             required=False,
             label="Replace existing metadata and datastreams.",
-            help_text="Leave unchecked to only add new datastreams (not replace existing ones). This option only applys when updating existing objects.")
+            help_text="Leave unchecked to only add new datastreams (not replace existing ones). This option only applies when updating existing objects.")
 
         self.fields["subset_value"] = forms.IntegerField(
             required=False,

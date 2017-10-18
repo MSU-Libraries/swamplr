@@ -18,3 +18,5 @@ class SwamplrIngestConfig(AppConfig):
     # Path to default configs.
     collection_defaults = os.path.join(base_dir, "collection_defaults.json")
 
+    # Path to fedora api configs. these will be typically stored at app-level as fedora_api/fedora/cfg.
+    fedora_config_path = os.path.join(os.path.dirname(base_dir.rstrip('/')), "fedora_api", "fedora.cfg")

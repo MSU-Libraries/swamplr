@@ -1,6 +1,9 @@
 """Generic collections class for others to inherit."""
 from __future__ import print_function
 from swamplr import settings
+from swamplr_jobs.models import job_messages, status
+from models import object_results, job_objects, datastreams
+from django.utils import timezone
 from lxml import etree
 import os
 import json
@@ -51,9 +54,13 @@ class CollectionIngest(object):
         self.datastreams = datastreams
         self.collection = collection_configs
         self.collection_defaults = collection_defaults
-
-        logging.info("Initializing Ingest for Job {0}".format(ingest_job.job_id))
-
+        
+        logging.info("Initializing Ingest for Job {0}".format(ingest_job.job_id.job_id))
+        job_messages.objects.create(
+            job_id=ingest_job.job_id,
+            created=timezone.now(),
+            message="Initializing Ingest Job."
+        )
         # Find root_dir (folder should end in '_root'
         self.root_dir = self.get_root_dir()
         
@@ -69,10 +76,10 @@ class CollectionIngest(object):
         else:
             for i, dir_x in enumerate(self.get_sub_dirs(self.root_dir)):
 
-                logging.info("Checking {0}".format(dir_x))
+                logging.info("Processing {0}".format(dir_x))
 
                 # Stop after processing specified number of items.
-                if ((self.successful_objects + self.failed_objects) >= self.job.subset_value > 0):
+                if ((self.successful_objects + self.failed_objects) >= self.job.subset > 0):
                     break
 
                 full_path = os.path.join(self.root_dir, dir_x)
@@ -125,7 +132,6 @@ class CollectionIngest(object):
             # Check success and process accordingly.
             if in_object.result == "success":
                 self.successful_objects += 1
-
             else:
                 self.failed_objects += 1
 
@@ -136,6 +142,18 @@ class CollectionIngest(object):
 
             self.skipped_objects += 1
             logging.info("Skipping object at {0}".format(path))
+            
+            result_object = object_results.objects.get(label="Skipped")
+            for ds in self.datastreams:
+                datastream_object = datastreams.objects.get(datastream_label=ds[0])
+                job_objects.objects.create(
+                    job_id=self.job.job_id,
+                    created=timezone.now(),
+                    obj_file=path,
+                    result_id=result_object,
+                    pid=None,
+                    datastream_id=datastream_object,
+            )
 
     def process_child_objects(self, path, parent_pid):
         """Check for sub-objects and process accordingly.
@@ -151,7 +169,7 @@ class CollectionIngest(object):
 
             full_path = os.path.join(path, s)
             
-            if any([ex in full_path for ex in self.collection["exlude_strings"]):
+            if any([ex in full_path for ex in self.collection["exlude_strings"]]):
                 continue
 
             self.assess(full_path)
@@ -295,12 +313,13 @@ class CollectionIngest(object):
         """
         return len([f for f in os.listdir(directory) if f.endswith(file_ending)])
 
-    def get_root_dir():
+    def get_root_dir(self):
         """Find root directory, which should end in _root.
 
         args:
             path(str): path to files to tally
         """
+        logging.info("getting root dir")
         path = self.job.source_dir 
         root_dir = path
         for root, dirs, files in os.walk(path):
@@ -308,5 +327,6 @@ class CollectionIngest(object):
                 if dirx.endswith("_root"):
                     root_dir = os.path.join(root, dirx)
                     break
-
+        logging.info("got root dir")
+        logging.info(root_dir)
         return root_dir

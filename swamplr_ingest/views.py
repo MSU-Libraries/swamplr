@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from apps import SwamplrIngestConfig
 from models import ingest_jobs, job_datastreams, datastreams, job_objects, object_results
+from swamplr_jobs.models import status
 from collection import CollectionIngest
 from forms import IngestForm
 from swamplr_jobs.views import add_job, job_status 
@@ -22,21 +23,22 @@ def run_process(current_job):
 
     ingest_job = ingest_jobs.objects.get(job_id=current_job)
     collection_defaults = load_collection_defaults()
-    collection_data = get_ingest_data(collection_name)
+    collection_data = get_ingest_data(ingest_job.collection_name)
 
-    datastreams = []
-    for ds_id in job_datastreams.objects.filter(ingest_id=ingest_job):
-        otype = ds_id.object_type
-        ds = datastreams.objects.get(datastream_id=ds_id).datastream_label
-        datastreams.append((ds, otype))
+    user_datastreams = []
+    for ds in job_datastreams.objects.filter(ingest_id=ingest_job):
+        otype = ds.object_type
+        user_datastreams.append((ds.datastream_id.datastream_label, otype))
     
     try:
         c = CollectionIngest()
-        c.start_ingest(ingest_job, datastreams, collection_data, collection_defaults)
+        c.start_ingest(ingest_job, user_datastreams, collection_data, collection_defaults)
+        status_id = status.objects.get(status="Success").status_id
+        output = "Ingest complete."
 
     except Exception as e:
         output = e
-        status_id = service_status.objects.get(status="Script error").service_status_id_id
+        status_id = status.objects.get(status="Script error").status_id
 
     return (status_id, [output])
 
