@@ -150,6 +150,10 @@ def get_status_info(job):
     job_id = job.job_id
 
     try:
+        # Get data about successes, skips, failures.
+        result_display = "<span class='object-success'>{0}</span> /<span class='object-failed'> {1} </span> / <span class='object-skipped'>{2}</span>"
+        results = get_job_objects(job_id)
+        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
         ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
         ingest_data = get_ingest_data(ingest_job.collection_name)
         collection_label = ingest_data["label"]
@@ -157,9 +161,10 @@ def get_status_info(job):
             ("Ingest ID", ingest_job.ingest_id),
             ("Collection Type", ingest_job.collection_name),
             ("Namespace", ingest_job.namespace),
-            ("Process New Objects", ingest_job.process_new.upper()),
-            ("Process Existing Objects", ingest_job.process_existing.upper()),
-            ("Replace Duplicate Datastreams", ingest_job.replace_on_duplicate.upper()),
+            ("Source Directory", ingest_job.source_dir),
+            ("Process New Objects", "Y" if ingest_job.process_new == "y" else "N"),
+            ("Process Existing Objects", "Y" if ingest_job.process_existing == "y" else "N"),
+            ("Replace Duplicate Datastreams", "Y" if ingest_job.replace_on_duplicate == "y" else "N"),
             ("Items To Process", ingest_job.subset if ingest_job.subset != 0 else "All"),
         ]
         ds_data = {}
@@ -169,7 +174,6 @@ def get_status_info(job):
             label = ds.datastream_label
             ds_type = "Datastreams" if ds.is_object == "y" else "Metadata"
             object_type = j.object_type
-            print ingest_data["objects"][object_type]
             if "label" in ingest_data["objects"][object_type]:
                 object_type_label = ingest_data["objects"][object_type]["label"]
             else:
@@ -182,16 +186,16 @@ def get_status_info(job):
         for k, v in ds_data.items():
             details.append((k, ", ".join(v)))
 
-    # Cause of this exception would be the service being deleted from the table.
+        info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
+                "Success / Failed / Skipped: {0}".format(result_message)]
+        
     except Exception as e:
         label = "Not Found"
         details = [("None", "No Info Found")]
+        info = ["No info available."]
         print e.message
 
-    info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0}".format(collection_label)]
-
     return info, details
-
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
@@ -224,8 +228,15 @@ def get_ingest_options(status=["active"]):
     return ingest_options
 
 def get_job_objects(job_id):
-    """Get information about objects processed during ingest job."""
-    results = []
+    
+    results = {
+        "status_count": {
+            "Success": 0,
+            "Failed": 0,
+            "Skipped":0,
+        },
+        "objects": []
+    }
     pids = []
     objects = job_objects.objects.filter(job_id=job_id)
     for o in objects:
@@ -234,7 +245,7 @@ def get_job_objects(job_id):
     for p in set(pids):
 
         object_head = {"job_id": job_id, "subs": [], "pid": "", "result": ""}
-        object_rows = job_objects.objects.filter(pid=p)
+        object_rows = job_objects.objects.filter(pid=p, job_id=job_id)
         for o_row in object_rows:
             object_data = {}
             object_data["datastream"] = o_row.datastream_id.datastream_label
@@ -249,12 +260,17 @@ def get_job_objects(job_id):
         all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
         fail_id = object_results.objects.get(label="Failure").result_id
         if len(set(all_result_ids)) == 1:
+            results["status_count"][object_head["subs"][0]["result"]] += 1
             object_head["result"] = object_head["subs"][0]["result"]
         elif any([r_id == fail_id for r_id in all_result_ids]):
             object_head["result"] = "Failed"
+            results["status_count"]["Failed"] += 1
+            
         else:
             object_head["result"] = "Success"
-        results.append(object_head)
+            results["status_count"]["Success"] += 1
+
+        results["objects"].append(object_head)
 
     return results
 

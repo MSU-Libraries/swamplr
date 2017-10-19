@@ -142,6 +142,11 @@ a.btn.btn-lg.btn-outline-dark {
     margin-bottom:40px;
 }
 
+.object-row:hover {
+    cursor:pointer;
+    border: 1px solid black;
+}
+
 .ingest-heading h2 {
     margin-top:10px;
 }
@@ -311,7 +316,9 @@ input#submit-id-add-service {
     justify-content:space-between;
     padding: 3px 5px;
 }
-
+.details-data {
+    text-align:right;
+}
 #job-details, #job-type-details {
     background-color:white;
 }
@@ -322,7 +329,7 @@ input#submit-id-add-service {
 .object-data {
     display:flex;
     width:100%;
-    justify-content:space-between;
+    text-align:left;
 }
 
 .object-data > .object-column {
@@ -403,9 +410,23 @@ input#submit-id-add-service {
 .datastream-data {
     display:flex;
     justify-content:space-between;
-    width:100%;
+    align-items:center;
+    margin-left:2%;
+    height:23px;    
+}
+.datastreams-by-object {
+    display:none;
+}
+.datastream-data > div {
+    flex: 1 0 25%;
+    text-align:left;
 }
 
-.datastream-data > div {
-    flex: 0 1 auto;
+
+.object-heading {
+    text-align:center;
+    font-size:16px;
+    padding-bottom:15px;
+    text-decoration:underline;
+    margin-bottom:15px;
 }

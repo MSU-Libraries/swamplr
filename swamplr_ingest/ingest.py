@@ -8,6 +8,7 @@ from rdflib.namespace import Namespace
 from fedora_api.api import FedoraApi
 from swamplr import settings
 from models import datastreams, job_objects, object_results
+from swamplr_jobs.models import job_messages
 from hint import HintFiles
 from operator import itemgetter
 from ConfigParser import ConfigParser
@@ -98,7 +99,9 @@ class Ingest:
 
     def create_object(self):
         """Create object for upload, whether a new object or amended."""
-
+        status = 201
+        response = self.pid
+ 
         if not self.new_object:
             self.current_ds_list = self.get_current_datastreams()
 
@@ -107,9 +110,10 @@ class Ingest:
 
         logging.info(u"Processing object at {0}: {1}".format(self.pid, self.title))
 
-        status, response = self.fedora_api.ingest_at_pid(
-            self.pid, label=self.title, ownerId="MSUL", logMessage="New object created at {0}".format(self.pid)
-        )
+        if self.new_object: 
+            status, response = self.fedora_api.ingest_at_pid(
+                self.pid, label=self.title, ownerId="MSUL", logMessage="New object created at {0}".format(self.pid)
+            )
 
         if status == 201 and response == self.pid:
             # Add rels-ext, metadata, files, then check outcome.
@@ -308,6 +312,11 @@ class Ingest:
         for ds in self.metadata_datastreams:
 
             path = self.datastream_paths.get(ds, None)
+            if not path:
+                self.update_job_objects(path, ds, status="Skipped")
+                logging.info("Missing datastream path for '{0}'".format(ds))
+                continue
+        
             name = os.path.splitext(os.path.basename(path))[0]
             label = self.set_ds_label(ds, name)
 
@@ -339,7 +348,7 @@ class Ingest:
                 logging.info("Not updating or creating datastream: {0} for PID: {1}".format(ds, self.pid))
 
             if status not in [200, 201]:
-                self.update_job_objects(path, ds, success=False)
+                self.update_job_objects(path, ds, status="Success")
                 logging.info("Failed to add or modify datastream: {0} for pid: {1} with error {2}: {3}".format(ds, self.pid, status, result))
             else:
                 self.update_job_objects(path, ds)
@@ -367,8 +376,11 @@ class Ingest:
         logging.info("Adding objects at {0}".format(self.pid))
 
         for ds in self.file_datastreams:
-
             path = self.datastream_paths.get(ds, None)
+            if not path:
+                self.update_job_objects(path, ds, status="Skipped")
+                logging.info("Missing datastream path for '{0}'".format(ds))
+                continue
             name = os.path.splitext(os.path.basename(path))[0]
             label = self.set_ds_label(ds, name)
 
@@ -404,16 +416,17 @@ class Ingest:
                 logging.info("Not updating or creating datastream: {0} for PID: {1}".format(ds, self.pid))
 
             if status not in [200, 201]:
-                self.update_job_objects(path, ds, success=False)
+                self.update_job_objects(path, ds, status="Failure")
                 logging.info("Failed to add or modify datastream: {0} for pid: {1} with error {2}: {3}".format(ds, self.pid, status, result))
 
             else:
                 self.update_job_objects(path, ds)
 
-    def update_job_objects(self, path, ds, success=True):
-
-        result = "Success" if success else "Failure"
-        result_object = object_results.objects.get(label=result)
+    def update_job_objects(self, path, ds, status="Success"):
+        """Set datastream result. 
+        Valid options for status: Success, Failure, Skipped
+        """
+        result_object = object_results.objects.get(label=status)
         datastream_object = datastreams.objects.get(datastream_label=ds)
         job_objects.objects.create(
                     job_id=self.ingest_job.job_id,
@@ -517,10 +530,16 @@ class Ingest:
 
 
         elif self.ingest_job.replace_on_duplicate == 'y':
-            logging.info("--Replacing datastreams")        
+            if len(self.pids) > 1:
+                message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pids[0])
+                job_messages.objects.create(job_id=self.ingest_job, message=message, created=timezone.now())                
+                logging.warn("Found more than 1 matching pid. Processing {0}".format(self.pids[0]))
+            self.pid = self.pids[0]   
+            logging.info("----Replacing datastreams")        
             self.prognosis = "ingest"
 
         else:
+            self.duplicate_pid = self.pids[0]
             logging.info("--Existing pid found; Not replacing datastreams; Skipping item.")
             self.prognosis = "skip"
 

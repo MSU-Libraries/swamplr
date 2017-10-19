@@ -1,7 +1,7 @@
 """Generic collections class for others to inherit."""
 from __future__ import print_function
 from swamplr import settings
-from swamplr_jobs.models import job_messages, status
+from swamplr_jobs.models import job_messages, status, jobs
 from models import object_results, job_objects, datastreams
 from django.utils import timezone
 from lxml import etree
@@ -78,6 +78,11 @@ class CollectionIngest(object):
 
                 logging.info("Processing {0}".format(dir_x))
 
+                # Check if job has been cancelled.
+                failure_status = jobs.objects.get(job_id=self.job.job_id.job_id).status_id.failure 
+                logging.info(failure_status)
+                if failure_status == "manual":
+                    break
                 # Stop after processing specified number of items.
                 if ((self.successful_objects + self.failed_objects) >= self.job.subset > 0):
                     break
@@ -151,7 +156,7 @@ class CollectionIngest(object):
                     created=timezone.now(),
                     obj_file=path,
                     result_id=result_object,
-                    pid=None,
+                    pid=in_object.duplicate_pid,
                     datastream_id=datastream_object,
             )
 

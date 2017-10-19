@@ -14,7 +14,7 @@
         {% for e in job.card %}
             <div class="job-details">
                 <div class=details-field">{{ e.0 }}</div>
-                <div class="details-data">{{ e.1 }}</div>
+                <div class="details-data">{{ e.1|safe }}</div>
             </div>
         {% endfor %}
         <div class="job-details">
@@ -51,7 +51,7 @@
         {% endfor %}
     </div>
     {% endif %}
-    {% if job.objects %}
+    {% if job.objects and job.objects.objects %}
     <div id="objects-heading" class="panel-heading">Objects</div> 
     <div class="table table-responsive table-condensed">
         <div class="job-row">
@@ -59,13 +59,24 @@
             <div class="job-pid job-column job-data">PID</div>
             <div class="job-result job-column job-data">Result</div>
         </div>
-        {% for o in job.objects %}
+        <script>
+        $(document).ready(function() {
+            $(".object-row").click(function() {
+                $(".datastreams-by-object", this).slideToggle(200, function() {
+                });
+            });
+        }); 
+        </script>
+
+        {% for o in job.objects.objects %}
         <div class="object-row job-row">
             <div class="object-data">
                 <div class="job-path object-column job-column job-data">{{ o.path }}</div>
                 <div class="job-pid object-column job-column job-data"><code>{{ o.pid }}</code></div>
                 <div class="job-result object-column job-column job-data">{{ o.result }}</div>
             </div>
+            <div class="datastreams-by-object">
+            <div class="object-heading">Datastream Info</div>
             {% for d in o.subs %}
             <div class="datastream-data">
              <div class="ds-data job-column job-data ds-column">{{ d.datastream }}</div>
@@ -74,6 +85,7 @@
              <div class="ds-data job-column job-data ds-column">{{ d.result }}</div>
             </div>
             {% endfor %}
+            </div>
         </div>
         {% endfor %}
     </div>
