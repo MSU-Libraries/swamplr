@@ -223,34 +223,34 @@ def get_ingest_options(status=["active"]):
 
     return ingest_options
 
-def get_job_objects(self, job_id):
+def get_job_objects(job_id):
     """Get information about objects processed during ingest job."""
     results = []
-    object_ids = []
-    objects = job_objects.objects.filter(job_id=job_id).values('object_id')
+    pids = []
+    objects = job_objects.objects.filter(job_id=job_id)
     for o in objects:
-        object_ids.append(o["object_id"])
+        pids.append(o.pid)
 
-    for o_id in object_ids:
+    for p in set(pids):
 
-        object_head = {"object_id": o_id, "subs": [], "pid": "", result: ""}
-        object_rows = job_objects.objects.filter(object_id=o_id)
+        object_head = {"job_id": job_id, "subs": [], "pid": "", "result": ""}
+        object_rows = job_objects.objects.filter(pid=p)
         for o_row in object_rows:
             object_data = {}
-            object_data["datastream"] = datastreams.objects.get(datastream_id=o_row).datstream_label
-            object_data["file"] = o_row.obj_file
+            object_data["datastream"] = o_row.datastream_id.datastream_label
+            object_data["file"] = os.path.basename(o_row.obj_file)
             object_data["created"] = o_row.created
             object_data["result_id"] = o_row.result_id
-            object_data["result"] - object_results.objects.get(result_id=o_row).label
+            object_data["result"] = o_row.result_id.label
             object_data["pid"] = o_row.pid
             object_head["subs"].append(object_data)
         object_head["pid"] = object_head["subs"][0]["pid"]
-
-        all_result_ids = [obj["result_id"] for obj in obj]
-        fail_id = object_results.object.get(label="Failure").result_id
-        if len(set(all_result_ids)) == 1
+        object_head["path"] = "/".join(o_row.obj_file.rstrip("/").split("/")[:-1])
+        all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
+        fail_id = object_results.objects.get(label="Failure").result_id
+        if len(set(all_result_ids)) == 1:
             object_head["result"] = object_head["subs"][0]["result"]
-        elif any([r_id == fail_id for r_id in all_result_ids])
+        elif any([r_id == fail_id for r_id in all_result_ids]):
             object_head["result"] = "Failed"
         else:
             object_head["result"] = "Success"

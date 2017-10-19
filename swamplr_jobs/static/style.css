@@ -103,7 +103,7 @@ a.btn.btn-lg.btn-outline-dark {
     margin-right: 15px;
 }
 
-#job-status-heading, #messages-heading, #info-heading, #info-form-heading {
+#job-status-heading, #messages-heading, #info-heading, #info-form-heading, #objects-heading {
     background-color:#e3e3e3;
 }
 
@@ -194,6 +194,15 @@ a.btn.btn-lg.btn-outline-dark {
 
 .message-data {
     width: 45%;
+}
+.job-path {
+    width:45%;
+}
+.job-pid {
+    width:25%;
+}
+.job-result {
+    width:25%;
 }
 
 .job-heading {
@@ -310,7 +319,15 @@ input#submit-id-add-service {
 .job-details > div {
     flex: 0 1 auto;
 }
+.object-data {
+    display:flex;
+    width:100%;
+    justify-content:space-between;
+}
 
+.object-data > .object-column {
+    flex: 0 1 auto;
+}
 .job-container .job-detail-heading {
     background-color:white;
     border-bottom: 1px solid lightblue;
@@ -375,7 +392,7 @@ input#submit-id-add-service {
 }
 
 .modal_help_msg{
-	border: 1px solid #e3e3e3;
+    border: 1px solid #e3e3e3;
     padding: 10px;
     font-size: 12px;
     color: #666666;
@@ -383,3 +400,12 @@ input#submit-id-add-service {
     text-align: center;
 }
 
+.datastream-data {
+    display:flex;
+    justify-content:space-between;
+    width:100%;
+}
+
+.datastream-data > div {
+    flex: 0 1 auto;
+}

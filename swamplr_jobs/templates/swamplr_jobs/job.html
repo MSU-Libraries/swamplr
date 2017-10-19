@@ -52,18 +52,28 @@
     </div>
     {% endif %}
     {% if job.objects %}
-    <div class="panel-heading">Objects</div> 
+    <div id="objects-heading" class="panel-heading">Objects</div> 
     <div class="table table-responsive table-condensed">
         <div class="job-row">
-            <div class="job-column job-data">Path</div>
-            <div class="job-column job-data">PID</div>
-            <div class="job-column job-data">Result</div>
+            <div class="job-path job-column job-data">Path</div>
+            <div class="job-pid job-column job-data">PID</div>
+            <div class="job-result job-column job-data">Result</div>
         </div>
         {% for o in job.objects %}
-        <div class="job-row">
-            <div class="job-column job-data">{{ o.path }}</div>
-            <div class="job-column job-data"><code>{{ o.pid }}</code></div>
-            <div class="job-column job-data">{{ o.result }}</div>
+        <div class="object-row job-row">
+            <div class="object-data">
+                <div class="job-path object-column job-column job-data">{{ o.path }}</div>
+                <div class="job-pid object-column job-column job-data"><code>{{ o.pid }}</code></div>
+                <div class="job-result object-column job-column job-data">{{ o.result }}</div>
+            </div>
+            {% for d in o.subs %}
+            <div class="datastream-data">
+             <div class="ds-data job-column job-data ds-column">{{ d.datastream }}</div>
+             <div class="ds-data job-column job-data ds-column">{{ d.file }}</div>
+             <div class="ds-data job-column job-data ds-column">{{ d.created }}</div>
+             <div class="ds-data job-column job-data ds-column">{{ d.result }}</div>
+            </div>
+            {% endfor %}
         </div>
         {% endfor %}
     </div>
