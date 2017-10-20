@@ -14,7 +14,33 @@ Swamplr is a modular set of tools primarily designed to interact with a Fedora C
 ### Jobs (Core): swamplr_jobs
 This is the core Swamplr app. Its purpose is to run and display results from jobs created by other apps. Part of its
 design is to have a scheduled task that will run available jobs on a regular interval so that jobs can be scheduled to run
-in advance. Job progress and other relevant information is displayed as each job runs, along with success or failure messages
+in advance. The job scheduler would be a cron job running at a frequency , which looks for all the jobs that are queued and starts the first queued job.
+
+Once the Jobs app is installed the `Jobs` button appears at the top of the page, clicking on the button will lead you to the `Job Status` page. 
+
+When a new job is scheduled it is displayed on the job page. 
+
+1. The jobs are displayed in the decending order of the `Job ID` , which is the first column on the page. 
+    * The job ID is a link which links to additional details of the job . Additions details may vary depending on the type of job
+2. The `Job Type` column indicates the type of job. 
+    * The job type can be `Ingest` or `Derivatives` or `Services`.
+3. The `Details` column prints the most useful information for that job. 
+    * `Ingest Jobs` - The `namespace` , `Collection Name` and `Count of successful , failed and skipped` objects are displayed.
+    * `Service Jobs`-  The `Service Name` is displayed
+4. The `Created` column has prints the time of creation of the job.
+5. The `Completed` column prints the time of completion of the job.
+6. The `Status` column prints the status of the job.
+    * `Job Queued ` - The job is queued and has not yet started (Will not have a completed time).
+    * `Running` - The job is running (Will not have a completed time).
+    * `Cancelled By User` -  The job is cancelled by the user.
+    * `Script error` -  An eroor has occured when running the job.
+    * `Success`-  The job is completed successfully.
+7. The `Actions` column has several actions which enables the user to to perform several actions on the job.
+    * `Stop Job` -  The user can stop the job before at any time before completion . If the job is stopped the completed time will be the time when the job was terminated.
+    * `Remove Job`- The user can remove any completed job . This action removes the job from the display.
+
+
+Job progress and other relevant information is displayed as each job runs, along with success or failure messages
 on completion as applicable.
 
 ### Ingest: swamplr_ingest
