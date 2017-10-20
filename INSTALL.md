@@ -1,8 +1,14 @@
 ## Install and Configure Swamplr
 
-Please note, the following installation instructions have been written to apply to linux servers.
+Please note, the following installation instructions have been written to apply to linux servers (tested on Ubuntu 16.04 and 14.04).
 
-### Install
+*Contents:*  
+* [Install and Setup](#install-and-setup)
+* [Install and Enable Apps](#install-and-enable-apps)
+* [System Design](#system-design)  
+
+
+### Install and Setup
 The site requires a number of non-standard Python libraries to run. These can be installed via aptitude or pip, a
 Python-specific package manager. See below for list of dependencies, followed by installation instructions.
  - [Django](https://www.djangoproject.com/): Python web framework required for Swamplr
@@ -128,7 +134,7 @@ The site should now be available.
 ### Configuring Cron
 TODO -- how to configure the cron jobs
 
-## How to Install & Enable Apps
+## Install and Enable Apps
 Currently all of the apps are included in the same code repository as the core Swamplr app, so there are no special steps required to download the code.
 
 The code for each app is located at the top level of the directory structure, at the same level as the core `swamplr_jobs` app.
