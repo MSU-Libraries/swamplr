@@ -109,7 +109,7 @@ a.btn.btn-lg.btn-outline-dark {
 
 .job-row, .app-row {
     width: 97%;
-    min-height: 50px;
+    min-height: 64px;
     text-align: left!important;
     margin: auto;
     margin-top: 7px;
@@ -117,6 +117,11 @@ a.btn.btn-lg.btn-outline-dark {
     border: 1px solid #ffffff;
     border-radius: 10px;
     background: #ffffff;
+    padding-left:20px;
+}
+
+#job-headings {
+    min-height:32px;
 }
 
 .panel-primary, .panel-heading, #ingest-panel {
@@ -176,13 +181,17 @@ a.btn.btn-lg.btn-outline-dark {
     min-width: 5%;
     width: auto;
     height: 50px;
-    text-align: center;
+    text-align: left;
     line-height: normal;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     margin-right: 1.1%;     
     margin-top:5px;
+}
+
+.actions-column {
+    text-align:center;
 }
 
 .app-column {

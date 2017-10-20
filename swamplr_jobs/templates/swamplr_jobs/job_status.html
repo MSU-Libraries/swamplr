@@ -6,7 +6,7 @@
 <div class="panel panel-primary">
     <div id="job-status-heading" class="panel-heading"><div>Job Status</div> <div id="kbd"><kbd>As of {% now 'm/d/Y f a' %}</kbd></div></div>
     <div class="table table-responsive table-condensed">
-        <div class="job-row">
+        <div class="job-row" id="job-headings">
         {% for h in headings %}
             <div class="job-column ingestHeading {{ h|lower|slugify }}-column">{{ h }}</div>
         {% endfor %}
@@ -33,7 +33,7 @@
 <div class="pagination">
     <span class="step-links">
         {% if jobs.has_previous %}
-            <a class="btn btn-secondary" href="?page={{ jobs.previous_page_number }}">previous</a>
+            <a class="btn btn-default" href="?page={{ jobs.previous_page_number }}">previous</a>
         {% endif %}
 
         <span class="current">
@@ -41,7 +41,7 @@
         </span>
 
         {% if jobs.has_next %}
-            <a class="btn btn-secondary" href="?page={{ jobs.next_page_number }}">next</a>
+            <a class="btn btn-default" href="?page={{ jobs.next_page_number }}">next</a>
         {% endif %}
     </span>
 </div>

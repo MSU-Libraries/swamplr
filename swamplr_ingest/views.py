@@ -151,7 +151,7 @@ def get_status_info(job):
 
     try:
         # Get data about successes, skips, failures.
-        result_display = "<span class='object-success'>{0}</span> /<span class='object-failed'> {1} </span> / <span class='object-skipped'>{2}</span>"
+        result_display = "<span class='label label-success'>{0}</span> <span class='label label-danger'>{1}</span> <span class='label label-default'>{2}</span>"
         results = get_job_objects(job_id)
         result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
         ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
@@ -187,7 +187,7 @@ def get_status_info(job):
             details.append((k, ", ".join(v)))
 
         info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
-                "Success / Failed / Skipped: {0}".format(result_message)]
+                "Result Counts: {0}".format(result_message)]
         
     except Exception as e:
         label = "Not Found"
