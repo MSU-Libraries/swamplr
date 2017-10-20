@@ -335,7 +335,7 @@ class Ingest:
 
             elif self.ingest_job.replace_on_duplicate == 'y' and ds in self.datastream_paths:
 
-                status, result = self.fedora_api.modify_datastream(
+                status, result = self.fedora_api.add_datastream(
                     self.pid, ds,
                     filepath=path,
                     dsLabel=label,
@@ -402,7 +402,7 @@ class Ingest:
                 )
             elif self.ingest_job.replace_on_duplicate == 'y' and ds in self.datastream_paths:
 
-                status, result = self.fedora_api.modify_datastream(
+                status, result = self.fedora_api.add_datastream(
                     self.pid, ds,
                     filepath=path,
                     controlGroup="M",

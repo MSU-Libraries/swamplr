@@ -1,5 +1,6 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render
+from django.shortcuts import redirect
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
@@ -19,6 +20,7 @@ def main(request):
 
 def job_status(request, count=25, response={}):
     """Load job status page."""
+
     load_installed_apps()
 
     response["headings"] = ["Job ID", "Job Type", "Details", "Created", "Completed", "Status", "Actions"]
@@ -248,7 +250,7 @@ def remove_job(request, job_id):
     job_object = jobs.objects.get(job_id=job_id)
     job_object.archived = "y"
     job_object.save()
-    return job_status(request, response={"result_messages": ["Job ID #{0} successfully removed.".format(job_id)]})
+    return redirect(job_status)
    
 def stop_job(request, job_id):
     
@@ -274,5 +276,5 @@ def stop_job(request, job_id):
         logging.info("Job ID #{0} successfully canceled.".format(job_id))
         result_message = ["Job ID #{0} successfully canceled.".format(job_id)]
 
-    return job_status(request, response={"result_messages": result_message, "error_message": error_message})
+    return redirect(job_status)
  
