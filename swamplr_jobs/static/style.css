@@ -117,6 +117,7 @@ a.btn.btn-lg.btn-outline-dark {
     border: 1px solid #ffffff;
     border-radius: 10px;
     background: #ffffff;
+    overflow: hidden;
 }
 
 .panel-primary, .panel-heading, #ingest-panel {
@@ -175,7 +176,7 @@ a.btn.btn-lg.btn-outline-dark {
     display: inline-block;
     min-width: 5%;
     width: auto;
-    height: 50px;
+    height: auto;
     text-align: center;
     line-height: normal;
     white-space: nowrap;
@@ -183,6 +184,8 @@ a.btn.btn-lg.btn-outline-dark {
     text-overflow: ellipsis;
     margin-right: 1.1%;     
     margin-top:5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .app-column {
