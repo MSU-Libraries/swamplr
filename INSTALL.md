@@ -132,7 +132,21 @@ sudo -Hu www-data python manage.py migrate
 The site should now be available.
 
 ### Configuring Cron
-TODO -- how to configure the cron jobs
+In order for the jobs that are queued to be picked up automatically, you need to create a new cron job to run on a regular interval. 
+
+Edit the main crontab:
+```
+sudo vim /etc/crontab
+```
+
+And add the following:
+```
+*/1 * * * *   root  /var/www/swamplr/manage.py start_job >> /var/log/apache2/swamplr_job_status.log 2>&1
+```
+
+You may need to tweak this to meet your exact needs, particularly if you have the directories in different locations. This described setting will have it run the cron every minute to process new jojbs.
+
+How this works is, each time the process starts (in this case, once a minute) it will check for the installed apps and see if there are any `pre_process` functions that need to be run. These functions may do any setup work required, such as with `swamplr_services` it checks for automated services that are set to run and addes them to the job queue. After that it will check the job queue and see if there are any queued jobs that are not already running (possibly from a previous cron that kicked off already) and call the `process` function for the app that queued the job.
 
 ## Install and Enable Apps
 Currently all of the apps are included in the same code repository as the core Swamplr app, so there are no special steps required to download the code.
