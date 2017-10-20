@@ -125,23 +125,24 @@ sudo -Hu www-data python manage.py migrate
 
 The site should now be available.
 
+### Configuring Cron
+TODO -- how to configure the cron jobs
 
 ## How to Install & Enable Apps
 Currently all of the apps are included in the same code repository as the core Swamplr app, so there are no special steps required to download the code.
 
 The code for each app is located at the top level of the directory structure, at the same level as the core `swamplr_jobs` app.
 
-### Services: swamplr_services
 Since the App is included in the same code repository as the core app, there are no extra steps required to download the code.
 
 The services app does not have any additional depenencies that need to be installed.
 
-To enable the app, edit the settings.py file and add it to the INSTALL_APPS:
+To enable an app, edit the settings.py file and add it to the INSTALL_APPS:
 ```
 vim swamplr/settings.py
 ```
 
-That section of the file should now look like:
+For example, the section of the file when enabling `swamplr_services` would look like:
 ```
 INSTALLED_APPS = (
     'django.contrib.admin',
@@ -158,6 +159,16 @@ INSTALLED_APPS = (
 ```
 
 There may be some additional items in that section if you have already enabled other apps.
+
+### Services: swamplr_ingest
+
+TODO -- describe any additional install dependencies (apps or server utilities)
+
+TODO -- describe any additional configuration needed (i.e. the json config)
+
+TODO -- describe hint files
+
+### Services: swamplr_services
 
 The configurations for the services app is in the `swamplr_services/apps.py` file.
 ```
@@ -246,6 +257,7 @@ The functionality of individual apps will likely require data updates to newly c
 
 Each app will have it's own set of URL configurations. The Django project's urls.py file is set up to direct certain URL patterns to the appropriate app.
 
+TODO 
 
 ```python
 
