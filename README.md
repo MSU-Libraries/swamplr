@@ -29,54 +29,11 @@ command to run on the server and optionally the user to run it as (if not the sa
 
 ## Install and Setup
 
-
-#### Swamplr Ingest
-
-The site should now be available. 
-
+See the [install instructions](INSTALL.md) for detailed steps to install and configure the application.  
 
 ## Install and Enable Apps
-Currently all of the apps are included in the same code repository as the core Swamplr app, so there are no special steps required to download the code.
 
-The code for each app is located at the top level of the directory structure, at the same level as the core `swamplr_jobs` app.
-
-### Services: swamplr_services
-Since the App is included in the same code repository as the core app, there are no extra steps required to download the code.
-
-The services app does not have any additional depenencies that need to be installed.
-
-To enable the app, edit the settings.py file and add it to the INSTALL_APPS:
-```
-vim swamplr/settings.py
-```
-
-That section of the file should now look like:
-```
-INSTALLED_APPS = (
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django.contrib.humanize',
-    'crispy_forms',
-    'swamplr_jobs',
-    'swamplr_services',
-)
-```
-
-There may be some additional items in that section if you have already enabled other apps. 
-
-The configurations for the services app is in the `swamplr_services/apps.py` file.
-```
-class ServicesConfig(AppConfig):
-    name = 'swamplr_services'
-    run_as_user = 'root'
-```
-The `name` should not be changed, as that is just the name of the app.  
-The `run_as_user` is the user that will be used to run services as in the event one is not provided by the user when adding a service.  
-
+See the [install instructions](INSTALL.md#how-to-install-enable-apps) for detailed steps to install and configure specific apps.   
 
 ## System Design
 ### Technologies
@@ -155,8 +112,8 @@ The functionality of individual apps will likely require data updates to newly c
 
 Each app will have it's own set of URL configurations. The Django project's urls.py file is set up to direct certain URL patterns to the appropriate app.
 
+TODO
 
 ```python
 
 ```
->>>>>>> ef9e848cb5331b07f589317d3443b1a9b11187ba
