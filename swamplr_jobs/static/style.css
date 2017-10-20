@@ -118,6 +118,7 @@ a.btn.btn-lg.btn-outline-dark {
     border-radius: 10px;
     background: #ffffff;
     padding-left:20px;
+    overflow: hidden;
 }
 
 #job-headings {
