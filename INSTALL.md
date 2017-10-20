@@ -2,7 +2,7 @@
 
 Please note, the following installation instructions have been written to apply to linux servers (tested on Ubuntu 16.04 and 14.04).
 
-*Contents:*  
+**Contents:**  
 * [Install and Setup](#install-and-setup)
 * [Install and Enable Apps](#install-and-enable-apps)
 * [System Design](#system-design)  
