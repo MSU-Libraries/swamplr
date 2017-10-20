@@ -27,15 +27,15 @@ When a new job is scheduled it is displayed on the job page.
 3. The `Details` column prints the most useful information for that job. 
     * `Ingest Jobs` - The `namespace` , `Collection Name` and `Count of successful , failed and skipped` objects are displayed.
     * `Service Jobs`-  The `Service Name` is displayed
-4. The `Created` column has prints the time of creation of the job.
+4. The `Created` column  prints the time of creation of the job.
 5. The `Completed` column prints the time of completion of the job.
 6. The `Status` column prints the status of the job.
     * `Job Queued ` - The job is queued and has not yet started (Will not have a completed time).
     * `Running` - The job is running (Will not have a completed time).
     * `Cancelled By User` -  The job is cancelled by the user.
-    * `Script error` -  An eroor has occured when running the job.
+    * `Script error` -  An error has occurred when running the job.
     * `Success`-  The job is completed successfully.
-7. The `Actions` column has several actions which enables the user to to perform several actions on the job.
+7. The `Actions` column  enables the user to to perform several actions on the job.
     * `Stop Job` -  The user can stop the job before at any time before completion . If the job is stopped the completed time will be the time when the job was terminated.
     * `Remove Job`- The user can remove any completed job . This action removes the job from the display.
 
