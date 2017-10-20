@@ -2,19 +2,45 @@
 
 Swamplr is a modular set of tools primarily designed to interact with a Fedora Commons repository ([vers. 3.8](https://wiki.duraspace.org/display/FEDORA38/Fedora+3.8+Documentation)) as well as other components of the Fedora software stack ([Solr](https://lucene.apache.org/solr/guide/), [Gsearch](https://github.com/fcrepo3/gsearch), [Islandora](https://wiki.duraspace.org/display/ISLANDORA/Islandora), etc.)
 
-*Contents:*  
-* [Available Apps](#available-apps)  
+**Contents:**  
+* [Apps](#apps)  
 * [Install and Setup](#install-and-setup)
 * [Install and Enable Apps](#install-and-enable-apps)
 * [System Design](#system-design)  
 
 
-## Available Apps
+##  Apps
 
 ### Jobs (Core): swamplr_jobs
 This is the core Swamplr app. Its purpose is to run and display results from jobs created by other apps. Part of its
 design is to have a scheduled task that will run available jobs on a regular interval so that jobs can be scheduled to run
-in advance. Job progress and other relevant information is displayed as each job runs, along with success or failure messages
+in advance. The job scheduler would be a cron job running at a frequency , which looks for all the jobs that are queued and starts the first queued job.
+
+Once the Jobs app is installed the `Jobs` button appears at the top of the page, clicking on the button will lead you to the `Job Status` page. 
+
+When a new job is scheduled it is displayed on the job page. 
+
+1. The jobs are displayed in the decending order of the `Job ID` , which is the first column on the page. 
+    * The job ID is a link which links to additional details of the job . Additions details may vary depending on the type of job
+2. The `Job Type` column indicates the type of job. 
+    * The job type can be `Ingest` or `Derivatives` or `Services`.
+3. The `Details` column prints the most useful information for that job. 
+    * `Ingest Jobs` - The `namespace` , `Collection Name` and `Count of successful , failed and skipped` objects are displayed.
+    * `Service Jobs`-  The `Service Name` is displayed
+4. The `Created` column  prints the time of creation of the job.
+5. The `Completed` column prints the time of completion of the job.
+6. The `Status` column prints the status of the job.
+    * `Job Queued ` - The job is queued and has not yet started (Will not have a completed time).
+    * `Running` - The job is running (Will not have a completed time).
+    * `Cancelled By User` -  The job is cancelled by the user.
+    * `Script error` -  An error has occurred when running the job.
+    * `Success`-  The job is completed successfully.
+7. The `Actions` column  enables the user to to perform several actions on the job.
+    * `Stop Job` -  The user can stop the job before at any time before completion . If the job is stopped the completed time will be the time when the job was terminated.
+    * `Remove Job`- The user can remove any completed job . This action removes the job from the display.
+
+
+Job progress and other relevant information is displayed as each job runs, along with success or failure messages
 on completion as applicable.
 
 ### Ingest: swamplr_ingest
@@ -24,139 +50,85 @@ An app designed to ingest new content into a Fedora Commons repository.
 An app that creates various derivatives for files that are to be ingested. The types of derivatives that are available to be generated are based on the type of content, for example images have options like creating a JPG, TIF and JP2. But audio objects have options to create waveforms preview images.  
 
 ### Services: swamplr_services
-A more generic app that lets users create custom scripts that can be run on a scheduled interval. The user specifies the
-command to run on the server and optionally the user to run it as (if not the same user that runs Swamplr).
+Services is a more generic app that lets users create custom scripts that can be run on a scheduled interval. 
+The user specifies the command to run on the server and optionally the user to run it as 
+(if not the user specified during the app setup).
+
+Once the `swamplr_services` app is correctly installed and enabled, you should see a new dropdown navigation on the page called "Services".  This dropdown will contain the following items:  
+
+* A list of all your configured services (will not have any be default). Clicking one one of these will queue the service to be run in the "Jobs" page  
+* "Manage Services" which allows you to add and remove services
+
+**Manage Services:**  
+The top section of the page contains the list of all the services that have already been configured along with information about what they do. Each service will display the following information:  
+
+* Service: The label you identified for the service, which appears in the "Services" dropdown navigation
+* Command: The command that will run on the server
+* Frequency (mins.): How often the service is configured to run automatically, defaulting to "None" if it does not run automatically
+* Last Started: The date and time that the service was last run
+* User: The user that should run the command on the server, the default value is set during configuration of the app
+* Actions: Available actions for the service. Run will queue the service on the "Jobs" page and "Delete" will remove it from the list of available services
+
+The "Add a Service" section allows you to create a new service command, identifying the following information: 
+
+* Label: Display label for the service
+* Description: Longer description for what the service does, for user reference
+* Command: The command to run on the server
+* Frequency: How often to run the service autoamtically, leave blank for no automated running
+* User name: User to run the command, defaulting to what was configured during the app setup
+
+**Writing Service Commands:**
+
+For the core jobs app to know if a given command succedes or fails, it checks the return code. Zero for success and non-zero for failure. Any message that is printed from the command will be included in the job messages. Here is a sample command script that will check if a service is running on the server: 
+
+```
+#!/bin/bash
+RETURN_CODE=2
+SERVICE_PATH=${1:-/var/run/apache2/apache2.pid}
+if [[ -f $SERVICE_PATH ]]; then
+    SERVICE_PID=$(cat $SERVICE_PATH)
+    ps -p $SERVICE_PID > /dev/null
+    RETURN_CODE=$?
+fi
+
+if [[ $RETURN_CODE -eq 2 ]]; then
+    echo "PID file does not exist at: $SERVICE_PATH."
+elif [[ $RETURN_CODE -eq 1 ]]; then
+    echo "PID $SERVICE_PID is not running."
+elif [[ $RETURN_CODE -eq 0 ]]; then
+    echo "Process running at: $SERVICE_PID."
+else
+    echo "Unexpected return code: $RETURN_CODE for PID $SERVICE_PID."
+fi
+exit $RETURN_CODE
+```
+
+This is saved in a file called `check_service.sh`. Make sure that the user you want to run the script has appropriate permissions to do so. 
+
+To break down what this script does:
+* Determines the path to the service's PID file based on the paremeter to the script, defaulting to Apache's PID file
+* If the PID file exists, check the status of the PID within that file on the server to see if the process is running and set the return code accordingly
+* If the return code is 2 (what it was set to at the begining) then the message to return is that the PID file did not exist
+* If the return code was 1 then the service was not running
+* If the return code was 0 then the service was running
+* Otherwise there was an unexpected error
+* All paths return the error code and display a different message depending on that code
+
+To configure this service in Swamplr, Create a new service giving it a name, description and frequency. Then for the command provide: `/path/to/check_services.sh path/to/service.pid` and add the service. 
+
+Afer you add the service, click "Run" to have it do a test run and you can now check the status of the run through the "Jobs" page.
+
+Some other examples of services you could write would be for restarting services, so users would not need SSH access to your service in order to do so. Or even custom test scripts to verify various components of your server setup (from Fedora Commons to Solr or even you repository's front end web-site).
 
 ## Install and Setup
 
-
-#### Swamplr Ingest
-
-The site should now be available. 
-
+See the [install instructions](INSTALL.md) for detailed steps to install and configure the application.  
 
 ## Install and Enable Apps
-Currently all of the apps are included in the same code repository as the core Swamplr app, so there are no special steps required to download the code.
 
-The code for each app is located at the top level of the directory structure, at the same level as the core `swamplr_jobs` app.
-
-### Services: swamplr_services
-Since the App is included in the same code repository as the core app, there are no extra steps required to download the code.
-
-The services app does not have any additional depenencies that need to be installed.
-
-To enable the app, edit the settings.py file and add it to the INSTALL_APPS:
-```
-vim swamplr/settings.py
-```
-
-That section of the file should now look like:
-```
-INSTALLED_APPS = (
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django.contrib.humanize',
-    'crispy_forms',
-    'swamplr_jobs',
-    'swamplr_services',
-)
-```
-
-There may be some additional items in that section if you have already enabled other apps. 
-
-The configurations for the services app is in the `swamplr_services/apps.py` file.
-```
-class ServicesConfig(AppConfig):
-    name = 'swamplr_services'
-    run_as_user = 'root'
-```
-The `name` should not be changed, as that is just the name of the app.  
-The `run_as_user` is the user that will be used to run services as in the event one is not provided by the user when adding a service.  
-
+See the [install instructions](INSTALL.md#how-to-install-enable-apps) for detailed steps to install and configure specific apps.   
 
 ## System Design
-### Technologies
 
-Swamplr is built in [Django](https://www.djangoproject.com/), a Python-based web development framework, and is comprised of a set of interrelated modules, or "apps." The core Swamplr application runs swamplr_jobs, a job-queuing system for handling jobs created by a set of other apps, such as swamplr_services, swamplr_ingest, and swamplr_derivatives. 
+See the [system design](INSTALL.md#system-design) for details on the database and app structures.  
 
-### App Structure
-
-Each Swamplr app must include a set of features that allows it to interface with the jobs app specifically, and with the Django API generally. Creating a new Django app with the command
-```
-# 'Compound' content models are those with hierarchical directory structures.
-self.compound_content_models = ["compound", "newspaper_issue", "book"]
-self.simple_content_models = ["large_image", "pdf", "newspaper_page", "oral_histories", "audio"]
-```
-
-
-**Hint Files**
-
-View functions can return static HTML or, more dynamically, a *template* and a *context*. The template consists of HTML with Django template language mixed in, while the context contains variables to apply in the specified template. See the [Django documentation](https://www.djangoproject.com/) for a thorough explanation of the structure and functionality of a Django project. 
-
-### Core Database Tables
-
-The core app, swamplr_jobs, will control a jobs database tables which additional apps will populate with jobs. The tables in the database organize jobs according to type, and store status and error information for each job. Brief descriptions below, and see the (#TODO) database schema document for more information:
-
-* **jobs**: Covers jobs, status, start and end times, and job type.
-* **status**: List of possible job statuses.
-* **job_types**: Stores available job types.
-* **job_messages**: Error messages and traceback for failed jobs.
-* **job_objects**: Granular tracking of the file objects a given job has acted on, if any.
-
-### App Connections
-
-Each app connects to the larger Django project which runs it. The project's settings.py file contains basic configurations that control the database connection, handling of templates, context processors and much more. Meanwhile each app should implement a few basic functions within `views.py` to connect to the jobs queue and to be integrated into the navigation and adminstrative structure of the project.
-
-#### Required Functions
-
-* **get_nav_bar**: Each app's views.py file should have a function to return data for a dropdown menu of functions that looks like this:
-```
-{
- "label": "",
- "name": "",
- "children": [
-     {
-      "label": "",
-      "id": "",
-     },
-     ...
-  ]
-}
-```
-  * **label**: Text to appear in the heading of the dropdown menu.
-  * **name**: The app name, to be used in building links to the app's functionality, e.g. manage-[name], run-[name], etc.
-  * **children**: label and id to display in the dropdown menu to connect to functionality.
-  
-
-* **manage-[name]**: A function and view that allows users to view/edit the functionality of the app.
-* **run_process**: The base function called when a new job is begun. This function will be passed a job object, and should then proceed to run the given job, providing updates to the database and to the log file where appropriate. The function should return a tuple compopsed of the final status ID and 1 or more messages to be stored in job_messages table.
-* **pre_process**: The function called before processing of any job begings. This function takes no parameters.
-* **get_status_info**: When the job dashboard page or the job detail page is loaded, this function provides data about the job status. It should return two variables, the first containing a list of human readable data to post to the job status page; the second a list (of tuples) containing data about each app-specific data point to be shown on the job detail page.
-* **get_actions**: Return list of actions to be loaded on the job status page. Each action should take this form:
-```
-action = {
-    "label": "Stop Job", # the name to display to users.
-    "action": "stop_job", # a function name in views.py to be matched to a url.
-    "class": "btn-danger", # a class used to style the button, typically a bootstrap button class.
-    "args": "job_id", # a string of arguments separated by spaces to be passed to the function set in the 'action' field.
-}
-```
-
-
-#### Database Connections
-
-The functionality of individual apps will likely require data updates to newly created tables as well as to the core set of swamplr_jobs tables. This can be handled via Django's [database migrations](https://docs.djangoproject.com/en/1.11/topics/migrations/).
-
-#### URL Handling
-
-Each app will have it's own set of URL configurations. The Django project's urls.py file is set up to direct certain URL patterns to the appropriate app.
-
-
-```python
-
-```
->>>>>>> ef9e848cb5331b07f589317d3443b1a9b11187ba
