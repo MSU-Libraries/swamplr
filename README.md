@@ -2,7 +2,7 @@
 
 Swamplr is a modular set of tools primarily designed to interact with a Fedora Commons repository ([vers. 3.8](https://wiki.duraspace.org/display/FEDORA38/Fedora+3.8+Documentation)) as well as other components of the Fedora software stack ([Solr](https://lucene.apache.org/solr/guide/), [Gsearch](https://github.com/fcrepo3/gsearch), [Islandora](https://wiki.duraspace.org/display/ISLANDORA/Islandora), etc.)
 
-*Contents:*  
+**Contents:**  
 * [Apps](#apps)  
 * [Install and Setup](#install-and-setup)
 * [Install and Enable Apps](#install-and-enable-apps)
