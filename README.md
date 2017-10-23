@@ -44,10 +44,224 @@ Job progress and other relevant information is displayed as each job runs, along
 on completion as applicable.
 
 ### Ingest: swamplr_ingest
-An app designed to ingest new content into a Fedora Commons repository.
+The ingest app is designed to ingest new content into a Fedora Commons repository. Objects can be uploaded
+according to the specifications of individual collections.
 
-### Derivatives: swamplr_derivatives
-An app that creates various derivatives for files that are to be ingested. The types of derivatives that are available to be generated are based on the type of content, for example images have options like creating a JPG, TIF and JP2. But audio objects have options to create waveforms preview images.  
+**Configuring Collections**
+
+The ingest tool uses collection configuration settings to determine which options to offer the user and
+how to process a given ingest job. These collections settings are stored in [collections.json](swamplr_ingest/collections.json)
+and [collection_defaults.json](swamplr_ingest/collection_defaults.json). The latter, *default* settings set certain baseline
+configurations to be used if not overridden by collection-specific settings. This app includes example collections
+used at MSU, but once downloaded can be edited freely.
+
+The default settings file contains content model information for each object type to be ingested. All object
+types specified in collection settings **must** also be present here to ensure ingested items are assigned
+a content model in the `RELS-EXT` datastream.
+
+```
+"content_models": {
+  "large_image": {
+    "has_model": "info:fedora/islandora:sp_large_image_cmodel"
+},
+
+  "compound": {
+    "has_model": "info:fedora/islandora:compoundCModel"
+},
+  "pdf": {
+    "has_model": "info:fedora/islandora:sp_pdf"
+}
+```
+
+The default settings also contain datastream default settings. In the example below, two datastreams are
+defined, "TN" and "DATA". The settings in `collection_defaults.json` will be used **unless** these settings are
+overwritten in `collections.json`.
+
+```
+"datastreams": {
+    "TN": {
+      "id": "TN",
+      "label": "Thumbnail Image",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "image/jpeg"
+    },
+    "DATA": {
+      "id": "DATA",
+      "label": "Supplemental Data",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "application/zip"
+    },
+```
+
+Collection level settings use the default settings as a basis and overwrite them in cases where the same
+configuration appears in both places.
+```
+"image": {
+    "name": "image",
+    "label": "Image",
+    "type": "default",
+    "status": "active",
+    "content_model": "large_image",
+    "exclude_strings": [],
+    "objects": {
+        "object": {
+            "namespace": "image_test",
+            "datastreams": {
+                "OBJ": {
+                    "marker": [".tif"],
+                    "required": "true"
+                },
+                "TN": {
+                    "marker": ["_TN.jpg"],
+                    "required": "true"
+                }
+            },
+            "metadata": {
+                "DC": {
+                    "marker": ["_DC.xml"],
+                    "required": "true"
+                },
+                "MODS": {
+                    "marker": ["_MODS.xml"],
+                    "required": "true"
+                }
+            }
+        }
+    }
+},
+```
+These are the settings for a collection called 'image.' The image
+ingest configured here includes "default" as its type setting. The other allowed option is "collection." Any sites
+configured with these options will appear in the "Ingest" dropdown menu.
+
+Selecting an ingest option from the dropdown menu should then populate the upload page with options specific to it. The datastream and metadata
+options will appear as a set of checkbox options.
+
+The tool will attempt to create an object with each of the selected datastreams and metadata types. Each of these is
+configured with a "marker", that is, a string to match within the filename of the file to be uploaded under that datastream's
+heading. A warning will appear in the log for any user-selected datastreams that cannot be found in the given object
+directory.
+
+A guide to settings:
+
+| Setting | Use |
+| ------- | --- |
+| top-level key, e.g. "image"   | Name for this ingest type.  |
+| name  | Name for this ingest type.   |
+| label  | Label to appear on ingest page.   |
+| type  | Values may be "default" or "collection"; intended to distinguish between generic content model oriented ingests
+   for testing and more well-defined collection oriented settings.|
+| status  | If "active" this ingest type will appear in the dropdown menu.   |
+| objects  | All object types should be contained here.   |
+| object key, e.g. "object"  | Name for object type, default value is simply "object."   |
+| content_model  | Should be the name of a content model as it appears in `collection_defaults.json.`   |
+| label  | Label to appear on ingest page.   |
+| namespace  | Default namespace to use in PID.   |
+| datastreams  | All file datastreams to appear on ingest page should be included here.   |
+| metadata  | All metadata datastreams to appear on ingest page should be included here.   |
+
+**Directory Structure**
+
+The ingest tool relies on a standard directory structure, wherein a top-level root directory contains
+object-level children. For compound or otherwise multi-part objects, child objects should be found as
+sub-directories within the main object directory. All files to be ingested should be stored according to this
+structure.
+
+For collections that may house a variety of content types, "hint files" can be used to help the algorithm
+guess which content model to use for a given object. The hint file should be stored in the object directory
+and be named "hint.json" and specify a "type":
+
+```
+{
+"type": "object"
+}
+```
+
+The value of "type" should match the name of an object type defined in the collection-level `objects` setting.
+
+The hint file is not needed if only 1 object type is defined, or if 2 object types are defined **and** one of
+these is a simple object type and one is a compound object type (i.e. if one of the object types has child objects
+and one does not.)
+
+**Specifying Sequence**
+
+The hint file can also be used to extract sequence information for collections
+that contain such information within folder names. For this method to work
+files should be organized like this:
+
+```
+└── dmhsp_root
+    ├── AuschwitzBirkenau02
+    ├── AuschwitzBirkenau03
+    ├── Buchenwald05
+```
+
+There *must* be a directory housing the items to be sequenced, named "*_root". This
+folder will provide the basis for which the following hint file values will operate:
+
+```
+{
+"type": "large_image",
+ "sequence": "true",
+ "filter_by": "sname",
+ "sort_by": "snumber",
+ "sort_direction": "asc",
+ "sort_level": 0,
+ "sequence_match": "^(?P<sname>[a-zA-Z]+)(?P<snumber>[0-9.]+)$"
+}
+```
+
+First, the field "sequence" must be set to "true".
+
+Then, the "sort_level" field should be set to an integer which determines how many
+sub-folders down from root to sort: a value of 0 means that the sub-directories of
+the root directory itself will be used to apply sorting and sequencing.
+
+This sorting happens by matching each directory to a regular expression pattern, defined in
+the "sequence_match" field. In the example above, two pieces of information are extracted
+from all matches: an "sname" and a "snumber".
+
+The former is then set as the value for the "filter_by" field. In the example above,
+relating to a collection of Holocaust site photographs, the "sname" will be the
+camp name, e.g. Buchenwald. All Buchenwald folders will be added to the filter,
+then only items in this filter (all those matching the "sname" Buchenwald) are
+sorted by "snumber", as per the "sort_by" field.
+
+Both of these pieces of information are added to the RELS-EXT as such:
+
+```
+<isSequenceOf xmlns="http://islandora.ca/ontology/relsext#">Buchenwald</isSequenceOf>
+<isSequenceNumber xmlns="http://islandora.ca/ontology/relsext#" rdf:datatype="http://www.w3.org/2001/XMLSchema#int">14</isSequenceNumber>
+```
+
+The "sort_direction" field can be set to either "asc" or "desc" as desired.
+
+**Ingesting Collections**
+
+Once configured collections can be ingested by submitting the auto-generated form Swamplr will produce.
+The form provides options to select the desired namespace for the collection, the source directory in which to find
+object folders, and the set of datastreams (either file-like or xml) to be ingested. The only
+required datastream is DC (Dublin Core). This datastream should always be selected (and present in object
+folders) as it is used to find existing objects in Fedora.
+
+This ability to match existing objects allows for options to manage and update existing Fedora
+objects and datastreams. Users can select to process existing objects or to make only new ones,
+and from there to either replace existing datastreams, or ignore them.
+
+The job dashboard will update with progress as it crawls through the files in the supplied directory,
+considering them either to be successes (some change to the object was successfully made), failures (the
+desired change was not completed satisfactorily, in at least one of its components), or skips (in which
+the object is not touched).
+
+The job detail page provides correspondence between the filesystem and the Fedora Commons object, as well
+as important messages generated along the way. For debugging it will still be necessary to consult
+the log file set up during configuration of the Apache server.
+
+
 
 ### Services: swamplr_services
 Services is a more generic app that lets users create custom scripts that can be run on a scheduled interval. 
