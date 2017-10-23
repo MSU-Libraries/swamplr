@@ -17,7 +17,11 @@ form {
 }
 
 kbd {
-    font-size:50%;
+    font-size:60%;
+}
+
+#welcome {
+    margin:2%;
 }
 
 #kbd {
@@ -118,11 +122,25 @@ a.btn.btn-lg.btn-outline-dark {
     border-radius: 10px;
     background: #ffffff;
     padding-left:20px;
+    overflow: hidden;
 }
 
 #job-headings {
     min-height:32px;
     overflow: hidden;
+}
+
+#manage-ingest {
+    margin:1%;
+}
+
+#manage-ingest p {
+    max-width:600px;
+    width:100%;
+}
+
+.json-display {
+    width:75%;
 }
 
 .panel-primary, .panel-heading, #ingest-panel {
@@ -181,13 +199,8 @@ a.btn.btn-lg.btn-outline-dark {
     display: inline-block;
     min-width: 5%;
     width: auto;
-<<<<<<< HEAD
-    height: 50px;
     text-align: left;
-=======
     height: auto;
-    text-align: center;
->>>>>>> f8901eda2857e1b17e69e2bc6821b54dfb3b8c37
     line-height: normal;
     white-space: nowrap;
     overflow: hidden;

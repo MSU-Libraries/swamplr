@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from apps import SwamplrIngestConfig
 from models import ingest_jobs, job_datastreams, datastreams, job_objects, object_results
@@ -12,10 +12,10 @@ import os
 import json
 
 
-def manage(request, response={}):
+def manage(request):
     """Manage existing services and add new ones."""
-    response.update(load_manage_data())
-    return render(request, 'swamplr_services/manage.html', response)
+    data = load_manage_data()
+    return render(request, 'swamplr_ingest/manage.html', data)
 
 
 def run_process(current_job):
@@ -94,18 +94,15 @@ def add_ingest_job(request, collection_name):
                 object_type=otype,
                 datastream_id=datastreams.objects.get(datastream_label=ds),
             )
-        message = "Successfully added {0} job: {1}".format(SwamplrIngestConfig.name, new_job.job_id)
-        response["result_messages"].append(message)
     
     else:
 
-        message = "Unable to add job: Missing or invalid form data."
-        response["error_messages"].append(message)
-        
-    return job_status(request, response=response)
+        message = ["Unable to add job: Missing or invalid form data."]
+        return run_ingest(request, collection_name, message=message)
+ 
+    return redirect(job_status)
 
-
-def run_ingest(request, collection_name):
+def run_ingest(request, collection_name, message=[]):
    
     form = IngestForm()
     cname = get_ingest_data(collection_name)["label"]
@@ -115,35 +112,28 @@ def run_ingest(request, collection_name):
         "form": form,
         "cname": cname,
         "base_dir": SwamplrIngestConfig.ingest_paths,
+        "message": message
     }          
     return render(request, "swamplr_ingest/ingest.html", response)
 
 
 def load_manage_data():
     """Load data for manage page."""
-    service_objects = services.objects.all()
-    all_services = []
+    configs_path = SwamplrIngestConfig.collection_configs
+    defaults_path = SwamplrIngestConfig.collection_defaults
+    with open(configs_path) as f:
+        configs = json.dumps(json.load(f), indent=4, separators=(',', ': '))
+    with open(defaults_path) as f:
+        defaults = json.dumps(json.load(f), indent=4, separators=(',', ': '))
+    data = {
+        "configs": configs,
+        "defaults": defaults,
+        "configs_path": configs_path,
+        "defaults_path": defaults_path,
+    }
 
-    for s in service_objects:
+    return data
 
-        all_services.append(
-            {
-             "id": s.service_id,
-             "label": s.label,
-             "description": s.description,
-             "command": s.command,
-             "run_as_user": s.run_as_user,
-             "frequency": s.frequency,
-             "last_started": s.last_started,
-            }
-        )    
-
-    form = ServicesForm()
-    response = {
-        "form": form,
-        "services": all_services,
-    }   
-    return response
 
 def get_status_info(job):
     """Required function: return info about current job for display."""
@@ -249,7 +239,7 @@ def get_job_objects(job_id):
         for o_row in object_rows:
             object_data = {}
             object_data["datastream"] = o_row.datastream_id.datastream_label
-            object_data["file"] = os.path.basename(o_row.obj_file)
+            object_data["file"] = os.path.basename(o_row.obj_file) if o_row.obj_file else "Null"
             object_data["created"] = o_row.created
             object_data["result_id"] = o_row.result_id
             object_data["result"] = o_row.result_id.label

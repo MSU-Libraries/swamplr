@@ -1,0 +1,18 @@
+{% extends "swamplr_jobs/main.html" %}
+
+{% block content %}
+
+
+<div class="container-fluid" id="manage-ingest">
+    <div class="manage-ingest-heading"><h2>Ingest Configurations</h2></div>
+    <p>Changes to ingest settings must currently be made directly on JSON files inside of swamplr. For more information, please refer
+       to the <a href="https://github.com/MSU-Libraries/swamplr#ingest-swamplr_ingest">documentation</a>.</p>
+    <p>Swamplr is comprised of two configuration files. The first file <b>collection_defaults.json</b> (located at <code>{{ defaults_path }}</code>) includes datastream defaults and content model information corresponding to collection types:</p>
+    <div class="json-display"><pre>{{ defaults }}</pre></div>
+    <p>The second configuration file, <b>collections.json</b> (located at <code>{{ configs_path }}</code>) should include all collection definitions as well as datastream options to overwrite the values found
+       in <code>collection_defaults.json</code>:
+    <div class="json-display"><pre>{{ configs }}</pre></div>
+</div>
+
+{% endblock %}
+

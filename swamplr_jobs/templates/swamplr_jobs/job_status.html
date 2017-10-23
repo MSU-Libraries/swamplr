@@ -22,7 +22,7 @@
             <div class="job-column {{ headings.5|lower|slugify }}-column">{{ j.status.status }}</div>
             <div class="job-column {{ headings.6|lower|slugify }}-column app-button">
             {% for a in j.actions %}
-                <a href="{% url a.action a.args %}"><button class="btn {{ a.class }}">{{ a.label }}</button></a>
+                <form method="POST" action="{% url a.action a.args %}">{% csrf_token %}<button type="submit" class="btn {{ a.class }}">{{ a.label }}</button></form>
             {% endfor %}
             </div>
          </div>

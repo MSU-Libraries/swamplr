@@ -276,20 +276,20 @@ Once the `swamplr_services` app is correctly installed and enabled, you should s
 **Manage Services:**  
 The top section of the page contains the list of all the services that have already been configured along with information about what they do. Each service will display the following information:  
 
-* Service: The label you identified for the service, which appears in the "Services" dropdown navigation
-* Command: The command that will run on the server
-* Frequency (mins.): How often the service is configured to run automatically, defaulting to "None" if it does not run automatically
-* Last Started: The date and time that the service was last run
-* User: The user that should run the command on the server, the default value is set during configuration of the app
-* Actions: Available actions for the service. Run will queue the service on the "Jobs" page and "Delete" will remove it from the list of available services
+* `Service`: The label you identified for the service, which appears in the "Services" dropdown navigation
+* `Command`: The command that will run on the server
+* `Frequency (mins.)`: How often the service is configured to run automatically, defaulting to "None" if it does not run automatically
+* `Last Started`: The date and time that the service was last run
+* `User`: The user that should run the command on the server, the default value is set during configuration of the app
+* `Actions`: Available actions for the service. Run will queue the service on the "Jobs" page and "Delete" will remove it from the list of available services
 
 The "Add a Service" section allows you to create a new service command, identifying the following information: 
 
-* Label: Display label for the service
-* Description: Longer description for what the service does, for user reference
-* Command: The command to run on the server
-* Frequency: How often to run the service autoamtically, leave blank for no automated running
-* User name: User to run the command, defaulting to what was configured during the app setup
+* `Label`: Display label for the service
+* `Description`: Longer description for what the service does, for user reference
+* `Command`: The command to run on the server
+* `Frequency`: How often to run the service autoamtically, leave blank for no automated running
+* `User name`: User to run the command, defaulting to what was configured during the app setup
 
 **Writing Service Commands:**
 

@@ -1,8 +1,9 @@
 from django.shortcuts import render
+from django.shortcuts import redirect
 from apps import ServicesConfig
 from models import services, service_jobs, service_status
 from forms import ServicesForm
-from swamplr_jobs.views import add_job
+from swamplr_jobs.views import job_status, add_job
 from datetime import datetime
 import logging
 import os
@@ -123,7 +124,7 @@ def run_service(request, service_id):
 
     results_messages = ["Added job successfully."]
 
-    return manage(request, response={"result_messages": results_messages, "error_messages": error_messages})
+    return redirect(job_status) 
 
 def add_service(request):
     """Add new service based on form input."""
@@ -154,7 +155,7 @@ def add_service(request):
 
         response["error_messages"] = ["Failed to add service."]
 
-    return manage(request, response=response)
+    return redirect(manage)
 
 def get_status_info(job):
     """Required function: return info about current job for display."""
@@ -193,7 +194,7 @@ def delete_service(request, s_id):
     """Delete service based on id."""
     services.objects.filter(service_id=s_id).delete()
     result_message = ["Successfully deleted service."]
-    return manage(request, response={"result_messages": result_message})    
+    return redirect(manage)
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
