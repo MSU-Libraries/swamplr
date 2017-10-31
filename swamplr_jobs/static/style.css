@@ -444,9 +444,14 @@ input#submit-id-add-service {
     margin-left:2%;
     height:23px;    
 }
-.datastreams-by-object {
+.datastreams-by-object{
     display:none;
 }
+
+#div_id_replace_on_duplicate {
+    display:block;
+}
+
 .datastream-data > div {
     flex: 1 0 25%;
     text-align:left;

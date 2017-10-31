@@ -110,6 +110,9 @@ def run_service(request, service_id):
     args:
         service_id(str): id of service to run.
     """
+    if request.method != "POST":
+        return redirect(manage)
+
     results_messages = ""
     error_messages = ""
 
@@ -129,6 +132,8 @@ def run_service(request, service_id):
 def add_service(request):
     """Add new service based on form input."""
 
+    if request.method != "POST":
+        return redirect(manage)
     response = {}
 
     # Check if form data is valid.
@@ -192,6 +197,9 @@ def get_actions(job):
 
 def delete_service(request, s_id):
     """Delete service based on id."""
+    if request.method != "POST":
+        return redirect(manage)
+
     services.objects.filter(service_id=s_id).delete()
     result_message = ["Successfully deleted service."]
     return redirect(manage)

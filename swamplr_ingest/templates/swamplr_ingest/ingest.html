@@ -6,6 +6,16 @@
 
 {% include "swamplr_ingest/browse_helper.html" %}
 
+<script>
+$( document ).ready( function() {
+    $( "input[value='DC']" ).attr("disabled", "disabled").attr("title", "DC datastream must be selected.");
+    $( "#id_process_1" ).change(function() {
+	console.log( "hello" );
+        $("#div_id_replace_on_duplicate").toggle(200, function() {
+	});
+    });
+}); 
+</script>
 <div class="container-fluid" id="ingest-panel">
     <div class="ingest-heading"><h2>Ingest: <span class="collection-name">{{ cname|title }}</span></h2></div>
     {% crispy form  %}

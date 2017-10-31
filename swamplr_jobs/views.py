@@ -123,12 +123,14 @@ def set_default_actions(job):
     """Set default actions for jobs."""
     actions = []
     stop_job = {
+         "method": "POST",
          "label": "Stop Job",
          "action": "stop_job",
          "class": "btn-warning",
          "args": str(job.job_id)
         }
     rerun_job = {
+        "method": "POST",
         "label": "Run same job",
         "action": "add_job",
         "class": "btn-info",
@@ -136,6 +138,7 @@ def set_default_actions(job):
         }
 
     archive_job = {
+        "method": "POST",
         "label": "Remove Job",
         "action": "remove_job",
         "class": "btn-primary",
@@ -247,13 +250,22 @@ def process_job(current_job):
 
 def remove_job(request, job_id):
     """Remove aka "archive" job."""
-    job_object = jobs.objects.get(job_id=job_id)
-    job_object.archived = "y"
-    job_object.save()
+    print("Removing job with method {0}.url: {1}".format(request.method, request.build_absolute_uri()))
+    if request.method == "POST":
+        print("ready to delete job id {0}".format(job_id))
+        job_object = jobs.objects.get(job_id=job_id)
+        job_object.archived = "y"
+        job_object.save()
+
     return redirect(job_status)
    
 def stop_job(request, job_id):
+    print("Removing job with method {0}".format(request.method))
     
+    if request.method != "POST":
+        return redirect(job_status)
+    
+    print("ready to delete job id {0}".format(job_id))
     result_message = []
     error_message = []
     job_object = jobs.objects.get(job_id=job_id)

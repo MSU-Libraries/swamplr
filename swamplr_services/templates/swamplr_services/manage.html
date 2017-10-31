@@ -36,13 +36,12 @@
         <div class="app-column">{{ s.last_started }}</div>
         <div class="app-column">{{ s.run_as_user }}</div>
         <div class="app-column app-button">
-
-            <a href="{% url 'run-services' s.id %}">
-                <button type="button" class="btn btn-success">Run</button>
-            </a>
-            <a href="{% url 'delete-services' s.id %}">
-                <button type="button" class="btn btn-danger">Delete</button>
-            </a>
+            <form method="POST" action="{% url 'run-services' s.id %}">
+                <button type="submit" class="btn btn-success">Run</button>
+            </form>
+            <form method="POST" action="{% url 'delete-services' s.id %}">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
 
         </div>
      </div>

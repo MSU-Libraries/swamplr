@@ -26,6 +26,9 @@ def load_configs(path_to_configs):
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+# Not auto-appending slash to url as that results in loss of data in redirect to url with slash.
+APPEND_SLASH = False
+
 # Secure settings (including passwords) stored in additional settings file, and loaded below.
 SECURE_SETTINGS = os.path.join(BASE_DIR, "swamplr.cfg")
 
@@ -74,7 +77,6 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
