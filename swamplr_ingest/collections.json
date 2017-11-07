@@ -109,7 +109,8 @@
         }
 
     },
-"newspaper": {
+
+    "newspaper": {
         "name": "newspaper",
         "label": "Newspaper",
         "type": "default",
@@ -134,11 +135,11 @@
                 },
                 "metadata": {
                     "DC": {
-                        "marker": ["_DC.xml"],
+                        "marker": ["_DC.xml", "_dc.xml"],
                         "required": "true"
                     },
                     "MODS": {
-                        "marker": ["_MODS.xml"],
+                        "marker": ["_MODS.xml", "_mods.xml"],
                         "required": "true"
                     }
                 }
@@ -176,6 +177,10 @@
                 "metadata": {
                     "DC": {
                         "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
                         "required": "false"
                     },
                     "TECHMD": {
