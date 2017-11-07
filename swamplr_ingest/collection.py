@@ -174,13 +174,13 @@ class CollectionIngest(object):
 
             full_path = os.path.join(path, s)
             
-            if any([ex in full_path for ex in self.collection["exlude_strings"]]):
+            if any([ex in full_path for ex in self.collection["exclude_strings"]]):
                 continue
 
             self.assess(full_path)
 
             if self.object_type:
-                self.process_for_ingest(full_path, child=True, parent_pid=parent_pid, sequence=(index + 1))
+                self.ingest(full_path, child=True, parent_pid=parent_pid, sequence=(index + 1))
 
             else:
                 logging.error("Unable to process {0}".format(full_path))
@@ -243,7 +243,7 @@ class CollectionIngest(object):
         subdirs = self.get_sub_dirs(path)
 
         # Check if there are subdirs *not* specified as excluded patterns.
-        if len(subdirs) > 0 and any(s not in self._exlude_strings for s in subdirs):
+        if len(subdirs) > 0 and any(s not in self.collection["exclude_strings"] for s in subdirs):
             self.assign_type("compound")
 
         else:

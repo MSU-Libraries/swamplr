@@ -275,7 +275,6 @@ def get_ingest_data(ingest_type):
     default = load_collection_defaults()
     return data[ingest_type]
 
-
 def load_ingest_data():
     """Load json file of collection data."""
     config_path = SwamplrIngestConfig.collection_configs
@@ -302,7 +301,7 @@ def get_all_datastreams(collection_data, form_data, value_type="datastreams"):
         collection_data(dict): data from json-configured collection configs.
         form_data(dict): data from collection upload form.
     kwargs:
-        values(str): either 'datastreams' or 'metadata'; the type of user input to retrieve.
+        value_type(str): either 'datastreams' or 'metadata'; the type of user input to retrieve.
     """
     # list to be populated with 2-tuples of datastream name and object type
     # it's associated with.
@@ -317,7 +316,8 @@ def get_all_datastreams(collection_data, form_data, value_type="datastreams"):
         # For each checked box for each object type, add value and type.
         for ds_value in ds_values:
             datastreams.append((ds_value, otype, value_type))
-
+        # Disabled "DC" form value does not get included in POST; re-adding DC here.
+        datastreams.append(("DC", otype, "metadata"))
     return datastreams
 
 def load_json(self, path):

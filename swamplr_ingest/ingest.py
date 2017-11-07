@@ -51,7 +51,7 @@ class Ingest:
 
         # List of datastreams as 2-tuple (name, associated object type).
         self.datastreams = datastreams
-
+        logging.info("datastreams {0}".format(datastreams))
         # Future title.
         self.title = ""
 
@@ -159,7 +159,7 @@ class Ingest:
             )
             self.fedora_api.add_relationship(
                 self.pid, "http://islandora.ca/ontology/relsext#dateIssued",
-                self.get_date(self.datastream_paths.get("DC", None)), isLiteral=True, datatype="dateTime"
+                self.get_date(self.datastream_paths.get("DC", None)), isLiteral=True
             )
 
         elif self.child:
@@ -520,9 +520,9 @@ class Ingest:
             self.pid = self.get_child_pid()
 
         # If no pid returned in search.
-        if len(self.pids) == 0:
+        if len(self.pids) == 0 or not self.pid:
 
-            logging.info("Unable to find an object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
+            logging.info("Unable to find appropriate object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
             self.no_pid_returned()
             logging.info("Assigned new pid: {0}".format(self.pid))
             self.prognosis = "ingest"
@@ -557,22 +557,22 @@ class Ingest:
     def get_child_pid(self):
         """Method of returning child object's PID by checking for sequence matches."""
         child_pid = None
-        sequence_match = None
+        sequence_match = 0
         predicate = self.set_sequence_predicate()
+        logging.info("predicate: {0}".format(predicate))
         for pid in self.pids:
             # Get content models.
             status, object_profile = self.fedora_api.get_object_profile(pid=pid)
 
             # Get RELS-EXT data.
             status, rels_ext = self.fedora_api.get_relationships(pid)
-            predicates = get_predicates(rels_ext)
-
+            predicates = self.get_predicates(rels_ext)
             if predicate in predicates:
                 sequence_match = get_predicate_value(predicate)
 
             if not self.is_compound(object_profile) and int(sequence_match) == int(self.sequence):
                 child_pid = pid
-
+        logging.info("child_pid set at {0}".format(child_pid))
         return child_pid
 
     def is_compound(self, object_profile):
@@ -584,7 +584,7 @@ class Ingest:
         compound = False
         compound_types = ["info:fedora/islandora:compoundCModel",
                           "info:fedora/islandora:newspaperIssueCModel"]
-        cmodels = get_content_models(object_profile)
+        cmodels = self.get_content_models(object_profile)
         if any([c in compound_types for c in cmodels]):
             compound = True
         return compound
@@ -592,18 +592,18 @@ class Ingest:
     def get_predicates(self, rels_ext, format="nt"):
         """Return all predicates in a given rels_ext datastream."""
         g = Graph()
-        content = g.parse(rels_ext, format=format)
+        content = g.parse(data=rels_ext, format=format)
         return list(content.predicates())
 
-    def get_predicate_value(self, rels_ext, predicate, format="nt"):
-        return self.get_predicate_values(rels_ext, predicate, format=format)[0]
+    def get_predicate_value(self, rels_ext, predicate, format_="nt"):
+        return self.get_predicate_values(rels_ext, predicate, format_=format_)[0]
 
-    def get_predicate_values(self, rels_ext, predicate, format="nt"):
+    def get_predicate_values(self, rels_ext, predicate, format_="nt"):
         values = []
         g = Graph()
-        content = g.parse(rels_ext, format=format)
-        for subject, object in content.subject_objects(URIRef(predicate)):
-            values.append(str(object))
+        content = g.parse(rels_ext, format=format_)
+        for subject, object_ in content.subject_objects(URIRef(predicate)):
+            values.append(str(object_))
         return values
 
     def get_content_models(self, object_profile):
@@ -740,6 +740,7 @@ class Ingest:
 
         # Datastreams are labeled according to object type. Extract just those from current object type.
         self.object_datastreams = [ds[0] for ds in self.datastreams if ds[1] == self.object_type]
+        logging.info("object_datasterams {0}".format(self.object_datastreams))
         return self.sort_datastreams()
 
     def sort_datastreams(self):
