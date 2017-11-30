@@ -70,6 +70,7 @@ INSTALLED_APPS = (
     'swamplr_jobs',
     'swamplr_services',
     'swamplr_ingest',
+    'swamplr_namespaces',
 )
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
