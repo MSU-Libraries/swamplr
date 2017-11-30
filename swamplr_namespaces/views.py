@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from models import namespace_cache
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render
 
 
 def load_namespaces(request, count=25):
     """Load all namespaces from cache."""
+    response = {}    
+
     namespace_objects = namespace_cache.objects.all()
     paginator = Paginator(namespace_objects, count)
     page = request.GET.get('page')
@@ -38,7 +40,7 @@ def get_nav_bar():
 
     nav = {"label": "Namespaces",
            "name": "namespaces",
-           "children": []}
+          }
     return nav
 
 def get_actions(job):
