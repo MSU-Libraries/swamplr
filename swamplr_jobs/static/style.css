@@ -107,11 +107,11 @@ a.btn.btn-lg.btn-outline-dark {
     margin-right: 15px;
 }
 
-#job-status-heading, #messages-heading, #info-heading, #info-form-heading, #objects-heading {
+#job-status-heading, #ns-status-heading, #messages-heading, #info-heading, #info-form-heading, #objects-heading {
     background-color:#e3e3e3;
 }
 
-.job-row, .app-row {
+.job-row, .app-row, .ns-row {
     width: 97%;
     min-height: 64px;
     text-align: left!important;
@@ -125,7 +125,7 @@ a.btn.btn-lg.btn-outline-dark {
     overflow: hidden;
 }
 
-#job-headings {
+#job-headings, #ns-headings {
     min-height:32px;
     overflow: hidden;
 }
@@ -194,7 +194,7 @@ a.btn.btn-lg.btn-outline-dark {
     width:auto;
 }
 
-.job-column, .app-column {
+.job-column, .app-column, .ns-column {
     float: left;
     display: inline-block;
     min-width: 5%;
@@ -240,7 +240,7 @@ a.btn.btn-lg.btn-outline-dark {
     width:25%;
 }
 
-.job-heading {
+.job-heading, .ns-heading {
     font-size: 18px;
     font-weight: 600;
     color: #787A84;
