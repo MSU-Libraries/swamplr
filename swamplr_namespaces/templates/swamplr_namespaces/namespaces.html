@@ -13,7 +13,7 @@
 
         {% for ns in namespaces %}
         <div class="ns-row">
-            <div class="ns-column {{ headings.0|lower|slugify }}-column">{{ forloop.counter }}</div>
+            <div class="ns-column number-column">{{ forloop.counter }}</div>
             <div class="ns-column {{ headings.1|lower|slugify }}-column">{{ ns.namespace }}</div>
             <div class="ns-column {{ headings.2|lower|slugify }}-column">{{ ns.count }}</div>
             <div class="ns-column {{ headings.3|lower|slugify }}-column app-button">
@@ -25,19 +25,18 @@
          {% endfor %}
     </div>
 </div>
-
 <div class="pagination">
     <span class="step-links">
-        {% if jobs.has_previous %}
-            <a class="btn btn-default" href="?page={{ jobs.previous_page_number }}">previous</a>
+        {% if namespaces.has_previous %}
+            <a class="btn btn-default" href="?page={{ namespaces.previous_page_number }}">previous</a>
         {% endif %}
 
         <span class="current">
-            Page {{ jobs.number }} of {{ jobs.paginator.num_pages }}
+            Page {{ namespaces.number }} of {{ namespaces.paginator.num_pages }}
         </span>
 
-        {% if jobs.has_next %}
-            <a class="btn btn-default" href="?page={{ jobs.next_page_number }}">next</a>
+        {% if namespaces.has_next %}
+            <a class="btn btn-default" href="?page={{ namespaces.next_page_number }}">next</a>
         {% endif %}
     </span>
 </div>

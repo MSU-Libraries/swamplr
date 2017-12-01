@@ -8,10 +8,10 @@ from django.shortcuts import render
 def load_namespaces(request, count=25):
     """Load all namespaces from cache."""
     response = {
-        "headings": ["#", "Namespace", "Count", "Actions"]
+        "headings": ["Number", "Namespace", "Count", "Actions"]
     }
 
-    namespace_objects = namespace_cache.objects.all()
+    namespace_objects = namespace_cache.objects.all().order_by('-count')
     paginator = Paginator(namespace_objects, count)
     page = request.GET.get('page')
 
@@ -47,26 +47,32 @@ def get_nav_bar():
 
 def get_actions(ns):
     """Required function: return actions to populate in job table."""
-    list = {
+    list_items = {
          "method": "POST",
          "label": "List Items",
          "action": "list_items",
-         "class": "btn-info",
+         "class": "btn-success",
          "args": ns.namespace
         }
     reindex = {
          "method": "POST",
          "label": "Reindex",
          "action": "reindex",
-         "class": "btn-info",
+         "class": "btn-success",
          "args": ns.namespace
         }
     delete = {
          "method": "DELETE",
          "label": "Delete All",
          "action": "delete",
-         "class": "btn-warning",
+         "class": "btn-danger",
          "args": ns.namespace
         }
-    return [list, reindex, delete]
+    return [list_items, reindex, delete]
 
+def reindex(ns):
+    pass
+def list_items(ns):
+    pass
+def delete(ns):
+    pass

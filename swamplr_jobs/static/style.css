@@ -211,8 +211,17 @@ a.btn.btn-lg.btn-outline-dark {
     padding-bottom: 10px;
 }
 
+.ns-column {
+    width: 25%;
+
+}
 .actions-column {
     text-align:center;
+    width:
+}
+
+.actions-column form {
+    float:left
 }
 
 .app-column {
@@ -246,8 +255,8 @@ a.btn.btn-lg.btn-outline-dark {
     color: #787A84;
     }
 
-.job-id-column {
-    width:5%;
+.job-id-column, .number-column {
+    width:5% !important;
 }
 
 .job-type-column {
@@ -272,6 +281,10 @@ a.btn.btn-lg.btn-outline-dark {
 
 .actions-column {
     width:15%;
+}
+
+.ns-column.actions-column {
+    width:25%;
 }
 
 .table {
