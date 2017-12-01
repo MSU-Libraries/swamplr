@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 from models import namespace_cache, namespace_operations, namespace_jobs
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrNamespacesConfig
 import logging
@@ -38,7 +38,7 @@ def load_namespaces(request, count=25):
 
 def set_namespace_info(ns):
     """Prepare namespace object with additional info for display."""
-    ns.actions = get_actions(ns)
+    ns.actions = set_actions(ns)
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
@@ -48,7 +48,12 @@ def get_nav_bar():
           }
     return nav
 
-def get_actions(ns):
+def get_actions(job):
+    """Required function: return actions to populate in job table."""
+    actions = []
+    return actions
+
+def set_actions(ns):
     """Required function: return actions to populate in job table."""
     list_items = {
          "method": "POST",
@@ -78,7 +83,7 @@ def reindex(request, ns):
     logging.info("Adding reindex job for namespace: {0}".format(ns))
 
     new_job = add_job(SwamplrNamespacesConfig.name)
-    ns_operation = namespace_operations.objects.get(namespace_operation="Reindex")
+    ns_operation = namespace_operations.objects.get(operation_name="Reindex")
 
     namespace_job = namespace_jobs.objects.create(
         job_id=new_job,
