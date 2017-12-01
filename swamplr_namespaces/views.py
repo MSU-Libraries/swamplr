@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from models import namespace_cache
+from models import namespace_cache, namespace_operations, namespace_jobs
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render
+from swamplr_jobs.views import add_job, job_status
+from apps import SwamplrNamespacesConfig
+import logging
 
 
 def load_namespaces(request, count=25):
@@ -70,8 +73,22 @@ def get_actions(ns):
         }
     return [list_items, reindex, delete]
 
-def reindex(ns):
-    pass
+
+def reindex(request, ns):
+    logging.info("Adding reindex job for namespace: {0}".format(ns))
+
+    new_job = add_job(SwamplrNamespacesConfig.name)
+    ns_operation = namespace_operations.objects.get(namespace_operation="Reindex")
+
+    namespace_job = namespace_jobs.objects.create(
+        job_id=new_job,
+        namespace=ns,
+        operation_id=ns_operation
+    )
+
+    return redirect(job_status)
+
+
 def list_items(ns):
     pass
 def delete(ns):

@@ -170,7 +170,7 @@ def load_installed_apps():
 
 def add_job(app_name):
     """Use app_name to create new job."""
-    # Get job type id for job type 'service'.
+    # Get job type id for job type.
     job_type = job_types.objects.get(app_name=app_name)
 
     # Query for id of job status.
