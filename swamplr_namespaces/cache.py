@@ -4,6 +4,7 @@ import argparse
 from ConfigParser import ConfigParser
 import pymysql
 from datetime import datetime
+import string
 
 def build_cache():
     parser = argparse.ArgumentParser()
@@ -23,7 +24,7 @@ def build_cache():
                                 cursorclass=pymysql.cursors.DictCursor)
 
     with connection.cursor() as cursor:
-        sql = "SELECT * FROM `swamplr_namespaces_cache_job`"
+        sql = "SELECT `process_id` FROM `swamplr_namespaces_cache_job` LIMIT 1"
         cursor.execute(sql)
         result = cursor.fetchone()
         process_id = result["process_id"] if result else 0
@@ -33,23 +34,22 @@ def build_cache():
         print "Cache job currently running with pid: {0}".format(process_id)
         
     else:
-        current_process = os.getgid()
+        current_process = os.getpid()
         with connection.cursor() as cursor:
             if result:            
-                sql = "UPDATE `swamplr_namespaces_cache_job` SET process_id = %s WHERE process_id = {0}".format(process_id)
+                sql = "UPDATE `swamplr_namespaces_cache_job` SET process_id = %s"
             else:
                 sql = "INSERT INTO `swamplr_namespaces_cache_job` (`process_id`) VALUES (%s)"
  
             cursor.execute(sql, (current_process, ))
             
         ns_count = count_namespaces(path_to_object_store)    
-        
-        with connection.cursor() as cursor: 
-            # This method performs a delete and replace (not an update) if the row already exists.
-            # Therefore all columns should be supplied in the replace statement.
-            sql = "INSERT INTO `swamplr_namespaces_namespace_cache` (`namespace`, `count`) VALUES (%s, %s)\
-                  ON DUPLICATE KEY UPDATE `count` = VALUES(count)"
-            cursor.executemany(sql, ns_count.items())
+        with connection.cursor() as cursor:
+            if len(ns_count) > 0:
+                pl = ",".join(["(%s, %s)" for x in range(len(ns_count))]) 
+                sql = "INSERT INTO `swamplr_namespaces_namespace_cache` (`namespace`, `count`) VALUES {0}\
+                      ON DUPLICATE KEY UPDATE `count` = VALUES(count)".format(pl)
+                cursor.execute(sql, [element for tupl in ns_count.items() for element in tupl])
             
             time = datetime.now()
             sql = "UPDATE `swamplr_namespaces_cache_job` SET process_id = 0, last_run = '{0}' WHERE process_id = '{1}'".format(time, current_process)
@@ -68,7 +68,9 @@ def is_running(pid):
             os.kill(pid, 0)
             running = True
         except:
-            pass
+            with connection.cursor() as cursor:                        
+                sql = "UPDATE `swamplr_namespaces_cache_job` SET process_id = 0"
+                cursor.execute(sql)
     return running
 
 def count_namespaces(path):
@@ -76,12 +78,20 @@ def count_namespaces(path):
     ns_count = {}
     for hexdir in os.listdir(path):
         hexpath = os.path.join(path, hexdir)
-        if os.path.isdir(hexpath):
+        if os.path.isdir(hexpath) and is_hex_directory(hexdir):
             for objectdir in os.listdir(hexpath):
-                fedora_and_namespace = objectdir.split("%3A")[1]
-                namespace = fedora_and_namespace.split("%2F")[1]
-                ns_count[namespace] = ns_count.get(namespace, 0) + 1                
+                try:
+                    fedora_and_namespace = objectdir.split("%3A")[1]
+                    namespace = fedora_and_namespace.split("%2F")[1]
+                    ns_count[namespace] = ns_count.get(namespace, 0) + 1                
+                except:
+                    print "Non matching pattern in file or directory at {0}".format(os.path.join(hexpath, objectdir))
     return ns_count
+
+def is_hex_directory(d):
+    """Check to see if directory name is hex."""
+    return all(c in string.hexdigits for c in d) and len(d) == 2
+
 
 def load_configs(path_to_configs):
     """Load configs from default location."""

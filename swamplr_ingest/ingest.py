@@ -344,14 +344,17 @@ class Ingest:
                 )
 
             else:
-                status = 200
+                status = 405
                 logging.info("Not updating or creating datastream: {0} for PID: {1}".format(ds, self.pid))
 
-            if status not in [200, 201]:
-                self.update_job_objects(path, ds, status="Success")
-                logging.info("Failed to add or modify datastream: {0} for pid: {1} with error {2}: {3}".format(ds, self.pid, status, result))
-            else:
+            if status in [200, 201]:
                 self.update_job_objects(path, ds)
+            elif status == 405:
+                self.update_job_objects(path, ds, status="Skipped")
+
+            else:
+                self.update_job_objects(path, ds, status="Failure")
+                logging.info("Failed to add or modify datastream: {0} for pid: {1} with error {2}: {3}".format(ds, self.pid, status, result))
         """
         if self.child:
             # For child objects, establish additional unique ID that combines generic ID and sequence number.
@@ -412,15 +415,17 @@ class Ingest:
                     logMessage="Adding DS: {0} to PID: {1}".format(ds, self.pid)
                 )
             else:
-                status = 200
+                status = 405
                 logging.info("Not updating or creating datastream: {0} for PID: {1}".format(ds, self.pid))
 
-            if status not in [200, 201]:
+            if status in [200, 201]:
+                self.update_job_objects(path, ds)
+            elif status == 405:
+                self.update_job_objects(path, ds, status="Skipped")
+            else:
                 self.update_job_objects(path, ds, status="Failure")
                 logging.info("Failed to add or modify datastream: {0} for pid: {1} with error {2}: {3}".format(ds, self.pid, status, result))
 
-            else:
-                self.update_job_objects(path, ds)
 
     def update_job_objects(self, path, ds, status="Success"):
         """Set datastream result. 
@@ -516,32 +521,41 @@ class Ingest:
         if self.compound:
             self.pid = self.get_compound_pid()
 
-        if self.child:
+        elif self.child:
             self.pid = self.get_child_pid()
 
+        else:
+            self.pid = self.pids[0] if len(self.pids) > 0 else None
+
         # If no pid returned in search.
-        if len(self.pids) == 0 or not self.pid:
+        if len(self.pids) == 0 and self.ingest_job.process_new == 'y':
 
             logging.info("Unable to find appropriate object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
             self.no_pid_returned()
             logging.info("Assigned new pid: {0}".format(self.pid))
             self.prognosis = "ingest"
             self.new_object = True
-
-
-        elif self.ingest_job.replace_on_duplicate == 'y':
+        elif len(self.pids) == 0:
+            self.prognosis = "skip"
+            logging.info("No existing objects to process; Not creating new object. Skipping")
+        else:
             if len(self.pids) > 1:
                 message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pids[0])
                 job_messages.objects.create(job_id=self.ingest_job, message=message, created=timezone.now())                
-                logging.warn("Found more than 1 matching pid. Processing {0}".format(self.pids[0]))
-            self.pid = self.pids[0]   
-            logging.info("----Replacing datastreams")        
-            self.prognosis = "ingest"
+                logging.warn(message)
+            elif len(self.pids) == 1:
+                logging.info("Found 1 matching PID: {0}".format(self.pid))
 
-        else:
-            self.duplicate_pid = self.pids[0]
-            logging.info("--Existing pid found; Not replacing datastreams; Skipping item.")
-            self.prognosis = "skip"
+            if self.ingest_job.replace_on_duplicate == 'y':
+                logging.info("----Replacing datastreams at {0}".format(self.pid))        
+                self.prognosis = "ingest"
+
+            elif self.ingest_job.process_existing == 'y':
+                logging.info("----Existing pid found: {0}. Adding new datastreams, not replacing existing ones.".format(self.pid))
+                self.prognosis = "ingest"
+            else:
+                logging.info("----Found existing object at {0}. Not updating or replacing datastreams.".format(self.pid))
+                self.prognosis = "skip"
 
     def get_compound_pid(self):
         """In cases where multiple pids are returned, find compound object Pid."""
