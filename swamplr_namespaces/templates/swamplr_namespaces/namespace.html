@@ -7,12 +7,13 @@
     <div class="table table-responsive table-condensed">
         {% for ns in namespaces %}
         <div class="ns-row">
+            <h3>{{ ns.pid }}</h3>
             {% for k, v in ns.items %}
-            <div class="ns-column">{{ k }}: {{ v }}</div>
+            <div class="ns-detail">{{ k }}: {{ v }}</div>
             {% endfor %}
-            </div>
-         </div>
+        </div>
          {% endfor %}
+    </div>
     </div>
 </div>
 <div class="pagination">

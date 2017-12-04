@@ -38,6 +38,15 @@ def load_namespaces(request, count=25, sort_field="count", direction="-"):
 
     return render(request, 'swamplr_namespaces/namespaces.html', response)
 
+def run_process(current_job):
+
+    namespace_job = namespace_jobs.objects.get(job_id=current_job)
+    operation_type = namespace_job.operation_id.operation_name
+    namespace_function = "run-" + operation_type.lower()
+    namespace_function(namespace_job.namespace)
+
+
+
 def set_namespace_info(ns):
     """Prepare namespace object with additional info for display."""
     ns.actions = set_actions(ns)
@@ -119,20 +128,6 @@ def get_status_info(job):
     except:
         pass
 
-def reindex(request, ns):
-    logging.info("Adding reindex job for namespace: {0}".format(ns))
-
-    new_job = add_job(SwamplrNamespacesConfig.name)
-    ns_operation = namespace_operations.objects.get(operation_name="Reindex")
-
-    namespace_job = namespace_jobs.objects.create(
-        job_id=new_job,
-        namespace=ns,
-        operation_id=ns_operation
-    )
-
-    return redirect(job_status)
-
 
 def list_items(request, ns, count=25):
     """List pids (and other data) for a given namespace."""
@@ -192,6 +187,24 @@ def delete(request, ns):
     )
 
     return redirect(job_status)
+
+def reindex(request, ns):
+    logging.info("Adding reindex job for namespace: {0}".format(ns))
+
+    new_job = add_job(SwamplrNamespacesConfig.name)
+    ns_operation = namespace_operations.objects.get(operation_name="Reindex")
+
+    namespace_job = namespace_jobs.objects.create(
+        job_id=new_job,
+        namespace=ns,
+        operation_id=ns_operation
+    )
+
+    return redirect(job_status)
+
+def run_reindex(ns):
+    """Reindex all pids within a given namespace."""
+    pass
 
 def get_job_objects(job_id):
 
