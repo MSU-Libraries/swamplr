@@ -154,9 +154,9 @@ class CollectionIngest(object):
                 job_objects.objects.create(
                     job_id=self.job.job_id,
                     created=timezone.now(),
-                    obj_file=path,
+                    obj_file=path + "/Not Applicable",
                     result_id=result_object,
-                    pid=in_object.duplicate_pid,
+                    pid=in_object.pid,
                     datastream_id=datastream_object,
             )
 
