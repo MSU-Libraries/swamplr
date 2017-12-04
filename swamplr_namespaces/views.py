@@ -71,7 +71,7 @@ def set_actions(ns):
          "class": "btn-danger",
          "args": ns.namespace
         }
-    return [list_items, reindex, delete]
+    return [reindex, delete]
 
 def get_status_info(job):
     """Required function: return info about current job for display."""
@@ -116,7 +116,8 @@ def get_status_info(job):
 
         info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
                 result_message]
-
+    except:
+        pass
 
 def reindex(request, ns):
     logging.info("Adding reindex job for namespace: {0}".format(ns))
@@ -164,7 +165,7 @@ def list_items(request, ns, count=25):
     response["namespaces"] = result_list
     return render(request, 'swamplr_namespaces/namespace.html', response)
 
-def extract_data_from_xml(self, xml):
+def extract_data_from_xml(xml):
     """Get data from xml for user display."""
     x = etree.fromstring(xml)
     items = []
