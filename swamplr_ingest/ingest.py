@@ -533,7 +533,7 @@ class Ingest:
             if len(self.pids) > 1:
                 message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pids[0])
                 job_messages.objects.create(job_id=self.ingest_job, message=message, created=timezone.now())                
-                logging.warn("Found more than 1 matching pid. Processing {0}".format(self.pids[0]))
+                logging.warning("Found more than 1 matching pid. Processing {0}".format(self.pids[0]))
             self.pid = self.pids[0]   
             logging.info("----Replacing datastreams")        
             self.prognosis = "ingest"

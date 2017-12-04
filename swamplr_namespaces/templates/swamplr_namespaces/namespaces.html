@@ -15,7 +15,7 @@
         <div class="ns-row">
             <div class="ns-column number-column">{{ forloop.counter }}</div>
             <div class="ns-column {{ headings.1|lower|slugify }}-column">{{ ns.namespace }}</div>
-            <div class="ns-column {{ headings.2|lower|slugify }}-column">{{ ns.count }}</div>
+            <div class="ns-column {{ headings.2|lower|slugify }}-column"><a href="{% url 'list-items' ns.namespace %}">{{ ns.count }}</a></div>
             <div class="ns-column {{ headings.3|lower|slugify }}-column app-button">
             {% for a in ns.actions %}
                 <form method="{{ a.method }}" action="{% url a.action a.args %}"><button type="submit" class="btn {{ a.class }}">{{ a.label }}</button></form>

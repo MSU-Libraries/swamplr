@@ -5,16 +5,18 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, redirect
 from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrNamespacesConfig
+from fedora_api.api import FedoraApi
 import logging
+from lxml import etree
 
-
-def load_namespaces(request, count=25):
+def load_namespaces(request, count=25, sort_field="count", direction="-"):
     """Load all namespaces from cache."""
     response = {
         "headings": ["Number", "Namespace", "Count", "Actions"]
     }
 
-    namespace_objects = namespace_cache.objects.all().order_by('-count')
+    sort = direction + sort_field
+    namespace_objects = namespace_cache.objects.all().order_by(sort)
     paginator = Paginator(namespace_objects, count)
     page = request.GET.get('page')
 
@@ -55,13 +57,6 @@ def get_actions(job):
 
 def set_actions(ns):
     """Required function: return actions to populate in job table."""
-    list_items = {
-         "method": "POST",
-         "label": "List Items",
-         "action": "list_items",
-         "class": "btn-success",
-         "args": ns.namespace
-        }
     reindex = {
          "method": "POST",
          "label": "Reindex",
@@ -138,10 +133,64 @@ def reindex(request, ns):
     return redirect(job_status)
 
 
-def list_items(ns):
-    pass
-def delete(ns):
-    pass
+def list_items(request, ns, count=25):
+    """List pids (and other data) for a given namespace."""
+    logging.info("Listing items in {0} namespace.".format(ns))
+    namespace_obj = namespace_cache.objects.get(namespace=ns)
+
+    response = {"count": namespace_obj.count,
+                "namespace": ns}
+
+    pid_search_term = ns + ":*"
+    api = FedoraApi()
+    api.set_dynamic_param("maxResults", "1000")
+    status, found = api.find_objects(pid_search_term, fields=["pid", "label", "creator", "description", "cDate", "mDate"
+                                                      "date", "type"])
+    if status in [200, 201]:
+        found_objects = extract_data_from_xml(found)
+
+        paginator = Paginator(found_objects, count)
+        page = request.GET.get('page')
+        try:
+            result_list = paginator.page(page)
+
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            result_list = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            result_list = paginator.page(paginator.num_pages)
+
+    response["namespaces"] = result_list
+    return render(request, 'swamplr_namespaces/namespace.html', response)
+
+def extract_data_from_xml(self, xml):
+    """Get data from xml for user display."""
+    x = etree.fromstring(xml)
+    items = []
+    for record in x.iterfind(".//{http://www.fedora.info/definitions/1/0/types/}objectFields"):
+        item = {}
+        for child in record:
+            tag = child.tag.split("}")[1]
+            item[tag] = child.text
+        items.append(item)
+    return items
+
+
+def delete(request, ns):
+    """Add delete job to queue."""
+    logging.info("Adding delete job for namespace: {0}".format(ns))
+
+    new_job = add_job(SwamplrNamespacesConfig.name)
+    ns_operation = namespace_operations.objects.get(operation_name="Delete")
+
+    namespace_job = namespace_jobs.objects.create(
+        job_id=new_job,
+        namespace=ns,
+        operation_id=ns_operation
+    )
+
+    return redirect(job_status)
 
 def get_job_objects(job_id):
 

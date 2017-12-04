@@ -1,0 +1,33 @@
+{% extends "swamplr_jobs/main.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="panel panel-primary">
+    <div id="ns-status-heading" class="panel-heading"><div>{{ namespace }}: {{ count|intcomma }} item{{ count|pluralize }}</div></div>
+    <div class="table table-responsive table-condensed">
+        {% for ns in namespaces %}
+        <div class="ns-row">
+            {% for k, v in ns.items %}
+            <div class="ns-column">{{ k }}: {{ v }}</div>
+            {% endfor %}
+            </div>
+         </div>
+         {% endfor %}
+    </div>
+</div>
+<div class="pagination">
+    <span class="step-links">
+        {% if namespaces.has_previous %}
+            <a class="btn btn-default" href="?page={{ namespaces.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ namespaces.number }}
+        </span>
+
+        {% if namespaces.has_next %}
+            <a class="btn btn-default" href="?page={{ namespaces.next_page_number }}">next</a>
+        {% endif %}
+    </span>
+</div>
+{% endblock %}

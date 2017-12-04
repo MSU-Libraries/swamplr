@@ -59,7 +59,17 @@ class FedoraApi():
             self.set_dynamic_param(f, "true")
         self.set_dynamic_param("pid", "true")
         return self.call_api()
-       
+
+    def find_objects(self, term, fields=["pid"]):
+        """Use findObjects API call with the "terms" argument."""
+        self.set_url("objects")
+        self.set_dynamic_param("terms", term)
+        for f in fields:
+            self.set_dynamic_param(f, "true")
+        self.set_dynamic_param("pid", "true")
+        return self.call_api()
+
+
     def ingest_new(self, namespace, **kwargs):
         """Create new object and generate new pid.
         Returns string of pid on success.
