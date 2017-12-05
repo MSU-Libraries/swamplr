@@ -25,7 +25,7 @@ class cache_job(models.Model):
     process_id = models.IntegerField(null=True)
     last_run = models.DateTimeField(null=True)
     
-class job_objects(models.Model):
+class namespace_objects(models.Model):
     """Table to record progress pid by pid."""
     object_id = models.AutoField(primary_key=True)
     job_id = models.ForeignKey('swamplr_jobs.jobs')

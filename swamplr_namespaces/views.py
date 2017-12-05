@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from models import namespace_cache, namespace_operations, namespace_jobs, job_objects, object_results
+from models import namespace_cache, namespace_operations, namespace_jobs, namespace_objects, object_results
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.utils import timezone
 from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrNamespacesConfig
+from swamplr_jobs.models import status
 from fedora_api.api import FedoraApi
 import logging
 import requests
 from lxml import etree
+from cache import build_cache
+import subprocess
 
-def load_namespaces(request, count=25, sort_field="count", direction="-"):
+
+def load_namespaces(request, count=25, sort_field="count", direction="-", update_cache=True):
     """Load all namespaces from cache."""
+    if update_cache:
+        args = ["python", "/var/www/swamplr/swamplr_namespaces/cache.py", "/var/www/swamplr/swamplr.cfg"]
+        s = subprocess.call(args)        
+        logging.info(s)
+
     response = {
         "headings": ["Number", "Namespace", "Count", "Actions"]
     }
@@ -45,8 +54,31 @@ def run_process(current_job):
 
     namespace_job = namespace_jobs.objects.get(job_id=current_job)
     operation_type = namespace_job.operation_id.operation_name
-    namespace_function = "run-" + operation_type.lower()
-    namespace_function(namespace_job.namespace, current_job)
+    namespace_function = "run_" + operation_type.lower()
+    if operation_type.lower() == "reindex":
+        try:
+            run_reindex(namespace_job.namespace, current_job)
+            status_obj = status.objects.get(status="Success")
+            message = ["Reindex completed."]
+        except Exception as e:
+            logging.error("Unable to complete reindex.")
+            status_obj = status.objects.get(status="Script error")
+            message = [e, "Error during reindex."]
+    elif operation_type.lower() == "delete":
+        try:
+            run_delete(namespace_job.namespace, current_job)
+            status_obj = status.objects.get(status="Success")
+            message = ["Deletion completed."]
+        except Exception as e:
+            logging.error("Unable to complete deletion.")
+            status_obj = status.objects.get(status="Script error")
+            message = [e, "Error during deletion."]
+    
+    else:
+        logging.info("Unable to find function for operation {0}".format(operation_type))
+    
+    result = (status_obj.status_id, message)
+    return result
 
 def set_namespace_info(ns):
     """Prepare namespace object with additional info for display."""
@@ -96,10 +128,11 @@ def get_status_info(job):
         details = [
             ("Process ID", ns_job.operation_id),
             ("Namespace", ns_job.namespace),
-            ("Objects Processed", len(results["objects"]),
+            ("Objects Processed", len(results["objects"])),
         ]
 
         info = ["Process: {0} <br/>".format(ns_job.operation_id.operation_name),
+                "Namespace: {0} <br/>".format(ns_job.namespace),
                 result_message]
 
     except Exception as e:
@@ -183,11 +216,37 @@ def reindex(request, ns):
 
     return redirect(job_status)
 
+def run_delete(ns, current_job):
+    pid_search_term = ns + ":*"
+    api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
+    count = namespace_cache.objects.get(namespace=ns).count
+    api.set_dynamic_param("maxResults", count)
+    status, found = api.find_objects(pid_search_term)
+    
+    if status in [200, 201]:
+        found_objects = extract_data_from_xml(found)
+
+        for o in found_objects:
+            response, output = api.purge_object(o["pid"])
+            if response in [200, 201]:
+                result = "Success"
+            else:
+                result = "Failure"
+            result_id = object_results.objects.get(label=result)
+
+            namespace_objects.objects.create(
+                job_id=current_job,
+                completed=timezone.now(),
+                result_id=result_id,
+                pid=o["pid"],
+            )
+
 def run_reindex(ns, current_job):
     """Reindex all pids within a given namespace."""
     pid_search_term = ns + ":*"
     api = FedoraApi()
     api.set_dynamic_param("maxResults", "1000")
+    
     status, found = api.find_objects(pid_search_term)
     if status in [200, 201]:
         found_objects = extract_data_from_xml(found)
@@ -200,7 +259,7 @@ def run_reindex(ns, current_job):
                 result = "Failure"
             result_id = object_results.objects.get(label=result)
 
-            job_objects.objects.create(
+            namespace_objects.objects.create(
                 job_id=current_job,
                 completed=timezone.now(),
                 result_id=result_id,
@@ -225,7 +284,7 @@ def get_job_objects(job_id):
         "objects": []
     }
 
-    objects = job_objects.objects.filter(job_id=job_id)
+    objects = namespace_objects.objects.filter(job_id=job_id)
     for o in objects:
         object_data = {}
         object_data["completed"] = o.completed
@@ -236,6 +295,6 @@ def get_job_objects(job_id):
         if o.result_id.label == "Success":
             results["status_count"]["Success"] += 1
         else:
-            results["status_count"]["Failure"] += 1
+            results["status_count"]["Failed"] += 1
 
     return results

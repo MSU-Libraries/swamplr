@@ -84,6 +84,14 @@ class FedoraApi():
             self.set_dynamic_param(f, v)
         return self.call_api()
 
+    def purge_object(self, pid, logMessage=None):
+        """Purge object."""
+        self.set_method("DELETE")
+        self.set_url("objects/{0}".format(pid))
+        if logMessage:
+            self.set_dynamic_param("logMessage", logMessage)
+        return self.call_api()
+
     def ingest_at_pid(self, pid, **kwargs):
         """Create new object and generate new pid.
         Returns string of pid on success.
