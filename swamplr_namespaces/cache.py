@@ -45,8 +45,12 @@ def build_cache():
             
         ns_count = count_namespaces(path_to_object_store)    
         with connection.cursor() as cursor:
+            sql = "DELETE FROM `swamplr_namespaces_namespace_cache`"
+            cursor.execute(sql)
+
             if len(ns_count) > 0:
                 pl = ",".join(["(%s, %s)" for x in range(len(ns_count))]) 
+                
                 sql = "INSERT INTO `swamplr_namespaces_namespace_cache` (`namespace`, `count`) VALUES {0}\
                       ON DUPLICATE KEY UPDATE `count` = VALUES(count)".format(pl)
                 cursor.execute(sql, [element for tupl in ns_count.items() for element in tupl])

@@ -5,4 +5,5 @@ from django.apps import AppConfig
 
 
 class SwamplrNamespacesConfig(AppConfig):
+    run_as_user = 'tomcat7'
     name = 'swamplr_namespaces'

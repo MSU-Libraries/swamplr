@@ -210,12 +210,5 @@ def get_nav_bar():
     all_services = services.objects.all()
     nav = {"label": "Services",
            "name": "services"}
-    children = []
-    for s in all_services:
-        s_define = {"label": s.label,
-                    "id": s.service_id}
-        children.append(s_define)
-
-    nav["children"] = children
     
     return nav

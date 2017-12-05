@@ -1,4 +1,5 @@
 import requests
+from lxml import etree
 import os
 
 class FedoraApi():
@@ -69,7 +70,52 @@ class FedoraApi():
         self.set_dynamic_param("pid", "true")
         return self.call_api()
 
+    def resume_find_objects(self, term, token, fields=["pid"]):
+        """Use token to resume getting results from previous search."""
+        self.set_url("objects")
+        self.set_dynamic_param("terms", term)
+        self.set_dynamic_param("sessionToken", token)
+        for f in fields:
+            self.set_dynamic_param(f, "true")
+        self.set_dynamic_param("pid", "true")
+        return self.call_api()
 
+    def get_token(self, xml):
+        """Extract token from xml response."""
+        xml = etree.fromstring(xml)
+        token = xml.find(".//{http://www.fedora.info/definitions/1/0/types/}token")
+        if token is not None:
+            token = token.text
+        return token
+
+    def find_all_objects(self, term, fields=["pid"]):
+        """Use resume operation to get all objects matching a given query."""
+        all_objects = []
+        self.set_dynamic_param("maxResults", "100")
+        status, result = self.find_objects(term, fields=fields)
+        token = self.get_token(result)
+        if status in [200, 201]:
+            objects = self.extract_data_from_xml(result)
+            all_objects += objects
+        while status in [200, 201] and token:
+            status, result = self.resume_find_objects(term, token, fields=fields)
+            token = self.get_token(result)
+            objects = self.extract_data_from_xml(result)    
+            all_objects += objects
+
+        return all_objects
+
+    def extract_data_from_xml(self, xml):
+        """Get data from xml for user display."""
+        x = etree.fromstring(xml)
+        items = []
+        for record in x.iterfind(".//{http://www.fedora.info/definitions/1/0/types/}objectFields"):
+            item = {}
+            for child in record:
+                tag = child.tag.split("}")[1]
+                item[tag] = child.text
+            items.append(item)
+        return items
     def ingest_new(self, namespace, **kwargs):
         """Create new object and generate new pid.
         Returns string of pid on success.

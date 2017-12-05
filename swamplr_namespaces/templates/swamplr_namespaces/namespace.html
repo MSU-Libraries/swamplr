@@ -23,7 +23,7 @@
         {% endif %}
 
         <span class="current">
-            Page {{ namespaces.number }}
+            Page {{ namespaces.number }} of {{ namespaces.paginator.num_pages }}
         </span>
 
         {% if namespaces.has_next %}

@@ -12,16 +12,29 @@ from fedora_api.api import FedoraApi
 import logging
 import requests
 from lxml import etree
+from pwd import getpwnam
 from cache import build_cache
 import subprocess
+import os
 
 
 def load_namespaces(request, count=25, sort_field="count", direction="-", update_cache=True):
     """Load all namespaces from cache."""
+    """
     if update_cache:
+        user = SwamplrNamespacesConfig.run_as_user
+
+        user_id = getpwnam(user).pw_uid
+        os.setuid(user_id)
+
         args = ["python", "/var/www/swamplr/swamplr_namespaces/cache.py", "/var/www/swamplr/swamplr.cfg"]
         s = subprocess.call(args)        
-        logging.info(s)
+        logging.info("Subprocess cache called")
+        if s == 1:
+             logging.error("Error refreshing namespace cache.")
+        else:
+             logging.info("Cache updated successfully.")
+    """
 
     response = {
         "headings": ["Number", "Namespace", "Count", "Actions"]
@@ -69,6 +82,8 @@ def run_process(current_job):
             run_delete(namespace_job.namespace, current_job)
             status_obj = status.objects.get(status="Success")
             message = ["Deletion completed."]
+            namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()            
+
         except Exception as e:
             logging.error("Unable to complete deletion.")
             status_obj = status.objects.get(status="Script error")
@@ -126,7 +141,7 @@ def get_status_info(job):
         result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"])
         ns_job = namespace_jobs.objects.get(job_id=job.job_id)
         details = [
-            ("Process ID", ns_job.operation_id),
+            ("Process ID", ns_job.operation_id.operation_id),
             ("Namespace", ns_job.namespace),
             ("Objects Processed", len(results["objects"])),
         ]
@@ -153,11 +168,9 @@ def list_items(request, ns, count=25):
 
     pid_search_term = ns + ":*"
     api = FedoraApi()
-    api.set_dynamic_param("maxResults", "1000")
-    status, found = api.find_objects(pid_search_term, fields=["pid", "label", "creator", "description", "cDate", "mDate"
+    found_objects = api.find_all_objects(pid_search_term, fields=["pid", "label", "creator", "description", "cDate", "mDate"
                                                       "date", "type"])
-    if status in [200, 201]:
-        found_objects = extract_data_from_xml(found)
+    if len(found_objects) > 0:
 
         paginator = Paginator(found_objects, count)
         page = request.GET.get('page')
@@ -221,11 +234,10 @@ def run_delete(ns, current_job):
     api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
     count = namespace_cache.objects.get(namespace=ns).count
     api.set_dynamic_param("maxResults", count)
-    status, found = api.find_objects(pid_search_term)
+    found_objects = api.find_all_objects(pid_search_term)
+    logging.info("Found {0} objects to delete.".format(len(found_objects)))
     
-    if status in [200, 201]:
-        found_objects = extract_data_from_xml(found)
-
+    if len(found_objects) > 0:
         for o in found_objects:
             response, output = api.purge_object(o["pid"])
             if response in [200, 201]:
@@ -245,12 +257,10 @@ def run_reindex(ns, current_job):
     """Reindex all pids within a given namespace."""
     pid_search_term = ns + ":*"
     api = FedoraApi()
-    api.set_dynamic_param("maxResults", "1000")
     
-    status, found = api.find_objects(pid_search_term)
-    if status in [200, 201]:
-        found_objects = extract_data_from_xml(found)
-
+    found_objects = api.find_all_objects(pid_search_term)
+    logging.info("Found {0} objects to reindex.".format(len(found_objects)))
+    if len(found_objects) > 0:
         for o in found_objects:
             response = send_reindex(o["pid"])
             if response.ok:
