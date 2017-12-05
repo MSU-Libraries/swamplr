@@ -334,6 +334,30 @@ Afer you add the service, click "Run" to have it do a test run and you can now c
 
 Some other examples of services you could write would be for restarting services, so users would not need SSH access to your service in order to do so. Or even custom test scripts to verify various components of your server setup (from Fedora Commons to Solr or even you repository's front end web-site).
 
+### Namespace Operations: swamplr_namespaces
+The namespaces app provides a means to interact with collection objects on
+the basis of namespace.
+
+The app offers three main functions:
+* View PIDs for all objects in a given namespace.
+* Reindex in gsearch by namespace.
+* Delete all objects in a namespace.
+
+All namespaces and counts are cached and stored in a database table that
+can be set to update periodically automatically using the Services app. Currently,
+the namespace counts are tabulated via walking through the Fedora Commons
+datastore.
+
+For the reindex function to succeed, three variables must be set
+in `swamplr.cfg`:
+```
+[gsearch]
+GSEARCH_URL = [gsearchurl]
+GSEARCH_USER = [gsearchuser]
+GSEARCH_PASSWORD = [gsearchpassword]
+```
+
+
 ## Install and Setup
 
 See the [install instructions](INSTALL.md) for detailed steps to install and configure the application.  
