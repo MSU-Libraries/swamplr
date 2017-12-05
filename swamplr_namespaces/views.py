@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from models import namespace_cache, namespace_operations, namespace_jobs
+from models import namespace_cache, namespace_operations, namespace_jobs, job_objects, object_results
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, redirect
+from django.conf import settings
+from django.utils import timezone
 from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrNamespacesConfig
 from fedora_api.api import FedoraApi
 import logging
+import requests
 from lxml import etree
 
 def load_namespaces(request, count=25, sort_field="count", direction="-"):
@@ -43,9 +46,7 @@ def run_process(current_job):
     namespace_job = namespace_jobs.objects.get(job_id=current_job)
     operation_type = namespace_job.operation_id.operation_name
     namespace_function = "run-" + operation_type.lower()
-    namespace_function(namespace_job.namespace)
-
-
+    namespace_function(namespace_job.namespace, current_job)
 
 def set_namespace_info(ns):
     """Prepare namespace object with additional info for display."""
@@ -88,46 +89,26 @@ def get_status_info(job):
 
     try:
         # Get data about successes, skips, failures.
-        result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
+        result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span>"
         results = get_job_objects(job_id)
-        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
-        ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
-        ingest_data = get_ingest_data(ingest_job.collection_name)
-        collection_label = ingest_data["label"]
+        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"])
+        ns_job = namespace_jobs.objects.get(job_id=job.job_id)
         details = [
-            ("Ingest ID", ingest_job.ingest_id),
-            ("Collection Type", ingest_job.collection_name),
-            ("Namespace", ingest_job.namespace),
-            ("Source Directory", ingest_job.source_dir),
-            ("Process New Objects", "Y" if ingest_job.process_new == "y" else "N"),
-            ("Process Existing Objects", "Y" if ingest_job.process_existing == "y" else "N"),
-            ("Replace Duplicate Datastreams", "Y" if ingest_job.replace_on_duplicate == "y" else "N"),
-            ("Items To Process", ingest_job.subset if ingest_job.subset != 0 else "All"),
+            ("Process ID", ns_job.operation_id),
+            ("Namespace", ns_job.namespace),
+            ("Objects Processed", len(results["objects"]),
         ]
-        ds_data = {}
-        job_ds = job_datastreams.objects.filter(ingest_id=ingest_job.ingest_id)
-        for j in job_ds:
-            ds = datastreams.objects.get(datastream_id=j.datastream_id_id)
-            label = ds.datastream_label
-            ds_type = "Datastreams" if ds.is_object == "y" else "Metadata"
-            object_type = j.object_type
-            if "label" in ingest_data["objects"][object_type]:
-                object_type_label = ingest_data["objects"][object_type]["label"]
-            else:
-                object_type_label = object_type
-            key = " ".join([object_type_label.capitalize(), ds_type])
-            if key not in ds_data:
-                ds_data[key] = [label]
-            else:
-                ds_data[key].append(label)
-        for k, v in ds_data.items():
-            details.append((k, ", ".join(v)))
 
-        info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
+        info = ["Process: {0} <br/>".format(ns_job.operation_id.operation_name),
                 result_message]
-    except:
-        pass
 
+    except Exception as e:
+        label = "Not Found"
+        details = [("None", "No Info Found")]
+        info = ["No info available."]
+        print e.message
+
+    return info, details
 
 def list_items(request, ns, count=25):
     """List pids (and other data) for a given namespace."""
@@ -202,9 +183,37 @@ def reindex(request, ns):
 
     return redirect(job_status)
 
-def run_reindex(ns):
+def run_reindex(ns, current_job):
     """Reindex all pids within a given namespace."""
-    pass
+    pid_search_term = ns + ":*"
+    api = FedoraApi()
+    api.set_dynamic_param("maxResults", "1000")
+    status, found = api.find_objects(pid_search_term)
+    if status in [200, 201]:
+        found_objects = extract_data_from_xml(found)
+
+        for o in found_objects:
+            response = send_reindex(o["pid"])
+            if response.ok:
+                result = "Success"
+            else:
+                result = "Failure"
+            result_id = object_results.objects.get(label=result)
+
+            job_objects.objects.create(
+                job_id=current_job,
+                completed=timezone.now(),
+                result_id=result_id,
+                pid=o["pid"],
+            )
+
+def send_reindex(pid):
+    """Make call to gsearch to reindex pid."""
+    gsearch_url_search = settings.GSEARCH_URL + "rest?operation=updateIndex&action=fromPid&value=" + pid
+    logging.info("Reindexing pid: {0}".format(pid))
+    response = requests.get(gsearch_url_search, auth=(settings.GSEARCH_USER, settings.GSEARCH_PASSWORD))
+
+    return response
 
 def get_job_objects(job_id):
 
@@ -212,7 +221,6 @@ def get_job_objects(job_id):
         "status_count": {
             "Success": 0,
             "Failed": 0,
-            "Skipped":0,
         },
         "objects": []
     }
@@ -225,5 +233,9 @@ def get_job_objects(job_id):
         object_data["result"] = o.result_id.label
         object_data["pid"] = o.pid
         results["objects"].append(object_data)
+        if o.result_id.label == "Success":
+            results["status_count"]["Success"] += 1
+        else:
+            results["status_count"]["Failure"] += 1
 
     return results

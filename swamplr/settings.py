@@ -57,6 +57,11 @@ FEDORA_URL = configs.get("fedora", "FEDORA_URL")
 FEDORA_USER = configs.get("fedora", "FEDORA_USER")
 FEDORA_PASSWORD = configs.get("fedora", "FEDORA_PASSWORD")
 
+# Gsearch server info and credentials
+GSEARCH_USER_NAME = configs.get("gsearch", "GSEARCH_USER")
+GSEARCH_PASS = configs.get("gsearch", "GSEARCH_PASSWORD")
+GSEARCH_URL = configs.get("gsearch", "GSEARCH_URL")
+
 # Application definition
 INSTALLED_APPS = (
     'django.contrib.admin',

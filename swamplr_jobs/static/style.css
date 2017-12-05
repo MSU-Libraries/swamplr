@@ -478,3 +478,7 @@ input#submit-id-add-service {
     text-decoration:underline;
     margin-bottom:15px;
 }
+
+.ns-column.swamplr-heading.number-column {
+    visibility: hidden;
+}
