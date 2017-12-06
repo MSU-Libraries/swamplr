@@ -157,7 +157,7 @@ class FedoraApi():
         Allowed kwargs:
         [label] [ownerId] [state] [logMessage] [\lastModifiedDate]
         """
-        self.set_method("POST")
+        self.set_method("PUT")
         self.set_url("objects/{0}".format(pid))
         for f, v in kwargs.items():
             self.set_dynamic_param(f, v)

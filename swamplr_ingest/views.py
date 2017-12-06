@@ -233,8 +233,8 @@ def get_job_objects(job_id):
         pids.append(o.pid)
 
     for p in set(pids):
-
-        object_head = {"job_id": job_id, "subs": [], "pid": "", "result": ""}
+        
+        object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
         object_rows = job_objects.objects.filter(pid=p, job_id=job_id)
         for o_row in object_rows:
             object_data = {}
@@ -245,8 +245,10 @@ def get_job_objects(job_id):
             object_data["result"] = o_row.result_id.label
             object_data["pid"] = o_row.pid
             object_head["subs"].append(object_data)
+            if object_head["path"] is None and o_row.obj_file is not None:
+                object_head["path"] = "/".join(o_row.obj_file.rstrip("/").split("/")[:-1])
+            
         object_head["pid"] = object_head["subs"][0]["pid"]
-        object_head["path"] = "/".join(o_row.obj_file.rstrip("/").split("/")[:-1])
         all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
         fail_id = object_results.objects.get(label="Failure").result_id
         if len(set(all_result_ids)) == 1:

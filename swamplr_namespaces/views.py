@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from models import namespace_cache, namespace_operations, namespace_jobs, namespace_objects, object_results
+from models import namespace_cache, namespace_operations, namespace_jobs, namespace_objects, object_results, cache_job
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, redirect
 from django.conf import settings
@@ -44,6 +44,14 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
     namespace_objects = namespace_cache.objects.all().order_by(sort)
     paginator = Paginator(namespace_objects, count)
     page = request.GET.get('page')
+
+    response["namespace_count"] = namespace_objects.count()
+    total_objects = 0
+    for o in namespace_objects:
+        total_objects += int(o.count)
+    response["object_count"] = total_objects
+    last_cache = cache_job.objects.get().last_run
+    response["updated"] = last_cache
 
     try:
         namespace_list = paginator.page(page)

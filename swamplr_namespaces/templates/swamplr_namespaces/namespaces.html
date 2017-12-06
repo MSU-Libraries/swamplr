@@ -3,7 +3,12 @@
 
 {% block content %}
 <div class="panel panel-primary">
-    <div id="ns-status-heading" class="panel-heading"><div>Namespaces in Fedora Commons</div> <div id="kbd"><kbd>As of {% now 'm/d/Y f a' %}</kbd></div></div>
+    <div id="ns-status-heading" class="panel-heading"><div>All Namespaces</div></div>
+    <div id="namespaces-general-info">
+    <div id="namespaces-counts"><p>Found <mark>{{ namespace_count }}</mark> namespace{{ namespace_count|pluralize }}</p></div>
+    <div id="namespaces-object-counts"><p>Totaling <mark>{{ object_count|intcomma }}</mark> object{{object_count|pluralize }}</p></div>
+    <div id="namespaces-last-updated"><p>Cache Last Updated: <mark>{{ updated|date:'m/d/Y f a' }}</mark></div>
+    </div>
     <div class="table table-responsive table-condensed">
         <div class="ns-row" id="ns-headings">
         {% for h in headings %}

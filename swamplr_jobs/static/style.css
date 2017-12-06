@@ -217,11 +217,14 @@ a.btn.btn-lg.btn-outline-dark {
 }
 .actions-column {
     text-align:center;
-    width:
 }
 
-.actions-column form {
-    float:left
+.services-actions-column {
+    text-align:center;
+}
+
+.actions-column form, .app-button form {
+    display:inline-block;
 }
 
 .app-column {
@@ -284,7 +287,7 @@ a.btn.btn-lg.btn-outline-dark {
 }
 
 .ns-column.actions-column {
-    width:25%;
+    width:40%;
 }
 
 .table {
@@ -481,4 +484,14 @@ input#submit-id-add-service {
 
 .ns-column.swamplr-heading.number-column {
     visibility: hidden;
+}
+
+#namespaces-general-info {
+    display:flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+#namespaces-general-info > div {
+    flex: 0 1 auto;
 }

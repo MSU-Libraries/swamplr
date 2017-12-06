@@ -528,7 +528,9 @@ class Ingest:
             self.pid = self.pids[0] if len(self.pids) > 0 else None
 
         # If no pid returned in search.
-        if len(self.pids) == 0 and self.ingest_job.process_new == 'y':
+        logging.info("pids after compound/child operations")
+        logging.info(self.pids)
+        if (len(self.pids) == 0 or self.pid is None) and self.ingest_job.process_new == 'y':
 
             logging.info("Unable to find appropriate object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
             self.no_pid_returned()
@@ -540,8 +542,9 @@ class Ingest:
             logging.info("No existing objects to process; Not creating new object. Skipping")
         else:
             if len(self.pids) > 1:
+                logging.info(type(self.ingest_job))
                 message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pids[0])
-                job_messages.objects.create(job_id=self.ingest_job, message=message, created=timezone.now())                
+                job_messages.objects.create(job_id=self.ingest_job.job_id, message=message, created=timezone.now())                
                 logging.warn(message)
             elif len(self.pids) == 1:
                 logging.info("Found 1 matching PID: {0}".format(self.pid))
@@ -571,19 +574,20 @@ class Ingest:
     def get_child_pid(self):
         """Method of returning child object's PID by checking for sequence matches."""
         child_pid = None
+        logging.info(self.pids)
         sequence_match = 0
         predicate = self.set_sequence_predicate()
         logging.info("predicate: {0}".format(predicate))
         for pid in self.pids:
             # Get content models.
             status, object_profile = self.fedora_api.get_object_profile(pid=pid)
-
+            logging.info(object_profile)
             # Get RELS-EXT data.
             status, rels_ext = self.fedora_api.get_relationships(pid)
-            predicates = self.get_predicates(rels_ext)
+            logging.info(rels_ext)
+            predicates = self.get_predicate_strings(rels_ext)
             if predicate in predicates:
-                sequence_match = get_predicate_value(predicate)
-
+                sequence_match = self.get_predicate_value(rels_ext, predicate)
             if not self.is_compound(object_profile) and int(sequence_match) == int(self.sequence):
                 child_pid = pid
         logging.info("child_pid set at {0}".format(child_pid))
@@ -603,6 +607,13 @@ class Ingest:
             compound = True
         return compound
 
+
+    def get_predicate_strings(self, rels_ext, format="nt"):
+        """Extract string representations of predicates."""
+        pred = self.get_predicates(rels_ext, format=format)
+        return [str(p) for p in pred]
+
+
     def get_predicates(self, rels_ext, format="nt"):
         """Return all predicates in a given rels_ext datastream."""
         g = Graph()
@@ -615,7 +626,7 @@ class Ingest:
     def get_predicate_values(self, rels_ext, predicate, format_="nt"):
         values = []
         g = Graph()
-        content = g.parse(rels_ext, format=format_)
+        content = g.parse(data=rels_ext, format=format_)
         for subject, object_ in content.subject_objects(URIRef(predicate)):
             values.append(str(object_))
         return values
@@ -747,6 +758,9 @@ class Ingest:
             pids = [o.text for o in objs if o.text.split(":")[0] == pidspace]
         for pid in pids:
             logging.info("----Found matching PID: {0}".format(pid))
+        logging.info("Here come the pids-->")
+        logging.info(pids)
+        logging.info("There were the pids<--")
         return pids
 
     def set_datastreams(self):
