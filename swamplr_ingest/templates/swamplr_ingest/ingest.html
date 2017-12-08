@@ -9,9 +9,10 @@
 <script>
 $( document ).ready( function() {
     $( "input[value='DC']" ).attr("disabled", "disabled").attr("title", "DC datastream must be selected.");
-    $( "#id_process_1" ).change(function() {
-	console.log( "hello" );
-        $("#div_id_replace_on_duplicate").toggle(200, function() {
+    $( "#id_process_2" ).change(function() {
+       $("#id_replace_on_duplicate").prop('checked', false); 
+       $("#div_id_replace_on_duplicate").toggle(200, function() {
+        
 	});
     });
 }); 

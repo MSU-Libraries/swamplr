@@ -94,8 +94,8 @@ class IngestForm(forms.Form):
             label="Process existing objects and/or create new objects.",
             help_text="",
             choices=(
-                ("process_existing", "Update existing objects."),
                 ("process_new", "Create new objects."),
+                ("process_existing", "Add new datastreams to existing objects."),
             ),
             widget=forms.CheckboxSelectMultiple(attrs={"checked": "checked"})   
         )

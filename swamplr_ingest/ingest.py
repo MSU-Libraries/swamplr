@@ -138,6 +138,7 @@ class Ingest:
 
     def add_rels_ext(self):
         """Add basic rels-ext for object."""
+        self.fedora_api.modify_datastream(self.pid, "RELS-EXT", mimeType="application/rdf+xml", versionable="true")
 
         # Load default settings for content model.
         has_model_object = self.defaults["content_models"][self.content_model]["has_model"]
