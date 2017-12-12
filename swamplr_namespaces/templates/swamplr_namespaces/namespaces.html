@@ -12,13 +12,22 @@
     <div class="table table-responsive table-condensed">
         <div class="ns-row" id="ns-headings">
         {% for h in headings %}
-            <div class="ns-column swamplr-heading {{ h|lower|slugify }}-column">{{ h }}</div>
+            <div class="ns-column swamplr-heading {{ h|lower|slugify }}-column">{{ h }}
+            {% if h == "Count" %}
+                <a href="{% url "namespaces" sort_field="count" direction="asc" %}"><span class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
+                <a href="{% url "namespaces" sort_field="count" direction="desc" %}"><span class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
+            {% elif h == "Namespace" %}
+                <a href="{% url "namespaces" sort_field="namespace" direction="asc" %}"><span class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
+                <a href="{% url "namespaces" sort_field="namespace" direction="desc" %}"><span class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
+            {% endif %}
+            
+            </div>
         {% endfor %}
         </div>
 
         {% for ns in namespaces %}
         <div class="ns-row">
-            <div class="ns-column number-column">{{ forloop.counter }}</div>
+            <div class="ns-column number-column">{{ forloop.counter|add:count_inc }}</div>
             <div class="ns-column {{ headings.1|lower|slugify }}-column">{{ ns.namespace }}</div>
             <div class="ns-column {{ headings.2|lower|slugify }}-column"><a href="{% url 'list-items' ns.namespace %}">{{ ns.count }}</a></div>
             <div class="ns-column {{ headings.3|lower|slugify }}-column app-button">
