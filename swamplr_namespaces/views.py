@@ -136,7 +136,21 @@ def set_actions(ns):
          "class": "btn-danger",
          "args": ns.namespace
         }
-    return [reindex, delete]
+    add_doi = {
+        "method": "POST",
+        "label": "Mint DOI",
+        "action": "mint_doi",
+        "class": "btn-success",
+        "args": ns.namespace
+    }
+    add_ark = {
+        "method": "POST",
+        "label": "Mint ARK",
+        "action": "mint_ark",
+        "class": "btn-success",
+        "args": ns.namespace
+    }
+    return [reindex, add_doi, add_ark, delete]
 
 def get_status_info(job):
     """Required function: return info about current job for display."""
@@ -316,3 +330,11 @@ def get_job_objects(job_id):
             results["status_count"]["Failed"] += 1
 
     return results
+
+def mint_doi(self, namespace):
+    """Mint DOI for object if one does not already exist."""
+    pass
+
+def mint_ark(self, namespace):
+    """Mint ARK for object if one does not already exist."""
+    pass

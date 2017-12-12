@@ -62,6 +62,12 @@ GSEARCH_USER = configs.get("gsearch", "GSEARCH_USER")
 GSEARCH_PASSWORD = configs.get("gsearch", "GSEARCH_PASSWORD")
 GSEARCH_URL = configs.get("gsearch", "GSEARCH_URL")
 
+# EZID credentials
+EZID_USER = configs.get("ezid", "EZID_USER")
+EZID_PASSWORD = configs.get("ezid", "EZID_PASSWORD")
+DOI_SHOULDER = configs.get("ezid", "DOI_SHOULDER")
+ARK_SHOULDER = configs.get("ezid", "ARK_SHOULDER")
+
 # Application definition
 INSTALLED_APPS = (
     'django.contrib.admin',
