@@ -80,6 +80,13 @@ class FedoraApi():
         self.set_dynamic_param("pid", "true")
         return self.call_api()
 
+    def get_datastream(self, pid, dsid, **kwargs):
+        """Get datastream according to pid and ds id."""
+        self.set_url("objects/{0}/datastreams/{1}".format(pid, dsid))
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
+        return self.call_api()
+
     def get_token(self, xml):
         """Extract token from xml response."""
         xml = etree.fromstring(xml)
@@ -264,3 +271,5 @@ class FedoraApi():
         if dt:
             return dt[0]
         return None
+
+

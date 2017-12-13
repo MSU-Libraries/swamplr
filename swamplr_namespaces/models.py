@@ -20,6 +20,14 @@ class namespace_cache(models.Model):
     namespace = models.CharField(max_length=64, unique=True)
     count = models.IntegerField(default=0)
 
+class object_ids(models.Model):
+
+    pid = models.CharField(max_length=64, unique=True)
+    ark = models.CharField(max_length=64, null=True)
+    doi = models.CharField(max_length=64, null=True)
+    ark_minted = models.DateTimeField(null=True)
+    doi_minted = models.DateTimeField(null=True)
+
 class cache_job(models.Model):
 
     process_id = models.IntegerField(null=True)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from models import namespace_cache, namespace_operations, namespace_jobs, namespace_objects, object_results, cache_job
+from models import namespace_cache, namespace_operations, namespace_jobs, namespace_objects, object_results, cache_job, object_ids
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, redirect
 from django.conf import settings
@@ -12,10 +12,6 @@ from fedora_api.api import FedoraApi
 import logging
 import requests
 from lxml import etree
-from pwd import getpwnam
-from cache import build_cache
-import subprocess
-import os
 
 
 def load_namespaces(request, count=25, sort_field="count", direction="-", update_cache=True):
@@ -75,7 +71,7 @@ def run_process(current_job):
 
     namespace_job = namespace_jobs.objects.get(job_id=current_job)
     operation_type = namespace_job.operation_id.operation_name
-    namespace_function = "run_" + operation_type.lower()
+
     if operation_type.lower() == "reindex":
         try:
             run_reindex(namespace_job.namespace, current_job)
@@ -96,6 +92,30 @@ def run_process(current_job):
             logging.error("Unable to complete deletion.")
             status_obj = status.objects.get(status="Script error")
             message = [e, "Error during deletion."]
+
+    elif operation_type.lower() == "mint doi":
+        try:
+            run_mint_doi(namespace_job.namespace, current_job)
+            status_obj = status.objects.get(status="Success")
+            message = ["All objects processed."]
+            namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()
+
+        except Exception as e:
+            logging.error("Unable to complete process.")
+            status_obj = status.objects.get(status="Script error")
+            message = [e, "Error during process."]
+
+    elif operation_type.lower() == "mint ark":
+        try:
+            run_mint_ark(namespace_job.namespace, current_job)
+            status_obj = status.objects.get(status="Success")
+            message = ["All objects processed."]
+            namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()
+
+        except Exception as e:
+            logging.error("Unable to complete process.")
+            status_obj = status.objects.get(status="Script error")
+            message = [e, "Error during process."]
     
     else:
         logging.info("Unable to find function for operation {0}".format(operation_type))
@@ -173,7 +193,7 @@ def get_status_info(job):
                 result_message]
 
     except Exception as e:
-        label = "Not Found"
+
         details = [("None", "No Info Found")]
         info = ["No info available."]
         print e.message
@@ -220,7 +240,6 @@ def extract_data_from_xml(xml):
             item[tag] = child.text
         items.append(item)
     return items
-
 
 def delete(request, ns):
     """Add delete job to queue."""
@@ -333,8 +352,193 @@ def get_job_objects(job_id):
 
 def mint_doi(self, namespace):
     """Mint DOI for object if one does not already exist."""
-    pass
+    return add_id_job(namespace, "DOI")
+
 
 def mint_ark(self, namespace):
     """Mint ARK for object if one does not already exist."""
+    return add_id_job(namespace, "ARK")
+
+def add_id_job(ns, id_type):
+    """Add job to queue."""
+    logging.info("Adding {0} job for namespace: {1}".format(id_type, ns))
+
+    new_job = add_job(SwamplrNamespacesConfig.name)
+    if id_type.lower() == "doi":
+        ns_operation = namespace_operations.objects.get(operation_name="Mint DOI")
+    elif id_type.lower() == "ark":
+        ns_operation = namespace_operations.objects.get(operation_name="Mint ARK")
+
+    namespace_job = namespace_jobs.objects.create(
+        job_id=new_job,
+        namespace=ns,
+        operation_id=ns_operation
+    )
+    return redirect(job_status)
+
+def run_mint_doi(ns, current_job):
+    """Check if DOI exists for pid and create DOI if not."""
+
+    found_objects = get_matching_objects(ns)
+
+    if len(found_objects) > 0:
+        for o in found_objects:
+
+            make_id(o, "doi")
+
+            response, output = api.purge_object(o["pid"])
+            if response in [200, 201]:
+                result = "Success"
+            else:
+                result = "Failure"
+            result_id = object_results.objects.get(label=result)
+
+            namespace_objects.objects.create(
+                job_id=current_job,
+                completed=timezone.now(),
+                result_id=result_id,
+                pid=o["pid"],
+            )
+
+def get_matching_objects(ns):
+    """Get all matching objects based on namespace search."""
+    pid_search_term = ns + ":*"
+
+    api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
+    count = namespace_cache.objects.get(namespace=ns).count
+    api.set_dynamic_param("maxResults", count)
+
+    found_objects = api.find_all_objects(pid_search_term)
+    logging.info("Found {0} object(s) to process.".format(len(found_objects)))
+
+    return found_objects
+
+def make_id(obj, id_type):
+    """Object in repository for which to process ID."""
+
+    if not id_exists(obj["pid"], id_type):
+
+        data = get_item_data(obj["pid"])
+        if data:
+            fetch_id()
+            logging.info("Ready to fetch ID.")
+            logging.info(data)
+        else:
+            logging.error("Unable to return data needed to mint DOI for object: {0}".format(obj["pid"]))
+
+    else:
+        logging.info("")
+
+def get_item_data(pid, id_type):
+    """Get metadata about item for DOI or ARK creation."""
+    if id_type == "doi":
+        data = get_doi_data(pid)
+    elif id_type == "ark":
+        data = get_ark_data(pid)
+    else:
+        data = None
+
+    return data
+
+
+def get_doi_data(pid):
+    """Get data to send to EZID for given PID.
+
+    Required Field
+    with Value or MODS or DC mapping
+
+    Creator/creatorName
+    oai_dc:dc/dc:creator
+
+
+    Title
+    mods:mods/mods:titleInfo/mods:title[not(@type)]
+
+
+    Publisher
+    Michigan State University
+
+
+    PublicationYear
+    oai_dc:dc/dc:date
+
+
+    Resource Type
+    Text/Dissertation
+    """
+    api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
+    dc_status, dc = api.get_datastream(pid, "DC", format="xml")
+    mods_status, mods = api.get_datastream(pid, "MODS", format="xml")
+
+    if not(ds_status in [200, 201] and mods_status in [200, 201]):
+
+        return None
+
+    doi_data = {
+        "datacite.publisher": "Michigan State University",
+        "datacite.resourcetype": "Text/Dissertation",
+        "datacite.creator": "; ".join(get_dc_element(dc, "//dc:creator")),
+        "datacite.publicationyear": get_dc_element(dc, "//dc:date")[0][:4],
+        "datacite.title": get_mods_xpath(mods, "//titleInfo/title[not(@type)")[0]
+    }
+    return doi_data
+
+
+def get_doi_data(pid):
+    """Get data to send to EZID for given PID.
+
+        Who
+        oai_dc:dc/dc:creator
+
+
+        What
+        mods:mods/mods:titleInfo/mods:title[not(@type)]
+
+
+        When
+        oai_dc:dc/dc:date
+    """
+    api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
+    dc_status, dc = api.get_datastream(pid, "DC", format="xml")
+    mods_status, mods = api.get_datastream(pid, "MODS", format="xml")
+
+    if not(ds_status in [200, 201] and mods_status in [200, 201]):
+
+        return None
+
+    doi_data = {
+
+        "erc.who": "; ".join(get_dc_element(dc, "//dc:creator")),
+        "erc.when": get_dc_element(dc, "//dc:date")[0],
+        "erc.what": get_mods_xpath(mods, "//titleInfo/title[not(@type)")[0]
+    }
+    return doi_data
+
+def get_dc_element(dc, xpath):
+    """Use dc string and xpath to retrieve element content."""
+    xml = etree.fromstring(dc)
+    root = xml.getroot()
+    ns = {"dc": "http://purl.org/dc/elements/1.1/"}
+    element = root.xpath(xpath, namespaces=ns)
+    return [e.text for e in element]
+
+def get_mods_element(mods, xpath):
+    """Get MODS element using xpath."""
+    xml = etree.fromstring(mods)
+    root = xml.getroot()
+    ns = {"mods": "http://www.loc.gov/mods/v3"}
+    element = root.xpath(xpath, namespaces=ns)
+    return [e.text for e in element]
+
+def fetch_id(obj, id_type):
     pass
+
+def id_exists(pid, id_type):
+    """Check if ID of id_type exists for given pid."""
+    id_exists = False
+    pid_object = object_ids.objects.get(pid=pid)
+    if pid_object and getattr(pid_object, id_type) is not None:
+        id_exists = True
+        logging.info("{0} already exists for object. Minted {1}".format(id_type.upper(),
+                                                                        getattr(pid_object, id_type + "_minted")))
+    return id_exists
