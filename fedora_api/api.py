@@ -81,8 +81,21 @@ class FedoraApi():
         return self.call_api()
 
     def get_datastream(self, pid, dsid, **kwargs):
-        """Get datastream according to pid and ds id."""
+        """Get datastream according to pid and ds id.
+
+        Returns: data about the datastream, not the content itself. See: get_datastream_dissemination.
+        """
         self.set_url("objects/{0}/datastreams/{1}".format(pid, dsid))
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
+        return self.call_api()
+
+    def get_datastream_dissemination(self, pid, dsid, **kwargs):
+        """Get datastream according to pid and ds id.
+
+        Returns: data about the datastream, not the content itself. See: get_datastream_dissemination.
+        """
+        self.set_url("objects/{0}/datastreams/{1}/content".format(pid, dsid))
         for f, v in kwargs.items():
             self.set_dynamic_param(f, v)
         return self.call_api()

@@ -474,8 +474,8 @@ def get_doi_data(pid):
     Text/Dissertation
     """
     api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
-    dc_status, dc = api.get_datastream(pid, "DC", format="xml")
-    mods_status, mods = api.get_datastream(pid, "MODS", format="xml")
+    dc_status, dc = api.get_datastream(pid, "DC")
+    mods_status, mods = api.get_datastream(pid, "MODS")
 
     if not(ds_status in [200, 201] and mods_status in [200, 201]):
 
