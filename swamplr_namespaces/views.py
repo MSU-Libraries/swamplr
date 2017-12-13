@@ -35,11 +35,18 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
     response = {
         "headings": ["Number", "Namespace", "Count", "Actions"]
     }
-
+    if direction == "asc":
+        direction = ""
+    elif direction == "desc":
+        direction = "-"
     sort = direction + sort_field
+    
     namespace_objects = namespace_cache.objects.all().order_by(sort)
     paginator = Paginator(namespace_objects, count)
     page = request.GET.get('page')
+    if page is None:
+        page = 1
+    response["count_inc"] = (int(page) - 1) * int(count)
 
     response["namespace_count"] = namespace_objects.count()
     total_objects = 0
@@ -146,7 +153,7 @@ def set_actions(ns):
          "method": "POST",
          "label": "Reindex",
          "action": "reindex",
-         "class": "btn-success",
+         "class": "btn-primary",
          "args": ns.namespace
         }
     delete = {
@@ -158,14 +165,14 @@ def set_actions(ns):
         }
     add_doi = {
         "method": "POST",
-        "label": "Mint DOI",
+        "label": "Mint DOIs",
         "action": "mint_doi",
         "class": "btn-success",
         "args": ns.namespace
     }
     add_ark = {
         "method": "POST",
-        "label": "Mint ARK",
+        "label": "Mint ARKs",
         "action": "mint_ark",
         "class": "btn-success",
         "args": ns.namespace
