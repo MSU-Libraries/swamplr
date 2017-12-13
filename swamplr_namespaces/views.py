@@ -449,7 +449,7 @@ def make_id(obj, id_type):
 
     if not id_exists(obj["pid"], id_type):
 
-        data = get_item_data(obj["pid"])
+        data = get_item_data(obj["pid"], id_type)
         if data:
             fetch_id()
             logging.info("Ready to fetch ID.")
@@ -504,7 +504,7 @@ def get_doi_data(pid):
     dc_status, dc = api.get_datastream_dissemination(pid, "DC")
     mods_status, mods = api.get_datastream_dissemination(pid, "MODS")
 
-    if not(ds_status in [200, 201] and mods_status in [200, 201]):
+    if not(dc_status in [200, 201] and mods_status in [200, 201]):
 
         return None
 
@@ -513,7 +513,7 @@ def get_doi_data(pid):
         "datacite.resourcetype": "Text/Dissertation",
         "datacite.creator": "; ".join(get_dc_element(dc, "//dc:creator")),
         "datacite.publicationyear": get_dc_element(dc, "//dc:date")[0][:4],
-        "datacite.title": get_mods_xpath(mods, "//titleInfo/title[not(@type)")[0]
+        "datacite.title": get_mods_xpath(mods, "/mods:mods/mods:titleInfo/mods:title[not(@type)]")[0]
     }
     return doi_data
 
@@ -533,10 +533,10 @@ def get_ark_data(pid):
         oai_dc:dc/dc:date
     """
     api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
-    dc_status, dc = api.get_datastream(pid, "DC", format="xml")
-    mods_status, mods = api.get_datastream(pid, "MODS", format="xml")
+    dc_status, dc = api.get_datastream_dissemination(pid, "DC", format="xml")
+    mods_status, mods = api.get_datastream_dissemination(pid, "MODS", format="xml")
 
-    if not(ds_status in [200, 201] and mods_status in [200, 201]):
+    if not(dc_status in [200, 201] and mods_status in [200, 201]):
 
         return None
 
@@ -544,24 +544,22 @@ def get_ark_data(pid):
 
         "erc.who": "; ".join(get_dc_element(dc, "//dc:creator")),
         "erc.when": get_dc_element(dc, "//dc:date")[0],
-        "erc.what": get_mods_xpath(mods, "//titleInfo/title[not(@type)")[0]
+        "erc.what": get_mods_element(mods, "/mods:mods/mods:titleInfo/mods:title[not(@type)]")[0]
     }
     return ark_data
 
 def get_dc_element(dc, xpath):
     """Use dc string and xpath to retrieve element content."""
     xml = etree.fromstring(dc)
-    root = xml.getroot()
     ns = {"dc": "http://purl.org/dc/elements/1.1/"}
-    element = root.xpath(xpath, namespaces=ns)
+    element = xml.xpath(xpath, namespaces=ns)
     return [e.text for e in element]
 
 def get_mods_element(mods, xpath):
     """Get MODS element using xpath."""
     xml = etree.fromstring(mods)
-    root = xml.getroot()
     ns = {"mods": "http://www.loc.gov/mods/v3"}
-    element = root.xpath(xpath, namespaces=ns)
+    element = xml.xpath(xpath, namespaces=ns)
     return [e.text for e in element]
 
 def fetch_id(obj, id_type):
@@ -570,8 +568,13 @@ def fetch_id(obj, id_type):
 def id_exists(pid, id_type):
     """Check if ID of id_type exists for given pid."""
     id_exists = False
-    pid_object = object_ids.objects.get(pid=pid)
-    if pid_object and getattr(pid_object, id_type) is not None:
+
+    if object_ids.objects.filter(pid=pid).exists():
+        pid_object = object_ids.objects.get(pid=pid)
+    else:
+        pid_object = None
+
+    if pid_object and pid_object.id_type is not None:
         id_exists = True
         logging.info("{0} already exists for object. Minted {1}".format(id_type.upper(),
                                                                         getattr(pid_object, id_type + "_minted")))
