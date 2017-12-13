@@ -357,12 +357,12 @@ def get_job_objects(job_id):
 
     return results
 
-def mint_doi(self, namespace):
+def mint_doi(request, namespace):
     """Mint DOI for object if one does not already exist."""
     return add_id_job(namespace, "DOI")
 
 
-def mint_ark(self, namespace):
+def mint_ark(request, namespace):
     """Mint ARK for object if one does not already exist."""
     return add_id_job(namespace, "ARK")
 
@@ -376,7 +376,7 @@ def add_id_job(ns, id_type):
     elif id_type.lower() == "ark":
         ns_operation = namespace_operations.objects.get(operation_name="Mint ARK")
 
-    namespace_job = namespace_jobs.objects.create(
+    namespace_jobs.objects.create(
         job_id=new_job,
         namespace=ns,
         operation_id=ns_operation
