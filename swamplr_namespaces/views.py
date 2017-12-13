@@ -409,6 +409,27 @@ def run_mint_doi(ns, current_job):
 
 def run_mint_ark(ns, current_job):
     """Check if ARK exists and create DOI."""
+    found_objects = get_matching_objects(ns)
+
+    if len(found_objects) > 0:
+        for o in found_objects:
+
+            response = make_id(o, "ark")
+
+            if response in [200, 201]:
+                result = "Success"
+            else:
+                result = "Failure"
+
+            result_id = object_results.objects.get(label=result)
+
+            namespace_objects.objects.create(
+                job_id=current_job,
+                completed=timezone.now(),
+                result_id=result_id,
+                pid=o["pid"],
+            )
+
 
 def get_matching_objects(ns):
     """Get all matching objects based on namespace search."""
