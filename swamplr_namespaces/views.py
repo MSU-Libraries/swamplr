@@ -391,13 +391,13 @@ def run_mint_doi(ns, current_job):
     if len(found_objects) > 0:
         for o in found_objects:
 
-            make_id(o, "doi")
+            response = make_id(o, "doi")
 
-            response, output = api.purge_object(o["pid"])
             if response in [200, 201]:
                 result = "Success"
             else:
                 result = "Failure"
+
             result_id = object_results.objects.get(label=result)
 
             namespace_objects.objects.create(
@@ -406,6 +406,9 @@ def run_mint_doi(ns, current_job):
                 result_id=result_id,
                 pid=o["pid"],
             )
+
+def run_mint_ark(ns, current_job):
+    """Check if ARK exists and create DOI."""
 
 def get_matching_objects(ns):
     """Get all matching objects based on namespace search."""
@@ -430,11 +433,14 @@ def make_id(obj, id_type):
             fetch_id()
             logging.info("Ready to fetch ID.")
             logging.info(data)
+            status = 200
         else:
             logging.error("Unable to return data needed to mint DOI for object: {0}".format(obj["pid"]))
-
+            status = -1
     else:
-        logging.info("")
+        logging.info("ID already exists for: {0}".format(obj["pid"]))
+
+    return status
 
 def get_item_data(pid, id_type):
     """Get metadata about item for DOI or ARK creation."""
@@ -491,7 +497,7 @@ def get_doi_data(pid):
     return doi_data
 
 
-def get_doi_data(pid):
+def get_ark_data(pid):
     """Get data to send to EZID for given PID.
 
         Who
@@ -513,13 +519,13 @@ def get_doi_data(pid):
 
         return None
 
-    doi_data = {
+    ark_data = {
 
         "erc.who": "; ".join(get_dc_element(dc, "//dc:creator")),
         "erc.when": get_dc_element(dc, "//dc:date")[0],
         "erc.what": get_mods_xpath(mods, "//titleInfo/title[not(@type)")[0]
     }
-    return doi_data
+    return ark_data
 
 def get_dc_element(dc, xpath):
     """Use dc string and xpath to retrieve element content."""
