@@ -199,6 +199,15 @@ class FedoraApi():
             res = self.call_api()
         return res
 
+    def update_datastream_content(self, pid, ds_id, file_object, **kwargs):
+        """Replace content of specified datastream."""
+        self.set_method("PUT")
+        self.set_url("objects/{0}/datastreams/{1}".format(pid, ds_id))
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
+        self.file = {'file': file_object}
+        return self.call_api()
+
     def modify_datastream(self, pid, ds_id, filepath=None, **kwargs):
         """Modify datastream of specified object.
 
@@ -216,6 +225,7 @@ class FedoraApi():
                 res = self.call_api()
         else:
             res = self.call_api()
+
         return res
 
     def add_relationship(self, pid, predicate, obj, isLiteral=False, datatype=None):

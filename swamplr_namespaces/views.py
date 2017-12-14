@@ -9,7 +9,10 @@ from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrNamespacesConfig
 from swamplr_jobs.models import status
 from fedora_api.api import FedoraApi
+from ezid.api import Ezid
 import logging
+import os
+from StringIO import StringIO
 import requests
 from lxml import etree
 
@@ -255,7 +258,7 @@ def delete(request, ns):
     new_job = add_job(SwamplrNamespacesConfig.name)
     ns_operation = namespace_operations.objects.get(operation_name="Delete")
 
-    namespace_job = namespace_jobs.objects.create(
+    namespace_jobs.objects.create(
         job_id=new_job,
         namespace=ns,
         operation_id=ns_operation
@@ -269,7 +272,7 @@ def reindex(request, ns):
     new_job = add_job(SwamplrNamespacesConfig.name)
     ns_operation = namespace_operations.objects.get(operation_name="Reindex")
 
-    namespace_job = namespace_jobs.objects.create(
+    namespace_jobs.objects.create(
         job_id=new_job,
         namespace=ns,
         operation_id=ns_operation
@@ -391,10 +394,23 @@ def run_mint_doi(ns, current_job):
     if len(found_objects) > 0:
         for o in found_objects:
 
-            response = make_id(o, "doi")
+            response, uid = make_id(o, "ark")
 
             if response in [200, 201]:
                 result = "Success"
+                uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
+                success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
+
+                ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
+
+                if success:
+                    ez.modify(uid, {"_status": "public"})
+                else:
+                    result = "Failure"
+                    ez.delete(uid)
+
+            elif response == -2:
+                result = "Skipped"
             else:
                 result = "Failure"
 
@@ -414,10 +430,24 @@ def run_mint_ark(ns, current_job):
     if len(found_objects) > 0:
         for o in found_objects:
 
-            response = make_id(o, "ark")
+            response, uid = make_id(o, "ark")
 
             if response in [200, 201]:
+
                 result = "Success"
+                uid_url = "http://n2t.net/{0}".format(uid)
+                success = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
+
+                ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
+
+                if success:
+                    ez.modify(uid, {"_status": "public"})
+                else:
+                    result = "Failure"
+                    ez.delete(uid)
+
+            elif response == -2:
+                result = "Skipped"
             else:
                 result = "Failure"
 
@@ -429,6 +459,94 @@ def run_mint_ark(ns, current_job):
                 result_id=result_id,
                 pid=o["pid"],
             )
+
+def add_uid_to_metadata(pid, uid, url, id_type):
+    """Update MODS and DC datastreams with url form of ID."""
+    success = False
+    mods_success = add_uid_to_mods(pid, url, id_type)
+    dc_success = add_uid_to_dc(pid, url, id_type)
+    if (mods_success and dc_success):
+        success = True
+        id_object = object_ids.objects.create(
+            pid=pid,
+        )
+        setattr(id_object, id_type, uid)
+        setattr(id_object, "{0}_minted".format(id_type), timezone.now())
+        id_object.save()
+
+    return success
+
+def add_uid_to_mods(pid, url, id_type):
+    """Grab MODS datastream and update to include id url."""
+    success = False
+
+    status, mods = get_xml_datastream(pid, "MODS")
+
+    if status in [200, 201]:
+        parser = etree.XMLParser(remove_blank_text=True)
+        tree = etree.fromstring(mods, parser)
+
+        mods_ns = "http://www.loc.gov/mods/v3"
+        nsmap = {"mods": mods_ns}
+        location_tag = "{{{0}}}location".format(mods_ns)
+        location_element = etree.Element(location_tag, nsmap=nsmap)
+
+        url_tag = "{{{0}}}url".format(mods_ns)
+        url_element = etree.SubElement(location_element, url_tag, nsmap=nsmap,
+                                       usage="primary", note=id_type)
+        url_element.text = url
+
+        tree.insert(-1, location_element)
+
+        api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
+        api.update_datastream_content(
+            pid,
+            "MODS",
+            StringIO(etree.tostring(tree, pretty_print=True))
+        )
+        success = True
+
+    else:
+        logging.warning("Unable to access MODS datastream for: {0}".format(pid))
+
+    return success
+
+def add_uid_to_dc(pid, url, id_type):
+    """Get DC datastream and update with id url."""
+    success = False
+
+    status, dc = get_xml_datasteram(pid, "DC")
+
+    if status in [200, 201]:
+        parser = etree.XMLParser(remove_blank_text=True)
+        tree = etree.fromstring(dc, parser)
+
+        dc_ns = "http://purl.org/dc/elements/1.1/"
+        dc_id_tag = "{{{0}}}identifier".format(dc_ns)
+        nsmap = {"dc": dc_ns}
+        new_id_element = etree.SubElement(tree, dc_id_tag, nsmap=nsmap)
+        new_id_element.text = url
+
+        api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
+        api.update_datastream_content(
+            pid,
+            "DC",
+            StringIO(etree.tostring(tree, pretty_print=True))
+        )
+        success = True
+
+    else:
+        logging.warning("Unable to access DC datastream for: {0}".format(pid))
+
+    return success
+
+def get_xml_datastream(pid, datastream):
+    """Get datastream content.
+
+    Returns tuple of status and datastream content.
+    """
+    api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
+    return api.get_datastream_dissemination(pid, datastream)
 
 
 def get_matching_objects(ns):
@@ -446,22 +564,40 @@ def get_matching_objects(ns):
 
 def make_id(obj, id_type):
     """Object in repository for which to process ID."""
+    status = -2
+    uid = None
 
     if not id_exists(obj["pid"], id_type):
 
         data = get_item_data(obj["pid"], id_type)
+
         if data:
-            fetch_id()
             logging.info("Ready to fetch ID.")
             logging.info(data)
-            status = 200
+            status, uid = fetch_id()
+
+
         else:
             logging.error("Unable to return data needed to mint DOI for object: {0}".format(obj["pid"]))
             status = -1
     else:
+
         logging.info("ID already exists for: {0}".format(obj["pid"]))
 
-    return status
+    if status in [200, 201]:
+        logging.info("Successfully created {0} for {1}: {2}".format(
+            id_type.upper(),
+            obj["pid"],
+            uid
+        ))
+
+    else:
+        logging.error("Failed to create {0} for {1}".format(
+            id_type.upper(),
+            obj["pid"]
+        ))
+
+    return status, uid
 
 def get_item_data(pid, id_type):
     """Get metadata about item for DOI or ARK creation."""
@@ -536,6 +672,7 @@ def get_ark_data(pid):
     dc_status, dc = api.get_datastream_dissemination(pid, "DC", format="xml")
     mods_status, mods = api.get_datastream_dissemination(pid, "MODS", format="xml")
 
+    # Make sure DC and MODS datastreams are both available -- if not, do not create ID.
     if not(dc_status in [200, 201] and mods_status in [200, 201]):
 
         return None
@@ -562,8 +699,29 @@ def get_mods_element(mods, xpath):
     element = xml.xpath(xpath, namespaces=ns)
     return [e.text for e in element]
 
-def fetch_id(obj, id_type):
-    pass
+def fetch_id(obj, id_type, data):
+    """Communicate with EZID API to mint DOI/ARK."""
+    shoulder = None
+
+    if id_type == "ark":
+        shoulder = settings.ARK_SHOULDER
+    elif id_type == "doi":
+        shoulder = settings.DOI_SHOULDER
+
+    if shoulder:
+
+        target_url = os.path.join(settings.REPO_URL, obj["pid"].replace(":", "/"))
+        data["_target"] = target_url
+        data["_status"] = "reserved"
+
+        ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
+        status, uid = ez.mint(shoulder, metadata=data)
+
+    else:
+        status = -1
+        uid = None
+
+    return status, uid
 
 def id_exists(pid, id_type):
     """Check if ID of id_type exists for given pid."""
