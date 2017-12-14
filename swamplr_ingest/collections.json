@@ -10,7 +10,7 @@
         "objects": {
             "object": {
                 "label": "Large Image",
-                "namespace": "image_test",
+                "namespace": "image",
                 "content_model": "large_image",
                 "datastreams": {
                     "OBJ": {
@@ -37,28 +37,6 @@
                     },
                     "MODS": {
                         "marker": ["_MODS.xml"],
-                        "required": "true"
-                    }
-                }
-            },
-            "compound_object": {
-                "label": "Compound Object (Parent)",
-                "namespace": "michilac",
-                "content_model": "compound",
-                "datastreams": {
-                    "TN": {
-                        "marker": ["_TN.jpg"],
-                        "required": "true"
-                    }
-
-                },
-                "metadata": {
-                    "DC": {
-                        "marker": ["_dc.xml"],
-                        "required": "true"
-                    },
-                    "MODS": {
-                        "marker": ["_mods.xml"],
                         "required": "true"
                     }
                 }
