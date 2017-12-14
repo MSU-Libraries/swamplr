@@ -9,7 +9,7 @@ from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrNamespacesConfig
 from swamplr_jobs.models import status
 from fedora_api.api import FedoraApi
-from ezid.api import Ezid
+from ezid_api.api import Ezid
 import logging
 import os
 from StringIO import StringIO
@@ -108,7 +108,6 @@ def run_process(current_job):
             run_mint_doi(namespace_job.namespace, current_job)
             status_obj = status.objects.get(status="Success")
             message = ["All objects processed."]
-            namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()
 
         except Exception as e:
             logging.error("Unable to complete process.")
@@ -120,7 +119,6 @@ def run_process(current_job):
             run_mint_ark(namespace_job.namespace, current_job)
             status_obj = status.objects.get(status="Success")
             message = ["All objects processed."]
-            namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()
 
         except Exception as e:
             logging.error("Unable to complete process.")
@@ -128,7 +126,7 @@ def run_process(current_job):
             message = [e, "Error during process."]
     
     else:
-        logging.info("Unable to find function for operation {0}".format(operation_type))
+        logging.error("Unable to find function for operation {0}".format(operation_type))
     
     result = (status_obj.status_id, message)
     return result
@@ -221,7 +219,7 @@ def list_items(request, ns, count=25):
     pid_search_term = ns + ":*"
     api = FedoraApi()
     found_objects = api.find_all_objects(pid_search_term, fields=["pid", "label", "creator", "description", "cDate", "mDate"
-                                                      "date", "type"])
+                                                                  "date", "type"])
     if len(found_objects) > 0:
 
         paginator = Paginator(found_objects, count)
@@ -394,11 +392,11 @@ def run_mint_doi(ns, current_job):
     if len(found_objects) > 0:
         for o in found_objects:
 
-            response, uid = make_id(o, "ark")
+            response, uid = make_id(o, "doi")
+            uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
 
             if response in [200, 201]:
                 result = "Success"
-                uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
 
                 ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
@@ -410,7 +408,9 @@ def run_mint_doi(ns, current_job):
                     ez.delete(uid)
 
             elif response == -2:
+                success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
                 result = "Skipped"
+
             else:
                 result = "Failure"
 
@@ -431,11 +431,11 @@ def run_mint_ark(ns, current_job):
         for o in found_objects:
 
             response, uid = make_id(o, "ark")
+            uid_url = "http://n2t.net/{0}".format(uid)
 
             if response in [200, 201]:
 
                 result = "Success"
-                uid_url = "http://n2t.net/{0}".format(uid)
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
 
                 ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
@@ -447,6 +447,7 @@ def run_mint_ark(ns, current_job):
                     ez.delete(uid)
 
             elif response == -2:
+                success = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
                 result = "Skipped"
             else:
                 result = "Failure"
@@ -467,9 +468,13 @@ def add_uid_to_metadata(pid, uid, url, id_type):
     dc_success = add_uid_to_dc(pid, url, id_type)
     if (mods_success and dc_success):
         success = True
-        id_object = object_ids.objects.create(
-            pid=pid,
-        )
+
+        if object_ids.objects.filter(pid=pid).exists():
+            id_object = object_ids.objects.get(pid=pid)
+        else:    
+            id_object = object_ids.objects.create(
+                pid=pid,
+            )
         setattr(id_object, id_type, uid)
         setattr(id_object, "{0}_minted".format(id_type), timezone.now())
         id_object.save()
@@ -481,13 +486,23 @@ def add_uid_to_mods(pid, url, id_type):
     success = False
 
     status, mods = get_xml_datastream(pid, "MODS")
-
+    
     if status in [200, 201]:
+        
         parser = etree.XMLParser(remove_blank_text=True)
         tree = etree.fromstring(mods, parser)
 
         mods_ns = "http://www.loc.gov/mods/v3"
         nsmap = {"mods": mods_ns}
+        
+        xpath = "/mods:mods/mods:location/mods:url[@note='{0}']".format(id_type)        
+        id_urls = tree.xpath(xpath, namespaces=nsmap)
+
+        # Remove existing IDs.
+        for u in id_urls:
+            parent = u.getparent()
+            parent.getparent().remove(parent)
+
         location_tag = "{{{0}}}location".format(mods_ns)
         location_element = etree.Element(location_tag, nsmap=nsmap)
 
@@ -497,14 +512,12 @@ def add_uid_to_mods(pid, url, id_type):
         url_element.text = url
 
         tree.insert(-1, location_element)
-
         api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
-        api.update_datastream_content(
-            pid,
-            "MODS",
-            StringIO(etree.tostring(tree, pretty_print=True))
-        )
-        success = True
+        status, response = api.update_datastream_content(pid, "MODS", StringIO(etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding="UTF-8")), mimeType="text/xml")
+        if status in [200, 201]:
+            success = True
+        else: 
+            logging.error("Unable to update MODS metadata.")
 
     else:
         logging.warning("Unable to access MODS datastream for: {0}".format(pid))
@@ -515,7 +528,7 @@ def add_uid_to_dc(pid, url, id_type):
     """Get DC datastream and update with id url."""
     success = False
 
-    status, dc = get_xml_datasteram(pid, "DC")
+    status, dc = get_xml_datastream(pid, "DC")
 
     if status in [200, 201]:
         parser = etree.XMLParser(remove_blank_text=True)
@@ -524,16 +537,27 @@ def add_uid_to_dc(pid, url, id_type):
         dc_ns = "http://purl.org/dc/elements/1.1/"
         dc_id_tag = "{{{0}}}identifier".format(dc_ns)
         nsmap = {"dc": dc_ns}
+        
+        xpath = "//dc:identifier"      
+        id_urls = tree.xpath(xpath, namespaces=nsmap)
+
+        # Remove existing IDs that match ark or doi patterns.
+        url_patterns = {
+            "doi": "https://doi.org/",
+            "ark": "http://n2t.net/"
+        }
+        for u in id_urls:
+            if u.text.startswith(url_patterns[id_type]):
+                u.getparent().remove(u)
+
         new_id_element = etree.SubElement(tree, dc_id_tag, nsmap=nsmap)
         new_id_element.text = url
-
         api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
-        api.update_datastream_content(
-            pid,
-            "DC",
-            StringIO(etree.tostring(tree, pretty_print=True))
-        )
-        success = True
+        status, response = api.update_datastream_content(pid, "DC", StringIO(etree.tostring(tree, pretty_print=True, encoding="UTF-8", xml_declaration=True)), mimeType="text/xml")
+        if status in [200, 201]:
+            success = True
+        else: 
+            logging.error("Unable to update DC metadata.")
 
     else:
         logging.warning("Unable to access DC datastream for: {0}".format(pid))
@@ -553,8 +577,8 @@ def get_matching_objects(ns):
     """Get all matching objects based on namespace search."""
     pid_search_term = ns + ":*"
 
-    api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
-    count = namespace_cache.objects.get(namespace=ns).count
+    api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
+    count = namespace_cache.objects.filter(namespace=ns).count
     api.set_dynamic_param("maxResults", count)
 
     found_objects = api.find_all_objects(pid_search_term)
@@ -567,22 +591,26 @@ def make_id(obj, id_type):
     status = -2
     uid = None
 
-    if not id_exists(obj["pid"], id_type):
+    data = get_item_data(obj["pid"], id_type)
 
-        data = get_item_data(obj["pid"], id_type)
+    if not id_exists(obj["pid"], id_type):
 
         if data:
             logging.info("Ready to fetch ID.")
             logging.info(data)
-            status, uid = fetch_id()
+            status, uid = fetch_id(obj, id_type, data)
 
 
         else:
-            logging.error("Unable to return data needed to mint DOI for object: {0}".format(obj["pid"]))
+            logging.error("Unable to return data needed to mint {1} for object: {0}".format(obj["pid"], id_type))
             status = -1
     else:
-
-        logging.info("ID already exists for: {0}".format(obj["pid"]))
+        pid_object = object_ids.objects.get(pid=obj["pid"])
+        uid = getattr(pid_object, id_type)
+        logging.info("ID already exists for: {0}. Validating".format(obj["pid"]))
+        if not validate_existing_id(uid, id_type):
+            logging.warn("ID is invalid. Minting new one.")
+            status, uid = fetch_id(obj, id_type, data)
 
     if status in [200, 201]:
         logging.info("Successfully created {0} for {1}: {2}".format(
@@ -591,13 +619,29 @@ def make_id(obj, id_type):
             uid
         ))
 
-    else:
+    elif status == -1:
         logging.error("Failed to create {0} for {1}".format(
             id_type.upper(),
             obj["pid"]
         ))
 
     return status, uid
+
+def validate_existing_id(uid, id_type):
+    """Check existing uid to make sure it still resolves."""
+    valid = True
+
+    if id_type == "ark":
+        uid_url = "http://n2t.net/{0}".format(uid)
+    elif id_type == "doi":
+        uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
+    
+    r = requests.get(uid_url, allow_redirects=False)
+    
+    if not r.ok:
+       valid = False
+
+    return valid
 
 def get_item_data(pid, id_type):
     """Get metadata about item for DOI or ARK creation."""
@@ -648,8 +692,8 @@ def get_doi_data(pid):
         "datacite.publisher": "Michigan State University",
         "datacite.resourcetype": "Text/Dissertation",
         "datacite.creator": "; ".join(get_dc_element(dc, "//dc:creator")),
-        "datacite.publicationyear": get_dc_element(dc, "//dc:date")[0][:4],
-        "datacite.title": get_mods_xpath(mods, "/mods:mods/mods:titleInfo/mods:title[not(@type)]")[0]
+        "datacite.publicationyear": get_dc_element(dc, "//dc:date")[0],
+        "datacite.title": get_mods_element(mods, "/mods:mods/mods:titleInfo/mods:title[not(@type)]")[0]
     }
     return doi_data
 
@@ -680,7 +724,7 @@ def get_ark_data(pid):
     ark_data = {
 
         "erc.who": "; ".join(get_dc_element(dc, "//dc:creator")),
-        "erc.when": get_dc_element(dc, "//dc:date")[0],
+        "erc.when": get_dc_element(dc, "//dc:date")[0][:4],
         "erc.what": get_mods_element(mods, "/mods:mods/mods:titleInfo/mods:title[not(@type)]")[0]
     }
     return ark_data
@@ -715,8 +759,8 @@ def fetch_id(obj, id_type, data):
         data["_status"] = "reserved"
 
         ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
-        status, uid = ez.mint(shoulder, metadata=data)
-
+        status, uid_result = ez.mint(shoulder, metadata=data)
+        uid = uid_result.split(": ")[1].strip()
     else:
         status = -1
         uid = None
@@ -732,7 +776,7 @@ def id_exists(pid, id_type):
     else:
         pid_object = None
 
-    if pid_object and pid_object.id_type is not None:
+    if pid_object and getattr(pid_object, id_type) is not None:
         id_exists = True
         logging.info("{0} already exists for object. Minted {1}".format(id_type.upper(),
                                                                         getattr(pid_object, id_type + "_minted")))

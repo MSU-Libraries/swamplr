@@ -201,7 +201,7 @@ class FedoraApi():
 
     def update_datastream_content(self, pid, ds_id, file_object, **kwargs):
         """Replace content of specified datastream."""
-        self.set_method("PUT")
+        self.set_method("POST")
         self.set_url("objects/{0}/datastreams/{1}".format(pid, ds_id))
         for f, v in kwargs.items():
             self.set_dynamic_param(f, v)
