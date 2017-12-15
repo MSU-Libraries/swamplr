@@ -138,8 +138,6 @@ class Ingest:
 
     def add_rels_ext(self):
         """Add basic rels-ext for object."""
-        self.fedora_api.modify_datastream(self.pid, "RELS-EXT", mimeType="application/rdf+xml", versionable="true")
-
         # Load default settings for content model.
         has_model_object = self.defaults["content_models"][self.content_model]["has_model"]
 
@@ -149,6 +147,7 @@ class Ingest:
         logging.info("Adding relationships at {0}".format(self.pid))
 
         self.fedora_api.add_relationship(self.pid, "info:fedora/fedora-system:def/model#hasModel", has_model_object)
+        self.fedora_api.modify_datastream(self.pid, "RELS-EXT", mimeType="application/rdf+xml", versionable="true")
 
         if self.content_model == "newspaper_issue":
             self.fedora_api.add_relationship(
