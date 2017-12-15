@@ -204,7 +204,7 @@ def get_status_info(job):
 
         if job.namespace_jobs.operation_id.operation_name in ["Mint DOI", "Mint ARK"]:
 
-            result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{1} Skipped</span>"
+            result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
             result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
 
         info = ["Process: {0} <br/>".format(ns_job.operation_id.operation_name),
@@ -436,12 +436,13 @@ def run_mint_doi(ns, current_job):
 
             response, uid = make_id(o, "doi")
             uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
+            
+            ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
             if response in [200, 201]:
                 result = "Success"
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
 
-                ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
             elif response == -2:
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
@@ -476,13 +477,14 @@ def run_mint_ark(ns, current_job):
 
             response, uid = make_id(o, "ark")
             uid_url = "http://n2t.net/{0}".format(uid)
+            
+            ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
             if response in [200, 201]:
 
                 result = "Success"
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
 
-                ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
                 if success:
                     ez.modify(uid, {"_status": "public"})
@@ -826,7 +828,7 @@ def fetch_id(obj, id_type, data):
 
         ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
         status, uid_result = ez.mint(shoulder, metadata=data)
-        uid = uid_result.split(": ")[1].strip()
+        uid = uid_result.split("|")[0].split(": ")[1].strip()
     else:
         status = -1
         uid = None
