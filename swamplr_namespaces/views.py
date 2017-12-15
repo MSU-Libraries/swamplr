@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from models import namespace_cache, namespace_operations, namespace_jobs, namespace_objects, object_results, cache_job, object_ids
+from models import namespace_cache, namespace_operations, namespace_jobs, namespace_objects, object_results, cache_job, \
+    object_ids
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, redirect
 from django.conf import settings
@@ -43,7 +44,7 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
     elif direction == "desc":
         direction = "-"
     sort = direction + sort_field
-    
+
     namespace_objects = namespace_cache.objects.all().order_by(sort)
     paginator = Paginator(namespace_objects, count)
     page = request.GET.get('page')
@@ -70,15 +71,14 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
         namespace_list = paginator.page(paginator.num_pages)
 
     for ns in namespace_list.object_list:
-
         set_namespace_info(ns)
 
     response["namespaces"] = namespace_list
 
     return render(request, 'swamplr_namespaces/namespaces.html', response)
 
-def run_process(current_job):
 
+def run_process(current_job):
     namespace_job = namespace_jobs.objects.get(job_id=current_job)
     operation_type = namespace_job.operation_id.operation_name
 
@@ -96,7 +96,7 @@ def run_process(current_job):
             run_delete(namespace_job.namespace, current_job)
             status_obj = status.objects.get(status="Success")
             message = ["Deletion completed."]
-            namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()            
+            namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()
 
         except Exception as e:
             logging.error("Unable to complete deletion.")
@@ -124,46 +124,50 @@ def run_process(current_job):
             logging.error("Unable to complete process.")
             status_obj = status.objects.get(status="Script error")
             message = [e, "Error during process."]
-    
+
     else:
         logging.error("Unable to find function for operation {0}".format(operation_type))
-    
+
     result = (status_obj.status_id, message)
     return result
+
 
 def set_namespace_info(ns):
     """Prepare namespace object with additional info for display."""
     ns.actions = set_actions(ns)
+
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
 
     nav = {"label": "Namespaces",
            "name": "namespaces",
-          }
+           }
     return nav
+
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
     actions = []
     return actions
 
+
 def set_actions(ns):
     """Required function: return actions to populate in job table."""
     reindex = {
-         "method": "POST",
-         "label": "Reindex",
-         "action": "reindex",
-         "class": "btn-primary",
-         "args": ns.namespace
-        }
+        "method": "POST",
+        "label": "Reindex",
+        "action": "reindex",
+        "class": "btn-primary",
+        "args": ns.namespace
+    }
     delete = {
-         "method": "DELETE",
-         "label": "Delete All",
-         "action": "delete",
-         "class": "btn-danger",
-         "args": ns.namespace
-        }
+        "method": "DELETE",
+        "label": "Delete All",
+        "action": "delete",
+        "class": "btn-danger",
+        "args": ns.namespace
+    }
     add_doi = {
         "method": "POST",
         "label": "Mint DOIs",
@@ -180,6 +184,7 @@ def set_actions(ns):
     }
     return [reindex, add_doi, add_ark, delete]
 
+
 def get_status_info(job):
     """Required function: return info about current job for display."""
     job_id = job.job_id
@@ -192,9 +197,15 @@ def get_status_info(job):
         ns_job = namespace_jobs.objects.get(job_id=job.job_id)
         details = [
             ("Process ID", ns_job.operation_id.operation_id),
+            ("Process Name", ns_job.operation_id.operation_name),
             ("Namespace", ns_job.namespace),
             ("Objects Processed", len(results["objects"])),
         ]
+
+        if job.namespace_jobs.operation_id.operation_name in ["Mint DOI", "Mint ARK"]:
+
+            result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{1} Skipped</span>"
+            result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
 
         info = ["Process: {0} <br/>".format(ns_job.operation_id.operation_name),
                 "Namespace: {0} <br/>".format(ns_job.namespace),
@@ -204,9 +215,10 @@ def get_status_info(job):
 
         details = [("None", "No Info Found")]
         info = ["No info available."]
-        print e.message
+        logging.error(e.message)
 
     return info, details
+
 
 def list_items(request, ns, count=25):
     """List pids (and other data) for a given namespace."""
@@ -218,8 +230,9 @@ def list_items(request, ns, count=25):
 
     pid_search_term = ns + ":*"
     api = FedoraApi()
-    found_objects = api.find_all_objects(pid_search_term, fields=["pid", "label", "creator", "description", "cDate", "mDate"
-                                                                  "date", "type"])
+    found_objects = api.find_all_objects(pid_search_term,
+                                         fields=["pid", "label", "creator", "description", "cDate", "mDate"
+                                                                                                    "date", "type"])
     if len(found_objects) > 0:
 
         paginator = Paginator(found_objects, count)
@@ -237,6 +250,7 @@ def list_items(request, ns, count=25):
     response["namespaces"] = result_list
     return render(request, 'swamplr_namespaces/namespace.html', response)
 
+
 def extract_data_from_xml(xml):
     """Get data from xml for user display."""
     x = etree.fromstring(xml)
@@ -248,6 +262,7 @@ def extract_data_from_xml(xml):
             item[tag] = child.text
         items.append(item)
     return items
+
 
 def delete(request, ns):
     """Add delete job to queue."""
@@ -264,6 +279,7 @@ def delete(request, ns):
 
     return redirect(job_status)
 
+
 def reindex(request, ns):
     logging.info("Adding reindex job for namespace: {0}".format(ns))
 
@@ -278,6 +294,7 @@ def reindex(request, ns):
 
     return redirect(job_status)
 
+
 def run_delete(ns, current_job):
     pid_search_term = ns + ":*"
     api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
@@ -285,7 +302,7 @@ def run_delete(ns, current_job):
     api.set_dynamic_param("maxResults", count)
     found_objects = api.find_all_objects(pid_search_term)
     logging.info("Found {0} objects to delete.".format(len(found_objects)))
-    
+
     if len(found_objects) > 0:
         for o in found_objects:
             response, output = api.purge_object(o["pid"])
@@ -302,11 +319,12 @@ def run_delete(ns, current_job):
                 pid=o["pid"],
             )
 
+
 def run_reindex(ns, current_job):
     """Reindex all pids within a given namespace."""
     pid_search_term = ns + ":*"
     api = FedoraApi()
-    
+
     found_objects = api.find_all_objects(pid_search_term)
     logging.info("Found {0} objects to reindex.".format(len(found_objects)))
     if len(found_objects) > 0:
@@ -325,6 +343,7 @@ def run_reindex(ns, current_job):
                 pid=o["pid"],
             )
 
+
 def send_reindex(pid):
     """Make call to gsearch to reindex pid."""
     gsearch_url_search = settings.GSEARCH_URL + "rest?operation=updateIndex&action=fromPid&value=" + pid
@@ -333,30 +352,50 @@ def send_reindex(pid):
 
     return response
 
-def get_job_objects(job_id):
 
+def get_job_objects(job_id):
     results = {
         "status_count": {
             "Success": 0,
             "Failed": 0,
+            "Skipped": 0
         },
         "objects": []
     }
 
     objects = namespace_objects.objects.filter(job_id=job_id)
     for o in objects:
-        object_data = {}
-        object_data["completed"] = o.completed
-        object_data["result_id"] = o.result_id
-        object_data["result"] = o.result_id.label
-        object_data["pid"] = o.pid
+        object_data = {
+            "completed": o.completed,
+            "result_id": o.result_id,
+            "result": o.result_id.label,
+            "pid": o.pid
+        }
+        operation_name = namespace_jobs.objects.get(job_id=job_id).operation_id.operation_name
+        if operation_name in ["Mint DOI", "Mint ARK"]:
+            uid = "N/A"
+            pid = o.pid
+
+            o_ids = object_ids.objects.filter(pid=pid)
+            if o_ids and operation_name == "Mint DOI":
+                if o_ids[0].doi is not None:
+                    uid = "https://doi.org/{0}".format(o_ids[0].doi.split(":")[1])
+            elif o_ids and operation_name == "Mint ARK":
+                if o_ids[0].ark is not None:
+                    uid = "http://n2t.net/{0}".format(o_ids[0].ark)
+
+            object_data["uid"] = uid
+
         results["objects"].append(object_data)
         if o.result_id.label == "Success":
             results["status_count"]["Success"] += 1
+        elif o.result_id.label == "Skipped":
+            results["status_count"]["Skipped"] += 1
         else:
             results["status_count"]["Failed"] += 1
 
     return results
+
 
 def mint_doi(request, namespace):
     """Mint DOI for object if one does not already exist."""
@@ -366,6 +405,7 @@ def mint_doi(request, namespace):
 def mint_ark(request, namespace):
     """Mint ARK for object if one does not already exist."""
     return add_id_job(namespace, "ARK")
+
 
 def add_id_job(ns, id_type):
     """Add job to queue."""
@@ -384,10 +424,12 @@ def add_id_job(ns, id_type):
     )
     return redirect(job_status)
 
+
 def run_mint_doi(ns, current_job):
     """Check if DOI exists for pid and create DOI if not."""
 
     found_objects = get_matching_objects(ns)
+    success = False
 
     if len(found_objects) > 0:
         for o in found_objects:
@@ -401,18 +443,18 @@ def run_mint_doi(ns, current_job):
 
                 ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
-                if success:
-                    ez.modify(uid, {"_status": "public"})
-                else:
-                    result = "Failure"
-                    ez.delete(uid)
-
             elif response == -2:
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
                 result = "Skipped"
 
             else:
                 result = "Failure"
+
+            if success:
+                ez.modify(uid, {"_status": "public"})
+            else:
+                result = "Failure"
+                ez.delete(uid)
 
             result_id = object_results.objects.get(label=result)
 
@@ -423,9 +465,11 @@ def run_mint_doi(ns, current_job):
                 pid=o["pid"],
             )
 
+
 def run_mint_ark(ns, current_job):
     """Check if ARK exists and create DOI."""
     found_objects = get_matching_objects(ns)
+    success = False
 
     if len(found_objects) > 0:
         for o in found_objects:
@@ -461,17 +505,18 @@ def run_mint_ark(ns, current_job):
                 pid=o["pid"],
             )
 
+
 def add_uid_to_metadata(pid, uid, url, id_type):
     """Update MODS and DC datastreams with url form of ID."""
     success = False
     mods_success = add_uid_to_mods(pid, url, id_type)
     dc_success = add_uid_to_dc(pid, url, id_type)
-    if (mods_success and dc_success):
+    if mods_success and dc_success:
         success = True
 
         if object_ids.objects.filter(pid=pid).exists():
             id_object = object_ids.objects.get(pid=pid)
-        else:    
+        else:
             id_object = object_ids.objects.create(
                 pid=pid,
             )
@@ -481,21 +526,22 @@ def add_uid_to_metadata(pid, uid, url, id_type):
 
     return success
 
+
 def add_uid_to_mods(pid, url, id_type):
     """Grab MODS datastream and update to include id url."""
     success = False
 
     status, mods = get_xml_datastream(pid, "MODS")
-    
+
     if status in [200, 201]:
-        
+
         parser = etree.XMLParser(remove_blank_text=True)
         tree = etree.fromstring(mods, parser)
 
         mods_ns = "http://www.loc.gov/mods/v3"
         nsmap = {"mods": mods_ns}
-        
-        xpath = "/mods:mods/mods:location/mods:url[@note='{0}']".format(id_type)        
+
+        xpath = "/mods:mods/mods:location/mods:url[@note='{0}']".format(id_type)
         id_urls = tree.xpath(xpath, namespaces=nsmap)
 
         # Remove existing IDs.
@@ -513,16 +559,23 @@ def add_uid_to_mods(pid, url, id_type):
 
         tree.insert(-1, location_element)
         api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
-        status, response = api.update_datastream_content(pid, "MODS", StringIO(etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding="UTF-8")), mimeType="text/xml")
+        status, response = api.update_datastream_content(
+            pid,
+            "MODS",
+            StringIO(etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding="UTF-8")),
+            mimeType="text/xml"
+        )
         if status in [200, 201]:
             success = True
-        else: 
+            logging.info("Updated DC metadata")
+        else:
             logging.error("Unable to update MODS metadata.")
 
     else:
         logging.warning("Unable to access MODS datastream for: {0}".format(pid))
 
     return success
+
 
 def add_uid_to_dc(pid, url, id_type):
     """Get DC datastream and update with id url."""
@@ -537,8 +590,8 @@ def add_uid_to_dc(pid, url, id_type):
         dc_ns = "http://purl.org/dc/elements/1.1/"
         dc_id_tag = "{{{0}}}identifier".format(dc_ns)
         nsmap = {"dc": dc_ns}
-        
-        xpath = "//dc:identifier"      
+
+        xpath = "//dc:identifier"
         id_urls = tree.xpath(xpath, namespaces=nsmap)
 
         # Remove existing IDs that match ark or doi patterns.
@@ -553,16 +606,24 @@ def add_uid_to_dc(pid, url, id_type):
         new_id_element = etree.SubElement(tree, dc_id_tag, nsmap=nsmap)
         new_id_element.text = url
         api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
-        status, response = api.update_datastream_content(pid, "DC", StringIO(etree.tostring(tree, pretty_print=True, encoding="UTF-8", xml_declaration=True)), mimeType="text/xml")
+        status, response = api.update_datastream_content(
+            pid,
+            "DC",
+            StringIO(etree.tostring(tree, pretty_print=True, encoding="UTF-8", xml_declaration=True)),
+            mimeType="text/xml"
+        )
+
         if status in [200, 201]:
             success = True
-        else: 
+            logging.info("Updated DC metadata")
+        else:
             logging.error("Unable to update DC metadata.")
 
     else:
         logging.warning("Unable to access DC datastream for: {0}".format(pid))
 
     return success
+
 
 def get_xml_datastream(pid, datastream):
     """Get datastream content.
@@ -586,6 +647,7 @@ def get_matching_objects(ns):
 
     return found_objects
 
+
 def make_id(obj, id_type):
     """Object in repository for which to process ID."""
     status = -2
@@ -597,9 +659,7 @@ def make_id(obj, id_type):
 
         if data:
             logging.info("Ready to fetch ID.")
-            logging.info(data)
             status, uid = fetch_id(obj, id_type, data)
-
 
         else:
             logging.error("Unable to return data needed to mint {1} for object: {0}".format(obj["pid"], id_type))
@@ -609,8 +669,11 @@ def make_id(obj, id_type):
         uid = getattr(pid_object, id_type)
         logging.info("ID already exists for: {0}. Validating".format(obj["pid"]))
         if not validate_existing_id(uid, id_type):
-            logging.warn("ID is invalid. Minting new one.")
+            logging.warning("ID is invalid. Minting new one.")
             status, uid = fetch_id(obj, id_type, data)
+
+        else:
+            logging.info("Validation successful.")
 
     if status in [200, 201]:
         logging.info("Successfully created {0} for {1}: {2}".format(
@@ -627,6 +690,7 @@ def make_id(obj, id_type):
 
     return status, uid
 
+
 def validate_existing_id(uid, id_type):
     """Check existing uid to make sure it still resolves."""
     valid = True
@@ -635,13 +699,14 @@ def validate_existing_id(uid, id_type):
         uid_url = "http://n2t.net/{0}".format(uid)
     elif id_type == "doi":
         uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
-    
+
     r = requests.get(uid_url, allow_redirects=False)
-    
+
     if not r.ok:
-       valid = False
+        valid = False
 
     return valid
+
 
 def get_item_data(pid, id_type):
     """Get metadata about item for DOI or ARK creation."""
@@ -684,8 +749,7 @@ def get_doi_data(pid):
     dc_status, dc = api.get_datastream_dissemination(pid, "DC")
     mods_status, mods = api.get_datastream_dissemination(pid, "MODS")
 
-    if not(dc_status in [200, 201] and mods_status in [200, 201]):
-
+    if not (dc_status in [200, 201] and mods_status in [200, 201]):
         return None
 
     doi_data = {
@@ -717,8 +781,7 @@ def get_ark_data(pid):
     mods_status, mods = api.get_datastream_dissemination(pid, "MODS", format="xml")
 
     # Make sure DC and MODS datastreams are both available -- if not, do not create ID.
-    if not(dc_status in [200, 201] and mods_status in [200, 201]):
-
+    if not (dc_status in [200, 201] and mods_status in [200, 201]):
         return None
 
     ark_data = {
@@ -729,6 +792,7 @@ def get_ark_data(pid):
     }
     return ark_data
 
+
 def get_dc_element(dc, xpath):
     """Use dc string and xpath to retrieve element content."""
     xml = etree.fromstring(dc)
@@ -736,12 +800,14 @@ def get_dc_element(dc, xpath):
     element = xml.xpath(xpath, namespaces=ns)
     return [e.text for e in element]
 
+
 def get_mods_element(mods, xpath):
     """Get MODS element using xpath."""
     xml = etree.fromstring(mods)
     ns = {"mods": "http://www.loc.gov/mods/v3"}
     element = xml.xpath(xpath, namespaces=ns)
     return [e.text for e in element]
+
 
 def fetch_id(obj, id_type, data):
     """Communicate with EZID API to mint DOI/ARK."""
@@ -766,6 +832,7 @@ def fetch_id(obj, id_type, data):
         uid = None
 
     return status, uid
+
 
 def id_exists(pid, id_type):
     """Check if ID of id_type exists for given pid."""

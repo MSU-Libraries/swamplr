@@ -59,6 +59,9 @@
             <div class="job-path job-column job-data">Path</div>
             {% endif %}
             <div class="job-pid job-column job-data">PID</div>
+            {% if job.objects.objects.0.uid %}
+            <div class="job-pid job-column job-data">ID</div>
+            {% endif %}
             <div class="job-result job-column job-data">Result</div>
         </div>
         <script>
@@ -77,6 +80,9 @@
                 <div class="job-path object-column job-column job-data">{{ o.path }}</div>
                 {% endif %}
                 <div class="job-pid object-column job-column job-data"><code>{{ o.pid }}</code></div>
+                {% if job.objects.objects.0.uid %}
+                <div class="job-pid object-column job-column job-data"><a href="{{ o.uid }}">{{ o.uid }}</a></div>
+                {% endif %}
                 <div class="job-result object-column job-column job-data">{{ o.result }}</div>
             </div>
             <div class="datastreams-by-object">
