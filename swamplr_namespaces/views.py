@@ -16,6 +16,7 @@ import os
 from StringIO import StringIO
 import requests
 from lxml import etree
+from rdflib.graph import Graph
 
 
 def load_namespaces(request, count=25, sort_field="count", direction="-", update_cache=True):
@@ -654,10 +655,15 @@ def make_id(obj, id_type):
     """Object in repository for which to process ID."""
     status = -2
     uid = None
+    pid = obj["pid"]
 
-    data = get_item_data(obj["pid"], id_type)
+    data = get_item_data(pid, id_type)
 
-    if not id_exists(obj["pid"], id_type):
+    if child_or_root_object(pid):
+        # Check if pid is a root object or child object. If so, skip.
+        logging.info("Object at {0} appears to be a child or root object. Skipping.")
+
+    elif not id_exists(pid, id_type):
 
         if data:
             logging.info("Ready to fetch ID.")
@@ -667,9 +673,9 @@ def make_id(obj, id_type):
             logging.error("Unable to return data needed to mint {1} for object: {0}".format(obj["pid"], id_type))
             status = -1
     else:
-        pid_object = object_ids.objects.get(pid=obj["pid"])
+        pid_object = object_ids.objects.get(pid=pid)
         uid = getattr(pid_object, id_type)
-        logging.info("ID already exists for: {0}. Validating".format(obj["pid"]))
+        logging.info("ID already exists for: {0}. Validating".format(pid))
         if not validate_existing_id(uid, id_type):
             logging.warning("ID is invalid. Minting new one.")
             status, uid = fetch_id(obj, id_type, data)
@@ -687,10 +693,68 @@ def make_id(obj, id_type):
     elif status == -1:
         logging.error("Failed to create {0} for {1}".format(
             id_type.upper(),
-            obj["pid"]
+            pid
         ))
 
     return status, uid
+
+
+def child_or_root_object(pid):
+    """Check if pid represents a child or root object and skip if so.
+
+    3 steps to check if pid should be excluded as a root or child object:
+        1. if pid ends with :root
+        2. if object has a disallowed content model, e.g. newspaper page or collection.
+        3. if object has the "isConstituentOf" predicate.
+
+    """
+    child_or_root = False
+    if pid.endswith(":root"):
+        child_or_root = True
+        return child_or_root
+
+    disallowed_cms = [
+        "info:fedora/islandora:newspaperCModel",
+        "info:fedora/islandora:newspaperPageCModel",
+        "info:fedora/islandora:collectionCModel"
+    ]
+    api = FedoraApi(username=settings.FEDORA_USER, password=settings.FEDORA_PASSWORD)
+
+    status, object_profile = api.get_object_profile(pid=pid)
+    cmodels = get_content_models(object_profile)
+    logging.debug(cmodels)
+
+    if any(c in disallowed_cms for c in cmodels):
+        child_or_root = True
+        return child_or_root
+
+    status, rels_ext = api.get_relationships(pid)
+    predicates = get_predicate_strings(rels_ext)
+    if "info:fedora/fedora-system:def/relations-external#isConstituentOf" in predicates:
+        child_or_root = True
+
+    return child_or_root
+
+
+def get_content_models(object_profile):
+    """Get content models from object profile xml."""
+    tree = etree.fromstring(object_profile)
+    ns = {"f": "http://www.fedora.info/definitions/1/0/access/"}
+    models = tree.xpath("//f:objModels/f:model", namespaces=ns)
+    return [m.text for m in models]
+
+
+def get_predicate_strings(rels_ext, format="nt"):
+    """Extract string representations of predicates."""
+    pred = self.get_predicates(rels_ext, format=format)
+    return [str(p) for p in pred]
+
+
+def get_predicates(rels_ext, format="nt"):
+    """Return all predicates in a given rels_ext datastream."""
+    g = Graph()
+    content = g.parse(data=rels_ext, format=format)
+    return list(content.predicates())
 
 
 def validate_existing_id(uid, id_type):
@@ -704,9 +768,9 @@ def validate_existing_id(uid, id_type):
 
     r = requests.get(uid_url, allow_redirects=False)
 
-    if not r.ok:
+    if not r.ok or "lib.msu.edu" not in r.url:
         valid = False
-
+            
     return valid
 
 

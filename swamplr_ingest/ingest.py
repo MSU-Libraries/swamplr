@@ -3,10 +3,7 @@ import logging
 import hashlib
 from lxml import etree
 from apps import SwamplrIngestConfig
-from upload import Upload, LocalObject
-from rdflib.namespace import Namespace
 from fedora_api.api import FedoraApi
-from swamplr import settings
 from models import datastreams, job_objects, object_results
 from swamplr_jobs.models import job_messages
 from hint import HintFiles
@@ -581,10 +578,8 @@ class Ingest:
         for pid in self.pids:
             # Get content models.
             status, object_profile = self.fedora_api.get_object_profile(pid=pid)
-            logging.info(object_profile)
             # Get RELS-EXT data.
             status, rels_ext = self.fedora_api.get_relationships(pid)
-            logging.info(rels_ext)
             predicates = self.get_predicate_strings(rels_ext)
             if predicate in predicates:
                 sequence_match = self.get_predicate_value(rels_ext, predicate)
