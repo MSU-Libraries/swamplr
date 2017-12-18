@@ -74,7 +74,11 @@
         </script>
 
         {% for o in job.objects.objects %}
+        {% if o.subs %}
+        <div class="expandable-row object-row job-row">
+        {% else %}
         <div class="object-row job-row">
+        {% endif %}
             <div class="object-data">
                 {% if job.objects.objects.0.path %} 
                 <div class="job-path object-column job-column job-data">{{ o.path }}</div>
@@ -85,8 +89,8 @@
                 {% endif %}
                 <div class="job-result object-column job-column job-data">{{ o.result }}</div>
             </div>
-            {% if o.subs %}
             <div class="datastreams-by-object">
+            {% if o.subs %}
             <div class="object-heading">Datastream Info</div>
             {% for d in o.subs %}
             <div class="datastream-data">

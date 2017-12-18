@@ -166,7 +166,7 @@ a.btn.btn-lg.btn-outline-dark {
     margin-bottom:40px;
 }
 
-.object-row:hover {
+.expandable-row:hover {
     cursor:pointer;
     border: 1px solid black;
 }
