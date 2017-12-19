@@ -14,11 +14,11 @@
         {% for h in headings %}
             <div class="ns-column swamplr-heading {{ h|lower|slugify }}-column">{{ h }}
             {% if h == "Count" %}
-                <a href="{% url "namespaces" sort_field="count" direction="asc" %}"><span class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
-                <a href="{% url "namespaces" sort_field="count" direction="desc" %}"><span class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
+                <a href="{% url "namespaces" sort_field="count" direction="asc" %}"><span aria-label="Sort by count ascending" class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
+                <a href="{% url "namespaces" sort_field="count" direction="desc" %}"><span aria-label="Sort by count descending" class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
             {% elif h == "Namespace" %}
-                <a href="{% url "namespaces" sort_field="namespace" direction="asc" %}"><span class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
-                <a href="{% url "namespaces" sort_field="namespace" direction="desc" %}"><span class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
+                <a href="{% url "namespaces" sort_field="namespace" direction="asc" %}"><span aria-label="Sort by namespace ascending" class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
+                <a href="{% url "namespaces" sort_field="namespace" direction="desc" %}"><span aria-label="Sort by namespace descending" class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
             {% endif %}
             
             </div>

@@ -108,7 +108,7 @@ def run_process(current_job):
         try:
             run_mint_doi(namespace_job.namespace, current_job)
             status_obj = status.objects.get(status="Success")
-            message = ["All objects processed."]
+            message = ["All objects processed", "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
 
         except Exception as e:
             logging.error("Unable to complete process.")
@@ -119,8 +119,8 @@ def run_process(current_job):
         try:
             run_mint_ark(namespace_job.namespace, current_job)
             status_obj = status.objects.get(status="Success")
-            message = ["All objects processed."]
-
+            message = ["All objects processed", "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
+        
         except Exception as e:
             logging.error("Unable to complete process.")
             status_obj = status.objects.get(status="Script error")
@@ -375,17 +375,20 @@ def get_job_objects(job_id):
         operation_name = namespace_jobs.objects.get(job_id=job_id).operation_id.operation_name
         if operation_name in ["Mint DOI", "Mint ARK"]:
             uid = "N/A"
+            created = None
             pid = o.pid
 
             o_ids = object_ids.objects.filter(pid=pid)
             if o_ids and operation_name == "Mint DOI":
                 if o_ids[0].doi is not None:
                     uid = "https://doi.org/{0}".format(o_ids[0].doi.split(":")[1])
+                    created = o_ids[0].doi_minted
             elif o_ids and operation_name == "Mint ARK":
                 if o_ids[0].ark is not None:
-                    uid = "http://n2t.net/{0}".format(o_ids[0].ark)
-
+                    uid = "https://n2t.net/{0}".format(o_ids[0].ark)
+                    created = o_ids[0].ark_minted
             object_data["uid"] = uid
+            object_data["created"] = created
 
         results["objects"].append(object_data)
         if o.result_id.label == "Success":
@@ -435,8 +438,10 @@ def run_mint_doi(ns, current_job):
     if len(found_objects) > 0:
         for o in found_objects:
 
+            uid_url = None
             response, uid = make_id(o, "doi")
-            uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
+            if uid:
+                uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
             
             ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
@@ -444,9 +449,11 @@ def run_mint_doi(ns, current_job):
                 result = "Success"
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
 
-
-            elif response == -2:
+            elif response == -2 and uid is not None:
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
+                result = "Skipped"
+
+            elif response == -2 and uid is None:
                 result = "Skipped"
 
             else:
@@ -477,7 +484,7 @@ def run_mint_ark(ns, current_job):
         for o in found_objects:
 
             response, uid = make_id(o, "ark")
-            uid_url = "http://n2t.net/{0}".format(uid)
+            uid_url = "https://n2t.net/{0}".format(uid)
             
             ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
@@ -493,9 +500,13 @@ def run_mint_ark(ns, current_job):
                     result = "Failure"
                     ez.delete(uid)
 
-            elif response == -2:
+            elif response == -2 and uid is not None:
                 success = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
                 result = "Skipped"
+            
+            elif response == -2 and uid is None:
+                result = "Skipped"
+            
             else:
                 result = "Failure"
 
@@ -570,7 +581,7 @@ def add_uid_to_mods(pid, url, id_type):
         )
         if status in [200, 201]:
             success = True
-            logging.info("Updated DC metadata")
+            logging.info("Updated MODS metadata")
         else:
             logging.error("Unable to update MODS metadata.")
 
@@ -600,7 +611,7 @@ def add_uid_to_dc(pid, url, id_type):
         # Remove existing IDs that match ark or doi patterns.
         url_patterns = {
             "doi": "https://doi.org/",
-            "ark": "http://n2t.net/"
+            "ark": "https://n2t.net/"
         }
         for u in id_urls:
             if u.text.startswith(url_patterns[id_type]):
@@ -656,12 +667,13 @@ def make_id(obj, id_type):
     status = -2
     uid = None
     pid = obj["pid"]
+    logging.info("Now processing pid: {0}".format(pid))
 
     data = get_item_data(pid, id_type)
 
     if child_or_root_object(pid):
         # Check if pid is a root object or child object. If so, skip.
-        logging.info("Object at {0} appears to be a child or root object. Skipping.")
+        logging.info("Object at {0} appears to be a child or root object. Skipping.".format(pid))
 
     elif not id_exists(pid, id_type):
 
@@ -746,7 +758,7 @@ def get_content_models(object_profile):
 
 def get_predicate_strings(rels_ext, format="nt"):
     """Extract string representations of predicates."""
-    pred = self.get_predicates(rels_ext, format=format)
+    pred = get_predicates(rels_ext, format=format)
     return [str(p) for p in pred]
 
 
@@ -762,13 +774,14 @@ def validate_existing_id(uid, id_type):
     valid = True
 
     if id_type == "ark":
-        uid_url = "http://n2t.net/{0}".format(uid)
+        uid_url = "https://n2t.net/{0}".format(uid)
     elif id_type == "doi":
         uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
 
-    r = requests.get(uid_url, allow_redirects=False)
+    r = requests.get(uid_url)
 
     if not r.ok or "lib.msu.edu" not in r.url:
+        logging.info(r.url)
         valid = False
             
     return valid
@@ -818,10 +831,14 @@ def get_doi_data(pid):
     if not (dc_status in [200, 201] and mods_status in [200, 201]):
         return None
 
+    who = "; ".join(get_dc_element(dc, "//dc:creator"))
+    if who == "":
+        who = "Creator not identified"
+
     doi_data = {
         "datacite.publisher": "Michigan State University",
         "datacite.resourcetype": "Text/Dissertation",
-        "datacite.creator": "; ".join(get_dc_element(dc, "//dc:creator")),
+        "datacite.creator": who,
         "datacite.publicationyear": get_dc_element(dc, "//dc:date")[0],
         "datacite.title": get_mods_element(mods, "/mods:mods/mods:titleInfo/mods:title[not(@type)]")[0]
     }
@@ -849,10 +866,14 @@ def get_ark_data(pid):
     # Make sure DC and MODS datastreams are both available -- if not, do not create ID.
     if not (dc_status in [200, 201] and mods_status in [200, 201]):
         return None
+    
+    who =  "; ".join(get_dc_element(dc, "//dc:creator"))
+    if who == "":
+        who = "Creator not identified"
 
     ark_data = {
 
-        "erc.who": "; ".join(get_dc_element(dc, "//dc:creator")),
+        "erc.who": who,
         "erc.when": get_dc_element(dc, "//dc:date")[0][:4],
         "erc.what": get_mods_element(mods, "/mods:mods/mods:titleInfo/mods:title[not(@type)]")[0]
     }

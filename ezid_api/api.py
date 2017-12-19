@@ -26,7 +26,7 @@ class Ezid():
     def get_params_anvl(self):
         params = self.static_params.copy()
         params.update(self.dynamic_params)
-        anvl = "\n".join(["{0}: {1}".format(k,v) for k,v in params.items()])
+        anvl = u"\n".join([u"{0}: {1}".format(k,v) for k,v in params.items()])
         return anvl
 
     def call_api(self):

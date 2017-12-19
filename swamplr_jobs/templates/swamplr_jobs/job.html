@@ -61,6 +61,7 @@
             <div class="job-pid job-column job-data">PID</div>
             {% if job.objects.objects.0.uid %}
             <div class="job-pid job-column job-data">ID</div>
+            <div class="job-pid job-column job-data">Created</div>
             {% endif %}
             <div class="job-result job-column job-data">Result</div>
         </div>
@@ -85,7 +86,12 @@
                 {% endif %}
                 <div class="job-pid object-column job-column job-data"><code>{{ o.pid }}</code></div>
                 {% if job.objects.objects.0.uid %}
-                <div class="job-pid object-column job-column job-data"><a href="{{ o.uid }}">{{ o.uid }}</a></div>
+                    {% if "http" in o.uid %}
+                    <div class="job-pid object-column job-column job-data"><a href="{{ o.uid }}">{{ o.uid }}</a></div>
+                    {% else %}
+                    <div class="job-pid object-column job-column job-data">{{ o.uid }}</div>
+                    {% endif %}
+                <div class="job-pid object-column job-column job-data">{{ o.created|naturaltime|default_if_none:"~" }}</div>
                 {% endif %}
                 <div class="job-result object-column job-column job-data">{{ o.result }}</div>
             </div>
@@ -96,7 +102,7 @@
             <div class="datastream-data">
              <div class="ds-data job-column job-data ds-column">{{ d.datastream }}</div>
              <div class="ds-data job-column job-data ds-column">{{ d.file }}</div>
-             <div class="ds-data job-column job-data ds-column">{{ d.created }}</div>
+             <div class="ds-data job-column job-data ds-column">{{ d.created|naturaltime }}</div>
              <div class="ds-data job-column job-data ds-column">{{ d.result }}</div>
             </div>
             {% endfor %}
