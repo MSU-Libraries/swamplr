@@ -26,7 +26,7 @@ def get_derivative_options(section):
 def get_configs():
     """Load derivative config file."""
     config = ConfigParser()
-    config.readfp(open("setting.cfg"))
+    config.readfp(open("derive.cfg"))
     return config
 
 def manage(request):
