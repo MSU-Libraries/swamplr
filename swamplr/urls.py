@@ -33,4 +33,6 @@ if 'swamplr_ingest' in settings.INSTALLED_APPS:
     urlpatterns += [url(r'^ingest/', include('swamplr_ingest.urls'))]
 if 'swamplr_namespaces' in settings.INSTALLED_APPS:
     urlpatterns += [url(r'^namespaces/', include('swamplr_namespaces.urls'))]
+if 'swamplr_derivatives' in settings.INSTALLED_APPS:
+    urlpatterns += [url(r'^derivatives/', include('swamplr_derivatives.urls'))]
 
