@@ -8,6 +8,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 def validate_path(value):
     if not any([value.startswith(path) for path in SwamplrIngestConfig.ingest_paths]): 
@@ -43,7 +44,7 @@ class IngestForm(forms.Form):
         namespace = collection_data["objects"][namespace_key]["namespace"]
 
         # Use first listed ingest path as default value.
-        ingest_paths = SwamplrIngestConfig.ingest_paths
+        ingest_paths = settings.DATA_PATHS
         ingest_path = ingest_paths[0]
 
         self.fields["pid_namespace"] = forms.CharField(

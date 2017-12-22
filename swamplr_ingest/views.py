@@ -10,7 +10,7 @@ from datetime import datetime
 import logging
 import os
 import json
-
+from django.conf import settings
 
 def manage(request):
     """Manage existing services and add new ones."""
@@ -47,7 +47,7 @@ def add_ingest_job(request, collection_name):
    
     response = {"error_messages": [],
                 "result_messages": [],
-                "base_dir": SwamplrIngestConfig.ingest_paths,
+                "base_dir": settings.DATA_PATHS,
     }
 
     collection_data = get_ingest_data(collection_name)
@@ -111,7 +111,7 @@ def run_ingest(request, collection_name, message=[]):
     response = {
         "form": form,
         "cname": cname,
-        "base_dir": SwamplrIngestConfig.ingest_paths,
+        "base_dir": settings.DATA_PATHS,
         "message": message
     }          
     return render(request, "swamplr_ingest/ingest.html", response)
@@ -334,7 +334,7 @@ def browse(request):
     repo_directory = request.GET.get('selected_dir', None)
     navigateBack = True if request.GET.get('back') == 'true' else False
     base_dirs = []
-    for path in SwamplrIngestConfig.ingest_paths:
+    for path in settings.DATA_PATHS:
         base_dirs.append(path)
         if path in repo_directory:
             base_path = path
