@@ -1,0 +1,16 @@
+{% extends "swamplr_jobs/main.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+{% include "swamplr_derivatives/browse_helper.html" %}
+
+<div class="container-fluid" id="derivatives-panel">
+    <div class="derivatives-heading"><h2>Create Derivatives: <span class="form-name">{{ item_type }}</span></h2></div>
+    {% crispy form  %}
+</div>
+
+{% include "swamplr_derivatives/browse_button.html" %}
+
+{% endblock %}

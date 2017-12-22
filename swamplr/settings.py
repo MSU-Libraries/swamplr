@@ -55,6 +55,8 @@ ALLOWED_HOSTS = [host.strip() for host in configs.get("hosts", "ALLOWED_HOSTS").
 # Base url for repository associated with this Swamplr instance.
 REPO_URL = configs.get("repository", "REPO_URL")
 
+DATA_PATHS = configs.get("repository", "DATA_PATHS").split(",")
+
 # Fedora connection information.
 FEDORA_URL = configs.get("fedora", "FEDORA_URL")
 FEDORA_USER = configs.get("fedora", "FEDORA_USER")

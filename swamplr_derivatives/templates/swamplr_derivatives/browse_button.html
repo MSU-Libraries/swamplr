@@ -1,0 +1,25 @@
+<div class="modal fade" id="browse-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+   <div class="modal-dialog">
+     <div class="modal-content">
+       <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+         <h4 class="modal-title">Browse</h4>
+       </div>
+       <div id="form-modal-body" class="modal-body">
+           <div class = "modal_help_msg">Double click to navigate into a directory. Click 'Select' to choose a directory</div>
+           <div class = "dir_body">
+               {% for basedir in base_dir %}
+                         <div class = "base_dir dir" id = "lsited_dir" data-id = {{basedir}} >{{basedir}}</div>
+               {% endfor %}
+
+           </div>
+
+       </div>
+       <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary select_btn select_disable" id = "modal-sel">Select</button>
+       </div>
+     </div>
+   </div>
+ </div>
+

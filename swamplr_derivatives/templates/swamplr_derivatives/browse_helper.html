@@ -1,0 +1,99 @@
+<script>
+$(document).ready(function() {
+
+    $("#div_id_path_list_selected").append('<a role="button" class="btn btn-default browse" data-toggle="modal" data-target="#browse-modal" >Browse</a>');
+
+    //Double click to navigate into the directory
+    $('.dir_body').on('dblclick', 'div#lsited_dir', function() {
+        var selected_dir = $(this).attr("data-id");
+        var back = false
+        displayDirectories(selected_dir, back)
+
+    });
+
+    //Single click to select a directory
+    $('.dir_body').on('click', 'div#lsited_dir', function() {
+        $(".dir").css({
+            "border-color": "#e3e3e3",
+            "border-width": "1px",
+            "border-style": "solid"
+        });
+        $(".dir").removeClass("selected")
+        $(this).css({
+            "border-color": "#18453b",
+            "border-width": "1px",
+            "border-style": "solid"
+        })
+        $(".select_btn").addClass("select_enable")
+        $(this).addClass("selected")
+        $(".select_btn").removeClass("select_disable")
+
+    });
+    //Single click to navigate back the directory
+    $('.dir_body').on('click', 'div#lsited_back_dir', function() {
+        var selected_dir = $(this).attr("data-id");
+        var back = true
+        displayDirectories(selected_dir, back)
+
+    });
+
+    $('.modal-footer').on('click', 'button#modal-sel', function(evt) {
+        evt.stopPropagation();
+        var selected = $(".selected").attr("data-id");
+        $('#id_path_list_selected').val(selected)
+        $('#browse-modal').modal('toggle');
+
+
+    });
+
+    function displayDirectories(selected_dir, back) {
+        //Ajax call to views.browse
+        //selected_dir(String): Name of the selected directory
+        //back(Bool):check if the user is navigating forward or backward
+        $.ajax({
+            url: '/derivatives/ajax/browse/',
+            data: {
+                'selected_dir': selected_dir,
+                'back': back
+            },
+            dataType: 'json',
+            // Ajax call returning a json into the success function
+            success: function(data) {
+                $(".select_btn").removeClass("select_enable")
+                $(".select_btn").addClass("select_disable")
+                $(".dir_body").html('')
+                // When the user is navigating back and reaches the root dir
+                if (data["isRoot"] && back) {
+                     $.each(data["base_dirs"], function(key, value) {
+                            $(".dir_body").append('<div class = "base_dir  dir list-' + key + ' " id = "lsited_dir" >' + value + '</div>')
+                            $(".list-" + key).attr('data-id', value);
+
+                        })
+                } else {
+                    $(".dir_body").append('<div class = "back_dir  dir back_dir" id = "lsited_back_dir" ><img src = "/static/back-button.png"></div>')
+                    $(".back_dir").attr('data-id', data["parent"]);
+                    // When the user is navigating forward and there are no child dirs
+                    if (data["data"].length == 0) {
+                        $(".dir_body").append('<div class = "browse_msg">This folder does not contain any directories </div>')
+                    } else {
+                        $.each(data["data"], function(key, value) {
+                            $(".dir_body").append('<div class = "base_dir  dir list-' + key + ' " id = "lsited_dir" >' + value + '</div>')
+                            $(".list-" + key).attr('data-id', value);
+
+                        })
+
+                    }
+
+
+                }
+
+            }
+        });
+
+    }
+
+
+
+
+});
+</script>
