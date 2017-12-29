@@ -35,6 +35,9 @@ SECURE_SETTINGS = os.path.join(BASE_DIR, "swamplr.cfg")
 # Load configs from location in SECURE_SETTINGS
 configs = load_configs(SECURE_SETTINGS)
 
+# Max number of threads
+MAX_THREADS = int(configs.get("processing","MAX_THREADS"))
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = configs.get("secretkey", "SECRET_KEY")
 

@@ -47,12 +47,13 @@ class DerivativesForm(forms.Form):
             initial=default_path,
             validators=[validate_path],
         )
+
+        # TODO -- show command onhover like swampy
         self.fields["derive_types"] = forms.MultipleChoiceField(
             label = "Select derivatives types to create.",
             help_text = "",
             choices = [(d, d) for d in derive_options],
-            widget=forms.CheckboxSelectMultiple(attrs={"checked": "checked"})   
-
+            widget=forms.CheckboxSelectMultiple()   
         )
 
         self.fields["replace_on_duplicate"] = forms.BooleanField(

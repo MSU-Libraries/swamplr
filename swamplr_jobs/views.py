@@ -113,8 +113,8 @@ def set_job_info(j):
     actions = set_default_actions(j)
     if hasattr(app.views, "get_actions") and callable(getattr(app.views, "get_actions")):
         app_actions = app.views.get_actions(j)
+        actions += app_actions
 
-    actions += app_actions
     j.actions = actions
     
     return j
