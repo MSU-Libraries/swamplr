@@ -23,6 +23,8 @@ apt-get install python-mysqldb
 aptitude install libxml2-dev libxslt-dev python-dev zlib1g-dev libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk
 aptitude install python-requests
 pip install django-crispy-forms
+pip install sqlparse
+pip install PyMySQL
 ```
 
 Download the Swamplr application:
@@ -129,6 +131,7 @@ cd /var/www/swamplr
 sudo -Hu www-data python manage.py migrate
 ```
 
+
 The site should now be available.
 
 ### Configuring Cron
@@ -199,6 +202,13 @@ class ServicesConfig(AppConfig):
 The `name` should not be changed, as that is just the name of the app.
 The `run_as_user` is the user that will be used to run services as in the event one is not provided by the user when adding a service.
 
+### Namespace Manager: swamplr_namespaces 
+
+
+Run the namespace cahce manually once to populate the table (if using the namespace manager module).  
+```
+sudo python /var/www/swamplr/swamplr_namespaces/cache.py /var/www/swamplr/swamplr.cfg
+```
 
 ## System Design
 ### Technologies
