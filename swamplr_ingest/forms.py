@@ -11,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
 def validate_path(value):
-    if not any([value.startswith(path) for path in SwamplrIngestConfig.ingest_paths]): 
+    if not any([value.startswith(path) for path in settings.DATA_PATHS]): 
         raise ValidationError(
             _('%(value)s is not an allowed path.'),
             params={'value': value},
