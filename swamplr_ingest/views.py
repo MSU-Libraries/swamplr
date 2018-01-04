@@ -319,7 +319,8 @@ def get_all_datastreams(collection_data, form_data, value_type="datastreams"):
         for ds_value in ds_values:
             datastreams.append((ds_value, otype, value_type))
         # Disabled "DC" form value does not get included in POST; re-adding DC here.
-        datastreams.append(("DC", otype, "metadata"))
+        if value_type == "metadata":
+            datastreams.append(("DC", otype, "metadata"))
     return datastreams
 
 def load_json(self, path):
