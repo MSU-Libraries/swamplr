@@ -1,6 +1,7 @@
 from django.conf import settings
 from time import sleep
 from multiprocessing import Process, Value
+import multiprocessing
 import logging
 import os
 from swamplr_jobs.models import job_messages, status, jobs
