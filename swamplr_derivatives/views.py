@@ -61,12 +61,22 @@ def get_derivative_settings(source_type):
 
     config = get_configs()
     options = config.get("source."+source_type.lower(),"derive_options").split(",")
+    
     derive_settings = []
     for opt in options:
-        command = config.get("derive."+source_type.lower()+"."+opt.lower(),"command")
+
+        commands = config.options("derive."+source_type.lower()+"."+opt.lower())
+        command_steps = sorted([int(c.split(".")[1]) for c in command_steps if c.startswith("step.") and c.endswith(".command")])
+        command_list = []
+        for c in command_steps:
+            command_list.append((commands["step.{0}.command".format(c)], commands.get("step.{0}.join".format(c), "AND").upper()))
+        if len(command_list) == 0:
+            command_list.append((config.get("derive."+source_type.lower()+"."+opt.lower(),"command"), "AND"))
+
         output_file = config.get("derive."+source_type.lower()+"."+opt.lower(),"output_file")
-        derive = {"derivative_type":opt, "command":command, "output_file":output_file}
+        derive = {"derivative_type":opt, "commands":command_list, "output_file":output_file}
         derive_settings.append(derive)
+
     return derive_settings
 
 
