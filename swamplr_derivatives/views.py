@@ -66,7 +66,7 @@ def get_derivative_settings(source_type):
     for opt in options:
 
         commands = config.options("derive."+source_type.lower()+"."+opt.lower())
-        command_steps = sorted([int(c.split(".")[1]) for c in command_steps if c.startswith("step.") and c.endswith(".command")])
+        command_steps = sorted([int(c.split(".")[1]) for c in commands if c.startswith("step.") and c.endswith(".command")])
         command_list = []
         for c in command_steps:
             command_list.append((commands["step.{0}.command".format(c)], commands.get("step.{0}.join".format(c), "AND").upper()))
