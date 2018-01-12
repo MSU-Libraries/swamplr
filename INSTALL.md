@@ -56,6 +56,14 @@ This setting should not be enabled in a production environment.
 
 The secret key is used internally by Django and should be a random alphanumeric string, which can be created using online key generators.
 
+Next, setup the Fedora config. 
+```
+cp fedora_api/fedora_example.cfg fedora_api/fedora.cfg
+vim fedora_api/fedora.cfg
+```
+
+The file should contain the connection credentials to the Fedora server.
+
 ### Setting up Apache
 Install and setup Apache (not part of this documentation).
 
