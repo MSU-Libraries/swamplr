@@ -60,21 +60,27 @@ def get_derivative_settings(source_type):
     """Get the derivative types and settings for the specified source type."""
 
     config = get_configs()
-    options = config.get("source."+source_type.lower(),"derive_options").split(",")
+    section = "source."+source_type.lower(),"derive_options"
+    options = config.get(section).split(",")
     
     derive_settings = []
     for opt in options:
 
-        commands = config.options("derive."+source_type.lower()+"."+opt.lower())
+        option_key = "derive."+source_type.lower()+"."+opt.lower()
+        commands = config.options(option_key)
         command_steps = sorted([int(c.split(".")[1]) for c in commands if c.startswith("step.") and c.endswith(".command")])
         command_list = []
         for c in command_steps:
-            command_list.append((commands["step.{0}.command".format(c)], commands.get("step.{0}.join".format(c), "AND").upper()))
-        if len(command_list) == 0:
-            command_list.append((config.get("derive."+source_type.lower()+"."+opt.lower(),"command"), "AND"))
+            join_key = "step.{0}.join".format(c)
+            join_value = "AND"
+            if config.has_option(section, join_key):
+                join_value = config.get(option_key, join_key)
+            command_list.append((config.get(option_key, "step.{0}.command".format(c)), join_value.upper()))
+        if len(command_list) == 0 and config.has_option(option_key, "command"):
+            command_list.append((config.get(option_key, "command"), "AND"))
 
-        output_file = config.get("derive."+source_type.lower()+"."+opt.lower(),"output_file")
-        derive = {"derivative_type":opt, "commands":command_list, "output_file":output_file}
+        output_file = config.get(option_key, "output_file")
+        derive = {"derivative_type": opt, "commands": command_list, "output_file": output_file}
         derive_settings.append(derive)
 
     return derive_settings
