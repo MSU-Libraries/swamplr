@@ -165,7 +165,7 @@ class Derivatives(object):
             
             pchain = PChain()
             for command in derivative_options["commands"]:
-                c = command.format(output_file="\"" + target_file + "\"", input_file="\"" + source_file + "\"")
+                c = command[0].format(output_file="\"" + target_file + "\"", input_file="\"" + source_file + "\"")
                 pchain.add(c, getattr(pchain, command[1]))
                 
             exit_code = pchain.run()    
