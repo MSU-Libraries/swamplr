@@ -60,8 +60,8 @@ def get_derivative_settings(source_type):
     """Get the derivative types and settings for the specified source type."""
 
     config = get_configs()
-    section = "source."+source_type.lower(),"derive_options"
-    options = config.get(section).split(",")
+    section = "source." + source_type.lower()
+    options = config.get(section, "derive_options").split(",")
     
     derive_settings = []
     for opt in options:
