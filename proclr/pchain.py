@@ -23,8 +23,11 @@ class PChain(object):
 
         for p in self.procs:
             cmd, join = p
+            p_err = subprocess.PIPE
+            if (join == self.PIPE):
+                p_err = subprocess.STDOUT
             try:
-                proc = subprocess.Popen( shlex.split(cmd), stdout=subprocess.PIPE, stdin=s_in )
+                proc = subprocess.Popen( shlex.split(cmd), stdout=subprocess.PIPE, stderr=p_err, stdin=s_in )
                 plist.append( proc )
             except:
                 exit_code = 1
