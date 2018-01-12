@@ -51,13 +51,15 @@ class FedoraApi():
  
         return res
 
-    def find_objects_by_id(self, ident, fields=["pid"]):
+    def find_objects_by_id(self, ident, fields=["pid"], **kwargs):
         """Find object by searching for identifier."""
         # Returns xml of objects.
         self.set_url("objects")
         self.set_dynamic_param("query", "identifier~{0}".format(ident))
         for f in fields:
             self.set_dynamic_param(f, "true")
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
         self.set_dynamic_param("pid", "true")
         return self.call_api()
 
@@ -227,6 +229,14 @@ class FedoraApi():
             res = self.call_api()
 
         return res
+
+    def purge_datastream(self, pid, ds_id, **kwargs):
+        """Purge datastream!"""
+        self.set_method("DELETE")
+        self.set_url("objects/{0}/datastreams/{1}".format(pid, ds_id))
+        for f, v in kwargs.items():
+            self.set_dynamic_param(f, v)
+        return self.call_api()
 
     def add_relationship(self, pid, predicate, obj, isLiteral=False, datatype=None):
         """Add relationship to RELS-EXT."""

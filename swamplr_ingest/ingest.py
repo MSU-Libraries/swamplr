@@ -20,7 +20,7 @@ class Ingest:
 
     """Process ingest of collection to Fedora Commons."""
 
-    def __init__(self, path, ingest_job, collection, defaults, datastreams, object_type,
+    def __init__(self, path, root_dir, ingest_job, collection, defaults, datastreams, object_type,
                  compound=False, child=False, parent_pid=None, sequence=None):
         """Prepare for ingest."""
         # Path to object directory (containing datastream files).
@@ -48,15 +48,13 @@ class Ingest:
 
         # List of datastreams as 2-tuple (name, associated object type).
         self.datastreams = datastreams
-        logging.info("datastreams {0}".format(datastreams))
         # Future title.
         self.title = ""
 
         # Hint data.
-        self.root_dir = self.get_root_dir()
+        self.root_dir = root_dir
         hint = HintFiles(self.root_dir, path)
         self.hint_data = hint.get_hint_data()
-
         # Pid progress.
         self.pids = None
         self.pid = None
@@ -135,6 +133,9 @@ class Ingest:
 
     def add_rels_ext(self):
         """Add basic rels-ext for object."""
+        # Remove existing RELS-EXT datastream.
+        purged = self.fedora_api.purge_datastream(self.pid, "RELS-EXT")
+
         # Load default settings for content model.
         has_model_object = self.defaults["content_models"][self.content_model]["has_model"]
 
@@ -745,7 +746,7 @@ class Ingest:
             pidspace(str): pid namespace for which to return a pid.
         """
         pids = None
-        status, xml = self.fedora_api.find_objects_by_id(fileid)
+        status, xml = self.fedora_api.find_objects_by_id(fileid, maxResults="50")
         if status == 200:
             tree = etree.fromstring(xml)
             ns = {"f": "http://www.fedora.info/definitions/1/0/types/"}
@@ -753,9 +754,6 @@ class Ingest:
             pids = [o.text for o in objs if o.text.split(":")[0] == pidspace]
         for pid in pids:
             logging.info("----Found matching PID: {0}".format(pid))
-        logging.info("Here come the pids-->")
-        logging.info(pids)
-        logging.info("There were the pids<--")
         return pids
 
     def set_datastreams(self):
@@ -825,18 +823,3 @@ class Ingest:
                 sha.update(data)
         return sha.hexdigest()
 
-    def get_root_dir(self):
-        """Find root directory, which should end in _root.
-
-        args:
-            path(str): path to files to tally
-        """
-        path = self.ingest_job.source_dir 
-        root_dir = path
-        for root, dirs, files in os.walk(path):
-            for dirx in dirs:
-                if dirx.endswith("_root"):
-                    root_dir = os.path.join(root, dirx)
-                    break
-
-        return root_dir

@@ -27,8 +27,8 @@ class Derivatives(object):
         """Initiate the derivatives job.
         args:
             derivative_job (deriviative job object): job to process
-            derivative_types (list of dict): list of the derivative types to process
-                allong with their command information
+            derivative_types (list of dict): list of the derivative types
+                along with their command information
         """
         self.derivative_job = derivative_job
         self.derivative_types = derivative_types

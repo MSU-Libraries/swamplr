@@ -124,7 +124,7 @@ class CollectionIngest(object):
         compound = True if self.object_types[self.object_type]["content_model"] in self.compound_content_models else False
 
         in_object = Ingest(
-            path, self.job, self.collection, self.collection_defaults, self.datastreams,
+            path, self.root_dir, self.job, self.collection, self.collection_defaults, self.datastreams,
             self.object_type, child=child, compound=compound, parent_pid=parent_pid, sequence=sequence
         )
 
@@ -324,14 +324,12 @@ class CollectionIngest(object):
         args:
             path(str): path to files to tally
         """
-        logging.info("getting root dir")
         path = self.job.source_dir 
         root_dir = path
-        for root, dirs, files in os.walk(path):
-            for dirx in dirs:
-                if dirx.endswith("_root"):
-                    root_dir = os.path.join(root, dirx)
-                    break
-        logging.info("got root dir")
-        logging.info(root_dir)
+        if "_root" not in root_dir:
+            for root, dirs, files in os.walk(path):
+                for dirx in dirs:
+                    if dirx.endswith("_root"):
+                        root_dir = os.path.join(root, dirx)
+                        break
         return root_dir
