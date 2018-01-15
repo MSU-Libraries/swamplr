@@ -108,14 +108,15 @@ class Derivatives(object):
         # re-join all the threads to wait until they are complete
         logging.debug("All derivatives queued, waiting for them to finish")
         for p in processes:
-            p.join(timeout=60) # TODO move to config?
+            p.join(timeout=120) # TODO move to config?
             # check if process is still running (i.e. it hung and timed out)
             if p.is_alive():
+                logging.debug("Thread {0} still alive after timeout limit, terminating.".format(thread_index))
                 p.terminate()
                 p.join(timeout=2)
                 # check if process is still running after being terminated
                 if p.is_alive():
-                    logging.error("Process {0} still alive after terminate.".format(thread_index))
+                    logging.error("Thread {0} still alive after terminate.".format(thread_index))
 
 
     def create_derivative(self, derivative_job, derive_obj, source_file, derivative_options, thread_count, thread_index):
@@ -158,7 +159,7 @@ class Derivatives(object):
 
         # create the derivative
         else:
-            logging.debug("(THREAD={0}) Creating derivative for {1}".format(thread_index, source_file))
+            logging.debug("(THREAD={0}) Creating {1} derivative for {2}".format(thread_index, derive_obj.derive_type, source_file))
 
             # build the command
             # replace all placeholders, output_file, input_file
@@ -166,13 +167,14 @@ class Derivatives(object):
             pchain = PChain()
             for command in derivative_options["commands"]:
                 c = command[0].format(output_file="\"" + target_file + "\"", input_file="\"" + source_file + "\"")
+                logging.debug("(THREAD={0}) Adding command: {1}. JOIN: {2} ({3})".format(thread_index, c, command[1], getattr(pchain, command[1])))
                 pchain.add(c, getattr(pchain, command[1]))
                 
             exit_code = pchain.run()    
 
             # run the command and update the status
             if exit_code == 0:
-                logging.info("(THREAD={0}) Successfully created derivative at {1}".format(thread_index, target_file))
+                logging.info("(THREAD={0}) Successfully created {1} derivative at {2}".format(thread_index, derive_obj.derive_type, target_file))
                 result_object = derivative_results.objects.get(label="Success")
                 derivative_files.objects.create(
                     job_derive_id=derive_obj,
@@ -183,7 +185,7 @@ class Derivatives(object):
                 )
 
             elif exit_code is None:
-                logging.error("(THREAD={0}) Failed creating derivative at {1}. Error: {2}.".format(thread_index, target_file, "No commands supplied."))
+                logging.error("(THREAD={0}) Failed creating {1} derivative at {2}. Error: {2}.".format(thread_index, derive_obj.derive_type, target_file, "No commands supplied."))
                 result_object = derivative_results.objects.get(label="Failure")
                 derivative_files.objects.create(
                     job_derive_id=derive_obj,
@@ -196,12 +198,12 @@ class Derivatives(object):
                 job_messages.objects.create(
                     job_id=derivative_job.job_id,
                     created=timezone.now(),
-                    message= "Error generAating derivative to create {0}. Error: {1}.".format(target_file, "No commands supplied."),
+                    message= "Error generating {0} derivative to create {1}. Error: {2}.".format(derive_obj.derive_type, target_file, "No commands supplied."),
                 )
 
 
             else:
-                logging.error("(THREAD={0}) Failed creating derivative at {1}. Error: {2}".format(thread_index, target_file, pchain.stderr()))
+                logging.error("(THREAD={0}) Failed creating {1} derivative at {2}. Error: {3}".format(thread_index, derive_obj.derive_type, target_file, pchain.stderr()))
                 result_object = derivative_results.objects.get(label="Failure")
                 derivative_files.objects.create(
                     job_derive_id=derive_obj,
@@ -214,7 +216,7 @@ class Derivatives(object):
                 job_messages.objects.create(
                     job_id=derivative_job.job_id,
                     created=timezone.now(),
-                    message= "Error generating derivative to create {0}. Error: {1}".format(target_file, pchain.stderr()),
+                    message= "Error generating {0} derivative to create {1}. Error: {2}".format(derive_obj.derive_type, target_file, pchain.stderr()),
                 )
 
         # update the current running thread count to free up another thread

@@ -73,7 +73,7 @@ def get_derivative_settings(source_type):
         for c in command_steps:
             join_key = "step.{0}.join".format(c)
             join_value = "AND"
-            if config.has_option(section, join_key):
+            if config.has_option(option_key, join_key):
                 join_value = config.get(option_key, join_key)
             command_list.append((config.get(option_key, "step.{0}.command".format(c)), join_value.upper()))
         if len(command_list) == 0 and config.has_option(option_key, "command"):
