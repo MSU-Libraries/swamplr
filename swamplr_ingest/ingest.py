@@ -746,7 +746,7 @@ class Ingest:
             pidspace(str): pid namespace for which to return a pid.
         """
         pids = None
-        status, xml = self.fedora_api.find_objects_by_id(fileid, maxResults="50")
+        status, xml = self.fedora_api.find_objects_by_id(fileid, maxResults="100")
         if status == 200:
             tree = etree.fromstring(xml)
             ns = {"f": "http://www.fedora.info/definitions/1/0/types/"}
