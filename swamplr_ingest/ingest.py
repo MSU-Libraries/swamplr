@@ -109,8 +109,10 @@ class Ingest:
             status, response = self.fedora_api.ingest_at_pid(
                 self.pid, label=self.title, ownerId="MSUL", logMessage="New object created at {0}".format(self.pid)
             )
+        else:
+            status, response = self.fedora_api.modify_object(self.pid, label=self.title)
 
-        if status == 201 and response == self.pid:
+        if status in [201, 200]:
             # Add rels-ext, metadata, files, then check outcome.
             self.add_rels_ext()
             self.add_metadata()
@@ -526,8 +528,7 @@ class Ingest:
             self.pid = self.pids[0] if len(self.pids) > 0 else None
 
         # If no pid returned in search.
-        logging.info("pids after compound/child operations")
-        logging.info(self.pids)
+        logging.debug(self.pids)
         if (len(self.pids) == 0 or self.pid is None) and self.ingest_job.process_new == 'y':
 
             logging.info("Unable to find appropriate object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
@@ -535,7 +536,7 @@ class Ingest:
             logging.info("Assigned new pid: {0}".format(self.pid))
             self.prognosis = "ingest"
             self.new_object = True
-        elif len(self.pids) == 0:
+        elif len(self.pids) == 0 or self.pid is None:
             self.prognosis = "skip"
             logging.info("No existing objects to process; Not creating new object. Skipping")
         else:
@@ -572,10 +573,8 @@ class Ingest:
     def get_child_pid(self):
         """Method of returning child object's PID by checking for sequence matches."""
         child_pid = None
-        logging.info(self.pids)
         sequence_match = 0
         predicate = self.set_sequence_predicate()
-        logging.info("predicate: {0}".format(predicate))
         for pid in self.pids:
             # Get content models.
             status, object_profile = self.fedora_api.get_object_profile(pid=pid)
