@@ -106,7 +106,7 @@ def set_job_info(j):
     
     status_info = "No further info available."
     if hasattr(app.views, "get_status_info") and callable(getattr(app.views, "get_status_info")):
-        status_info = app.views.get_status_info(j)
+        status_info, details = app.views.get_status_info(j)
         j.status_info = "\n".join(status_info)
 
     actions = set_default_actions(j)

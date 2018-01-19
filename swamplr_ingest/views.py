@@ -181,19 +181,18 @@ def get_status_info(job):
     """Required function: return info about current job for display."""
     job_id = job.job_id
 
-    try:
-        # Get data about successes, skips, failures.
-        result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
-        results = get_job_objects(job_id)
-        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
-        info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
-                result_message]
-        
-    except Exception as e:
-        info = ["No info available."]
-        print e.message
-
-    return info
+    # Get data about successes, skips, failures.
+    ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
+    ingest_data = get_ingest_data(ingest_job.collection_name)
+    collection_label = ingest_data["label"]
+    
+    result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
+    results = get_job_objects(job_id)
+    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
+    info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
+            result_message]
+    
+    return info, []
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
@@ -226,7 +225,7 @@ def get_ingest_options(status=["active"]):
     return ingest_options
 
 def get_job_objects(job_id):
-    
+    logging.info("get_job_objects: {0}".format(job_id))
     results = {
         "status_count": {
             "Success": 0,
@@ -235,42 +234,50 @@ def get_job_objects(job_id):
         },
         "objects": []
     }
-    pids = []
-    objects = job_objects.objects.filter(job_id=job_id)
+    cpid = None   # Current pid we are looping on
+    fail_id = object_results.objects.get(label="Failure").result_id
+    all_results_dc = object_results.objects.all().values()
+    all_datastreams_dc = datastreams.objects.all().values()
+
+    all_results = {r["result_id"]:r["label"] for r in all_results_dc}
+    all_datastreams = {d["datastream_id"]: d["datastream_label"] for d in all_datastreams_dc}
+
+    objects = job_objects.objects.filter(job_id=job_id).values().order_by('pid')
+    object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
+    logging.info("Entering the LOOP of {0}".format(len(objects)))
     for o in objects:
-        pids.append(o.pid)
+        if (cpid != o["pid"]):
+            if (cpid != None):
+                # Logic for changing pids goes here
+                all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
+                if len(set(all_result_ids)) == 1:
+                    results["status_count"][object_head["subs"][0]["result"]] += 1
+                    object_head["result"] = object_head["subs"][0]["result"]
+                elif any([r_id == fail_id for r_id in all_result_ids]):
+                    object_head["result"] = "Failed"
+                    results["status_count"]["Failed"] += 1
+                else:
+                    object_head["result"] = "Success"
+                    results["status_count"]["Success"] += 1
+                results["objects"].append(object_head)
 
-    for p in set(pids):
-        
-        object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
-        object_rows = job_objects.objects.filter(pid=p, job_id=job_id)
-        for o_row in object_rows:
-            object_data = {}
-            object_data["datastream"] = o_row.datastream_id.datastream_label
-            object_data["file"] = os.path.basename(o_row.obj_file) if o_row.obj_file else "Null"
-            object_data["created"] = o_row.created
-            object_data["result_id"] = o_row.result_id
-            object_data["result"] = o_row.result_id.label
-            object_data["pid"] = o_row.pid
-            object_head["subs"].append(object_data)
-            if object_head["path"] is None and o_row.obj_file is not None:
-                object_head["path"] = "/".join(o_row.obj_file.rstrip("/").split("/")[:-1])
-            
-        object_head["pid"] = object_head["subs"][0]["pid"]
-        all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
-        fail_id = object_results.objects.get(label="Failure").result_id
-        if len(set(all_result_ids)) == 1:
-            results["status_count"][object_head["subs"][0]["result"]] += 1
-            object_head["result"] = object_head["subs"][0]["result"]
-        elif any([r_id == fail_id for r_id in all_result_ids]):
-            object_head["result"] = "Failed"
-            results["status_count"]["Failed"] += 1
-            
-        else:
-            object_head["result"] = "Success"
-            results["status_count"]["Success"] += 1
+            cpid = o["pid"]
+            object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
 
-        results["objects"].append(object_head)
+        object_data = {}
+        object_data["datastream"] = all_datastreams[o["datastream_id_id"]]
+        object_data["file"] = os.path.basename(o["obj_file"]) if o["obj_file"] else "Null"
+        object_data["created"] = o["created"]
+        object_data["result_id"] = o["result_id_id"]
+        object_data["result"] = all_results[o["result_id_id"]]
+        object_data["pid"] = o["pid"]
+        object_head["subs"].append(object_data)
+        if object_head["path"] is None and o["obj_file"] is not None:
+            object_head["path"] = "/".join(o["obj_file"].rstrip("/").split("/")[:-1])
+
+        object_head["pid"] = cpid
+
+    #TODO need one more saving of object_head into results right here
 
     return results
 
