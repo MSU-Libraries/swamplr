@@ -134,16 +134,11 @@ def load_manage_data():
 
     return data
 
-
-def get_status_info(job):
-    """Required function: return info about current job for display."""
+def get_job_details(job):
+    """Required function: return detailed info about given job for display."""
     job_id = job.job_id
 
     try:
-        # Get data about successes, skips, failures.
-        result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
-        results = get_job_objects(job_id)
-        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
         ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
         ingest_data = get_ingest_data(ingest_job.collection_name)
         collection_label = ingest_data["label"]
@@ -176,16 +171,29 @@ def get_status_info(job):
         for k, v in ds_data.items():
             details.append((k, ", ".join(v)))
 
+    except Exception as e:
+        details = [("None", "No Info Found")]
+        print e.message
+
+    return get_status_info(job), details
+
+def get_status_info(job):
+    """Required function: return info about current job for display."""
+    job_id = job.job_id
+
+    try:
+        # Get data about successes, skips, failures.
+        result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
+        results = get_job_objects(job_id)
+        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
         info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
                 result_message]
         
     except Exception as e:
-        label = "Not Found"
-        details = [("None", "No Info Found")]
         info = ["No info available."]
         print e.message
 
-    return info, details
+    return info
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
