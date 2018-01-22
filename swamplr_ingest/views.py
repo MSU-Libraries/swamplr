@@ -138,44 +138,40 @@ def get_job_details(job):
     """Required function: return detailed info about given job for display."""
     job_id = job.job_id
 
-    try:
-        ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
-        ingest_data = get_ingest_data(ingest_job.collection_name)
-        collection_label = ingest_data["label"]
-        details = [
-            ("Ingest ID", ingest_job.ingest_id),
-            ("Collection Type", ingest_job.collection_name),
-            ("Namespace", ingest_job.namespace),
-            ("Source Directory", ingest_job.source_dir),
-            ("Process New Objects", "Y" if ingest_job.process_new == "y" else "N"),
-            ("Process Existing Objects", "Y" if ingest_job.process_existing == "y" else "N"),
-            ("Replace Duplicate Datastreams", "Y" if ingest_job.replace_on_duplicate == "y" else "N"),
-            ("Items To Process", ingest_job.subset if ingest_job.subset != 0 else "All"),
-        ]
-        ds_data = {}
-        job_ds = job_datastreams.objects.filter(ingest_id=ingest_job.ingest_id)
-        for j in job_ds:
-            ds = datastreams.objects.get(datastream_id=j.datastream_id_id)
-            label = ds.datastream_label
-            ds_type = "Datastreams" if ds.is_object == "y" else "Metadata"
-            object_type = j.object_type
-            if "label" in ingest_data["objects"][object_type]:
-                object_type_label = ingest_data["objects"][object_type]["label"]
-            else:
-                object_type_label = object_type
-            key = " ".join([object_type_label.capitalize(), ds_type])
-            if key not in ds_data:
-                ds_data[key] = [label]
-            else:
-                ds_data[key].append(label)
-        for k, v in ds_data.items():
-            details.append((k, ", ".join(v)))
+    ingest_job = ingest_jobs.objects.get(job_id=job_id)
+    ingest_data = get_ingest_data(ingest_job.collection_name)
+    collection_label = ingest_data["label"]
+    details = [
+        ("Ingest ID", ingest_job.ingest_id),
+        ("Collection Type", ingest_job.collection_name),
+        ("Namespace", ingest_job.namespace),
+        ("Source Directory", ingest_job.source_dir),
+        ("Process New Objects", "Y" if ingest_job.process_new == "y" else "N"),
+        ("Process Existing Objects", "Y" if ingest_job.process_existing == "y" else "N"),
+        ("Replace Duplicate Datastreams", "Y" if ingest_job.replace_on_duplicate == "y" else "N"),
+        ("Items To Process", ingest_job.subset if ingest_job.subset != 0 else "All"),
+    ]
+    ds_data = {}
+    job_ds = job_datastreams.objects.filter(ingest_id=ingest_job.ingest_id)
+    for j in job_ds:
+        ds = datastreams.objects.get(datastream_id=j.datastream_id_id)
+        label = ds.datastream_label
+        ds_type = "Datastreams" if ds.is_object == "y" else "Metadata"
+        object_type = j.object_type
+        if "label" in ingest_data["objects"][object_type]:
+            object_type_label = ingest_data["objects"][object_type]["label"]
+        else:
+            object_type_label = object_type
+        key = " ".join([object_type_label.capitalize(), ds_type])
+        if key not in ds_data:
+            ds_data[key] = [label]
+        else:
+            ds_data[key].append(label)
+    for k, v in ds_data.items():
+        details.append((k, ", ".join(v)))
 
-    except Exception as e:
-        details = [("None", "No Info Found")]
-        print e.message
+    return details
 
-    return get_status_info(job), details
 
 def get_status_info(job):
     """Required function: return info about current job for display."""
@@ -248,18 +244,7 @@ def get_job_objects(job_id):
     for o in objects:
         if (cpid != o["pid"]):
             if (cpid != None):
-                # Logic for changing pids goes here
-                all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
-                if len(set(all_result_ids)) == 1:
-                    results["status_count"][object_head["subs"][0]["result"]] += 1
-                    object_head["result"] = object_head["subs"][0]["result"]
-                elif any([r_id == fail_id for r_id in all_result_ids]):
-                    object_head["result"] = "Failed"
-                    results["status_count"]["Failed"] += 1
-                else:
-                    object_head["result"] = "Success"
-                    results["status_count"]["Success"] += 1
-                results["objects"].append(object_head)
+                results = update_results(object_head, results, fail_id)
 
             cpid = o["pid"]
             object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
@@ -277,8 +262,23 @@ def get_job_objects(job_id):
 
         object_head["pid"] = cpid
 
-    #TODO need one more saving of object_head into results right here
+    results = update_results(object_head, results, fail_id)
 
+    return results
+
+def update_results(object_head, results, fail_id):
+    """Update results object."""
+    all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
+    if len(set(all_result_ids)) == 1:
+        results["status_count"][object_head["subs"][0]["result"]] += 1
+        object_head["result"] = object_head["subs"][0]["result"]
+    elif any([r_id == fail_id for r_id in all_result_ids]):
+        object_head["result"] = "Failed"
+        results["status_count"]["Failed"] += 1
+    else:
+        object_head["result"] = "Success"
+        results["status_count"]["Success"] += 1
+    results["objects"].append(object_head)
     return results
 
 def get_ingest_data(ingest_type):

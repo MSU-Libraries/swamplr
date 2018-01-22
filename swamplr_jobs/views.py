@@ -89,6 +89,12 @@ def view_job(request, job_id):
         object_data = app.views.get_job_objects(job_id)
         job.objects = object_data
 
+    job.details = []
+    if hasattr(app.views, "get_job_details") and callable(getattr(app.views, "get_job_details")):
+        details = app.views.get_job_details(job_id)
+        job.details = details
+
+
     return render(request, 'swamplr_jobs/job.html', {"job": job})
 
 def set_job_info(j):
