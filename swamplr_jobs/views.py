@@ -91,7 +91,7 @@ def view_job(request, job_id):
 
     job.details = []
     if hasattr(app.views, "get_job_details") and callable(getattr(app.views, "get_job_details")):
-        details = app.views.get_job_details(job_id)
+        details = app.views.get_job_details(job)
         job.details = details
 
 
