@@ -225,7 +225,7 @@ class JobQueue():
             try:
                 # Raise an exception with argument
                 raise ValueError('This job was manually canceled.')
-            except Exception, arg:
+            except Exception:
                  # Catch exception
                  logging.info("Job Canceled by user")
                  os._exit(1)

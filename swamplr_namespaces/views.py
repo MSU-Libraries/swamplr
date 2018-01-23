@@ -196,12 +196,6 @@ def get_status_info(job):
         results = get_job_objects(job_id)
         result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"])
         ns_job = namespace_jobs.objects.get(job_id=job.job_id)
-        details = [
-            ("Process ID", ns_job.operation_id.operation_id),
-            ("Process Name", ns_job.operation_id.operation_name),
-            ("Namespace", ns_job.namespace),
-            ("Objects Processed", len(results["objects"])),
-        ]
 
         if job.namespace_jobs.operation_id.operation_name in ["Mint DOI", "Mint ARK"]:
 
@@ -214,11 +208,22 @@ def get_status_info(job):
 
     except Exception as e:
 
-        details = [("None", "No Info Found")]
         info = ["No info available."]
         logging.error(e.message)
 
-    return info, details
+    return info, []
+
+def get_job_details(job):
+
+    ns_job = namespace_jobs.objects.get(job_id=job.job_id)
+    details = [
+        ("Process ID", ns_job.operation_id.operation_id),
+        ("Process Name", ns_job.operation_id.operation_name),
+        ("Namespace", ns_job.namespace),
+        ("Objects Processed", len(results["objects"])),
+    ]
+    return details
+
 
 
 def list_items(request, ns, count=25):

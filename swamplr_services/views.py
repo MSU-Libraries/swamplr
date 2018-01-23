@@ -167,28 +167,34 @@ def get_status_info(job):
     job_id = job.job_id
 
     try:
-        service = service_jobs.objects.get(job_id=job.job_id)
+        service = service_jobs.objects.get(job_id=job_id)
         service_info = services.objects.get(service_id=service.service_id_id)
         label = service_info.label
-        details = [
-            ("Service ID", service_info.service_id),
-            ("Label", label),
-            ("Description", service_info.description),
-            ("Command", service_info.command),
-            ("User", service_info.run_as_user),
-            ("Frequency", service_info.frequency),
-            ("Last Started", service_info.last_started),
-        ]
 
     # Cause of this exception would be the service being deleted from the table.
     except:
         label = "Not Found"
-        details = [("None", "No Info Found")]
 
     info = ["Service name: {0}".format(label)]
 
-    return info, details
+    return info, []
 
+def get_job_details(job):
+
+    service = service_jobs.objects.get(job_id=job.job_id)
+    service_info = services.objects.get(service_id=service.service_id_id)
+    label = service_info.label
+
+    details = [
+        ("Service ID", service_info.service_id),
+        ("Label", label),
+        ("Description", service_info.description),
+        ("Command", service_info.command),
+        ("User", service_info.run_as_user),
+        ("Frequency", service_info.frequency),
+        ("Last Started", service_info.last_started),
+    ]
+    return details
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""

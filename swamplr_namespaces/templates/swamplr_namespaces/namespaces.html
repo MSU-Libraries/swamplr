@@ -14,11 +14,11 @@
         {% for h in headings %}
             <div class="ns-column swamplr-heading {{ h|lower|slugify }}-column">{{ h }}
             {% if h == "Count" %}
-                <a href="{% url "namespaces" sort_field="count" direction="asc" %}"><span aria-label="Sort by count ascending" class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
-                <a href="{% url "namespaces" sort_field="count" direction="desc" %}"><span aria-label="Sort by count descending" class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
+                <a href="{% url 'namespaces' sort_field='count' direction='asc' %}"><span aria-label="Sort by count ascending" class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
+                <a href="{% url 'namespaces' sort_field='count' direction='desc' %}"><span aria-label="Sort by count descending" class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
             {% elif h == "Namespace" %}
-                <a href="{% url "namespaces" sort_field="namespace" direction="asc" %}"><span aria-label="Sort by namespace ascending" class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
-                <a href="{% url "namespaces" sort_field="namespace" direction="desc" %}"><span aria-label="Sort by namespace descending" class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
+                <a href="{% url 'namespaces' sort_field='namespace' direction='asc' %}"><span aria-label="Sort by namespace ascending" class="glyphicon glyphicon-triangle-top" aria-hidden="true"></span></a>
+                <a href="{% url 'namespaces' sort_field='namespace' direction='desc' %}"><span aria-label="Sort by namespace descending" class="glyphicon glyphicon-triangle-bottom" aria-hidden="true"></span></a>
             {% endif %}
             
             </div>
@@ -33,7 +33,7 @@
             <div class="ns-column {{ headings.3|lower|slugify }}-column app-button">
             {% for a in ns.actions %}
                 <form method="{{ a.method }}" action="{% url a.action a.args %}">
-                    <button type="submit" class="btn {{ a.class }}" 
+                    <button type="submit" class="btn {{ a.class }}">
                         {% if a.label == "Delete All"  %} onclick='return confirm("Are you sure you want to delete all the objects in the namespace?")' 
                         {% endif %}>
                         {{ a.label }}
