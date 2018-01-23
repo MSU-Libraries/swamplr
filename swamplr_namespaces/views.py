@@ -216,11 +216,13 @@ def get_status_info(job):
 def get_job_details(job):
 
     ns_job = namespace_jobs.objects.get(job_id=job.job_id)
+    objects = namespace_objects.objects.filter(job_id=job.job_id).values() 
+
     details = [
         ("Process ID", ns_job.operation_id.operation_id),
         ("Process Name", ns_job.operation_id.operation_name),
         ("Namespace", ns_job.namespace),
-        ("Objects Processed", len(results["objects"])),
+        ("Objects Processed", len(objects)),
     ]
     return details
 
