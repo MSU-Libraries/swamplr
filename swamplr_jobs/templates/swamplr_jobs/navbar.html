@@ -1,13 +1,13 @@
 <div id="navbar">
   <div id="menu">
-    <div><a href="{% url 'jobs' %}" class='btn btn-lg btn-outline-dark' role='button' title='View current jobs'>Jobs></a></div>
+    <div><a href="{% url 'jobs' %}" class='btn btn-lg btn-outline-dark' role='button' title='View current jobs'>Jobs</a></div>
     {% for app in nav_bar_options %}
     {% if app.children %}
     <div class="dropdown">
         <button class="btn btn-outline-dark btn-lg dropdown-toggle {{ app.name }}-button" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">{{ app.label }} <span class="caret"></span></button>
             <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
             {% for child in app.children %}
-                 <li><a class="dropdown-item" href="{% url 'run-'|add:app.name child.id %}">{{ child.label }}></a></li>
+                 <li><a class="dropdown-item" href="{% url 'run-'|add:app.name child.id %}">{{ child.label }}</a></li>
             {% endfor %}
             <li role="separator" class="divider"></li>
             <li><a class="dropdown-item" href="{% url 'manage-'|add:app.name %}">{{ "Manage "|add:app.label }}</a></li>
