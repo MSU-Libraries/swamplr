@@ -36,7 +36,7 @@
                     <button type="submit" class="btn {{ a.class }}"
                         {% if a.label == "Delete All"  %} onclick='return confirm("Are you sure you want to delete all the objects in the namespace?")' 
                         {% endif %}>
-                        {{ a.label }}>
+                        {{ a.label }}
                     </button>
                 </form>
             {% endfor %}
