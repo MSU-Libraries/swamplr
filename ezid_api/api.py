@@ -1,3 +1,4 @@
+import re
 import os
 import requests
 
@@ -26,7 +27,14 @@ class Ezid():
     def get_params_anvl(self):
         params = self.static_params.copy()
         params.update(self.dynamic_params)
-        anvl = u"\n".join([u"{0}: {1}".format(k,v) for k,v in params.items()])
+
+        # Code taken from EZID API documentation to escape structural characters from ANVL format guidelines. 
+        def escape (s): 
+            return re.sub("[%:\r\n]", lambda c: "%%%02X" % ord(c.group(0)), s) 
+                     
+        anvl = "\n".join("%s: %s" % (escape(name), escape(value)) for name, 
+            value in params.items()).encode("UTF-8") 
+
         return anvl
 
     def call_api(self):
@@ -37,7 +45,7 @@ class Ezid():
             req = requests.request(self.method, self.url, data=data, headers=self.headers, auth=self.auth)
             res = (req.status_code, req.content)
         except Exception as e:
-            res = (-1, e)
+            res = (-1, e.message)
         self.dynamic_params = {}
  
         return res

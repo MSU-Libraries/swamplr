@@ -12,6 +12,7 @@ from swamplr_jobs.models import status
 from fedora_api.api import FedoraApi
 from ezid_api.api import Ezid
 import logging
+import re
 import os
 from StringIO import StringIO
 import requests
@@ -920,6 +921,9 @@ def fetch_id(obj, id_type, data):
 
         ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
         status, uid_result = ez.mint(shoulder, metadata=data)
+        logging.info(type(status), type(uid_result))
+        print(uid_result)
+        logging.info(status, uid_result)
         uid = uid_result.split("|")[0].split(": ")[1].strip()
     else:
         status = -1
