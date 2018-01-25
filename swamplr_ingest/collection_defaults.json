@@ -127,6 +127,14 @@
       "checksum_type": "SHA-512",
       "mimetype": "application/pdf"
     },
+    "PDF_REM": {
+      "id": "PDF_REM",
+      "label": "PDF_REM",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "application/pdf"
+    },
     "TEXTPDF": {
       "id": "TEXTPDF",
       "label": "PDF Transcript",

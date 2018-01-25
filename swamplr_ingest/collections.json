@@ -262,6 +262,11 @@
                     "MARKUP": {
                         "marker": ["_MARKUP.xml"],
                         "required": "true"
+                    },
+                    "PDF_REM": {
+                        "marker": ["_rem.pdf"],
+                        "mimetype":"application/pdf",
+                        "required": "false"
                     }
                 },
                 "metadata": {
