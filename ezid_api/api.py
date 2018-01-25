@@ -45,7 +45,7 @@ class Ezid():
             req = requests.request(self.method, self.url, data=data, headers=self.headers, auth=self.auth)
             res = (req.status_code, req.content)
         except Exception as e:
-            res = (-1, e.message)
+            res = (-1, e)
         self.dynamic_params = {}
  
         return res

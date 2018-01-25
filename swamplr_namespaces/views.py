@@ -677,7 +677,8 @@ def make_id(obj, id_type):
     pid = obj["pid"]
     logging.info("Now processing pid: {0}".format(pid))
 
-    data = get_item_data(pid, id_type)
+    if ":root" not in pid:
+        data = get_item_data(pid, id_type)
 
     if child_or_root_object(pid):
         # Check if pid is a root object or child object. If so, skip.
@@ -921,10 +922,12 @@ def fetch_id(obj, id_type, data):
 
         ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
         status, uid_result = ez.mint(shoulder, metadata=data)
-        logging.info(type(status), type(uid_result))
-        print(uid_result)
-        logging.info(status, uid_result)
-        uid = uid_result.split("|")[0].split(": ")[1].strip()
+        
+        if status != -1:
+            uid = uid_result.split("|")[0].split(": ")[1].strip()
+        else:
+            logging.info("Returned error fetching id: {0}".format(uid_result))
+            uid = None
     else:
         status = -1
         uid = None
