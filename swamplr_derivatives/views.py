@@ -259,7 +259,7 @@ def get_job_objects(job_id):
 
         object_data = {}
         object_data["derive_type"] = derive_types[o["job_derive_id_id"]]
-        object_data["file"] = os.path.basename(o["target_file"]) if o["target_file"] else "Null"
+        object_data["file"] = os.path.basename(o["target_file"]) if o["target_file"] else "~"
         object_data["created"] = o["created"]
         object_data["result_id"] = o["result_id_id"]
 
