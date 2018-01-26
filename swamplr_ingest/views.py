@@ -140,7 +140,7 @@ def get_job_details(job):
 
     ingest_job = ingest_jobs.objects.get(job_id=job_id)
     ingest_data = get_ingest_data(ingest_job.collection_name)
-    collection_label = ingest_data["label"]
+
     details = [
         ("Ingest ID", ingest_job.ingest_id),
         ("Collection Type", ingest_job.collection_name),
@@ -289,7 +289,6 @@ def get_ingest_data(ingest_type):
             config key.
     """
     data = load_ingest_data()
-    default = load_collection_defaults()
     return data[ingest_type]
 
 def load_ingest_data():
