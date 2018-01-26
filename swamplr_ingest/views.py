@@ -228,7 +228,8 @@ def get_job_objects(job_id):
             "Failed": 0,
             "Skipped":0,
         },
-        "objects": []
+        "objects": [],
+        "type": "ingest"
     }
     cpid = None   # Current pid we are looping on
     fail_id = object_results.objects.get(label="Failure").result_id

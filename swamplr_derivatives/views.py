@@ -8,7 +8,7 @@ from forms import DerivativesForm
 from django.shortcuts import render
 from django.conf import settings
 from swamplr_jobs.models import status
-from models import derivative_jobs, job_derivatives, derivative_results
+from models import derivative_files, derivative_jobs, job_derivatives, derivative_results
 from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrDerivativesConfig
 from datetime import datetime
@@ -205,8 +205,8 @@ def get_status_info(job):
 
     # Get data about successes, skips, failures.
     deriv_job = derivative_jobs.objects.get(job_id=job_id)
-    job_derivatives = job_derivatives.objects.filter(derive_id=derivative_job)
-    derive_types = ", ".join([j.derive_type for j in job_derivatives])
+    job_derives = job_derivatives.objects.filter(derive_id=deriv_job)
+    derive_types = ", ".join([j.derive_type for j in job_derives])
 
     result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
     results = get_job_objects(job_id)
@@ -225,24 +225,31 @@ def get_job_objects(job_id):
             "Failed": 0,
             "Skipped":0,
         },
-        "objects": []
+        "objects": [],
+        "type": "derivatives"
     }
-    cfile = None   # Current pid we are looping on
+    cfile = None   # Current source file  we are looping on
     fail_id = derivative_results.objects.get(label="Failure").result_id
+    
+    # Get derivative job and source directory.
+    djob = derivative_jobs.objects.get(job_id=job_id)
+    source_dir = djob.source_dir
 
-    derivative_job = derivative_jobs.objects.get(job_id=job_id)
-    source_dir = derivative_job.source_dir
-    job_derivatives = job_derivatives.objects.filter(derive_id=derivative_job)
-    derive_types = {j.derive_id: j.derive_type for j in job_derivatives}
+    # Get derivatives associated with the job and store in list.
+    jderiv = job_derivatives.objects.filter(derive_id=djob)
+    derive_types = {j.job_derive_id: j.derive_type for j in jderiv}
 
-    derivative_files = derivative_files.objects.filter(job_derive_id__in=job_derivatives).values().order_by("source_file")
+    # Get target files associated with derivative processing.
+    dfiles = derivative_files.objects.filter(job_derive_id__in=jderiv).values().order_by("source_file")
 
-    all_results_dc = object_results.objects.all().values()
+    # Get all result types
+    all_results_dc = derivative_results.objects.all().values()
     all_results = {r["result_id"]:r["label"] for r in all_results_dc}
 
+    # Each source file is at the head of a set of sub-results containing individual derivative data.
     object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
-    logging.info("Entering the LOOP of {0}".format(len(derivative_files)))
-    for o in derivative_files:
+    
+    for o in dfiles:
         if (cfile != o["source_file"]):
             if (cfile != None):
                 results = update_results(object_head, results, fail_id)
@@ -251,15 +258,14 @@ def get_job_objects(job_id):
             object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
 
         object_data = {}
-        object_data["derive_type"] = derive_types[o.job_derive_id]
-        object_data["file"] = os.path.basename(o["source_file"]) if o["source_file"] else "Null"
+        object_data["derive_type"] = derive_types[o["job_derive_id_id"]]
+        object_data["file"] = os.path.basename(o["target_file"]) if o["target_file"] else "~"
         object_data["created"] = o["created"]
         object_data["result_id"] = o["result_id_id"]
-        object_data["target_file"] = o["target_file"]
 
         object_data["result"] = all_results[o["result_id_id"]]
         object_head["subs"].append(object_data)
-        object_head["path"] = source_dir
+        object_head["path"] = o["source_file"]
 
     results = update_results(object_head, results, fail_id)
 
