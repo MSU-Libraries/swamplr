@@ -225,7 +225,8 @@ def get_job_objects(job_id):
             "Failed": 0,
             "Skipped":0,
         },
-        "objects": []
+        "objects": [],
+        "type": "derivatives"
     }
     cfile = None   # Current source file  we are looping on
     fail_id = derivative_results.objects.get(label="Failure").result_id
