@@ -40,31 +40,41 @@ def job_status(request, count=25, response={}):
         # If page is out of range (e.g. 9999), deliver last page of results.
         job_list = paginator.page(paginator.num_pages) 
 
-    job_data = []
     for j in job_list.object_list:
         
         j = set_job_info(j)
-        #job_data.append(j_updated)
 
     response["jobs"] = job_list
 
     return render(request, 'swamplr_jobs/job_status.html', response)
 
 def view_job(request, job_id):
-    """View full details for job."""
-    load_installed_apps()
-    
-    job = jobs.objects.get(job_id=job_id)
-    job_type_object = job_types.objects.get(type_id=job.type_id_id)
+    """View full details for job.
 
+    This includes:
+        * Job data from swamplr_jobs (basic info: start time, end time, status, etc.)
+        * Detailed data from the app the job is associated with (e.g. ingest, derivatives, etc.)
+        * Messages: any messages generated during the course of the job.
+        * Objects: any objects that were created or updated during the course of the job.
+    """
+    load_installed_apps()
+
+    # Get job object.
+    job = jobs.objects.get(job_id=job_id)
+    # Get type of job object, in order to route the request to the correct app.
+    job_type_object = job_types.objects.get(type_id=job.type_id_id)
     app_name = job_type_object.app_name
     app = import_apps[app_name]
 
+    # Get job-specific info from the appropriate app.
     job = set_job_info(job)
+
     if job.completed:
         elapsed = job.completed - job.created
     else:
         elapsed = timezone.now() - job.created
+
+    # Set basic job details.
     job.card = [
         ("Job ID", job_id),
         ("Job Type", job_type_object.label),
@@ -76,7 +86,8 @@ def view_job(request, job_id):
         ("Elapsed", elapsed),
         ("Status Info", job.status_info),
     ]
- 
+
+    # Show messages on the job detail page.
     job.messages = []
     message_object = job_messages.objects.filter(job_id=job)
     for m in message_object:
@@ -84,16 +95,17 @@ def view_job(request, job_id):
         mtime = m.created
         job.messages.append((mtime, mcontent))
 
+    # Get all needed job object information.
     job.objects = []
     if hasattr(app.views, "get_job_objects") and callable(getattr(app.views, "get_job_objects")):
         object_data = app.views.get_job_objects(job_id)
         job.objects = object_data
 
+    # Get app-specific job data.
     job.details = []
     if hasattr(app.views, "get_job_details") and callable(getattr(app.views, "get_job_details")):
         details = app.views.get_job_details(job)
         job.details = details
-
 
     return render(request, 'swamplr_jobs/job.html', {"job": job})
 

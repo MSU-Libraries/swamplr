@@ -8,7 +8,7 @@ from forms import DerivativesForm
 from django.shortcuts import render
 from django.conf import settings
 from swamplr_jobs.models import status
-from models import derivative_jobs, job_derivatives
+from models import derivative_jobs, job_derivatives, derivative_results
 from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrDerivativesConfig
 from datetime import datetime
@@ -194,7 +194,6 @@ def browse(request):
     base_dirs.sort()
     return JsonResponse({'data': data, 'parent': repo_directory, "isRoot": isRoot, 'base_dirs': base_dirs})
 
-
 def get_derive_data(item_type):
     config = get_configs()
     section = "source.{0}".format(item_type.lower())
@@ -204,21 +203,101 @@ def get_status_info(job):
     """Required function: return infor about current job for display."""
     job_id = job.job_id
 
-    try:
-        result_display =  "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
+    # Get data about successes, skips, failures.
+    deriv_job = derivative_jobs.objects.get(job_id=job_id)
+    job_derivatives = job_derivatives.objects.filter(derive_id=derivative_job)
+    derive_types = ", ".join([j.derive_type for j in job_derivatives])
 
-        # TODO
-        label = "Not Found"
-        details = [("None","No Info Found")]
-        info = ["No info available."]
- 
-    except Exception as e:
-        label = "Not Found"
-        details = [("None","No Info Found")]
-        info = ["No info available."]
-        print e.message
+    result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
+    results = get_job_objects(job_id)
+    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
+    info = ["Filetype: {0} <br/>".format(deriv_job.source_file_extension), "Derivatives: {0} <br/>".format(derive_types),
+            result_message]
 
-    return info, details
+    return info, []
+
+def get_job_objects(job_id):
+    """Gather all objects created by the given job, and count successes/failures/skips."""
+
+    results = {
+        "status_count": {
+            "Success": 0,
+            "Failed": 0,
+            "Skipped":0,
+        },
+        "objects": []
+    }
+    cfile = None   # Current pid we are looping on
+    fail_id = derivative_results.objects.get(label="Failure").result_id
+
+    derivative_job = derivative_jobs.objects.get(job_id=job_id)
+    source_dir = derivative_job.source_dir
+    job_derivatives = job_derivatives.objects.filter(derive_id=derivative_job)
+    derive_types = {j.derive_id: j.derive_type for j in job_derivatives}
+
+    derivative_files = derivative_files.objects.filter(job_derive_id__in=job_derivatives).values().order_by("source_file")
+
+    all_results_dc = object_results.objects.all().values()
+    all_results = {r["result_id"]:r["label"] for r in all_results_dc}
+
+    object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
+    logging.info("Entering the LOOP of {0}".format(len(derivative_files)))
+    for o in derivative_files:
+        if (cfile != o["source_file"]):
+            if (cfile != None):
+                results = update_results(object_head, results, fail_id)
+
+            cfile = o["source_file"]
+            object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
+
+        object_data = {}
+        object_data["derive_type"] = derive_types[o.job_derive_id]
+        object_data["file"] = os.path.basename(o["source_file"]) if o["source_file"] else "Null"
+        object_data["created"] = o["created"]
+        object_data["result_id"] = o["result_id_id"]
+        object_data["target_file"] = o["target_file"]
+
+        object_data["result"] = all_results[o["result_id_id"]]
+        object_head["subs"].append(object_data)
+        object_head["path"] = source_dir
+
+    results = update_results(object_head, results, fail_id)
+
+    return results
+
+def update_results(object_head, results, fail_id):
+    """Update results object."""
+    all_result_ids = [obj["result_id"] for obj in object_head["subs"]]
+    if len(set(all_result_ids)) == 1:
+        results["status_count"][object_head["subs"][0]["result"]] += 1
+        object_head["result"] = object_head["subs"][0]["result"]
+    elif any([r_id == fail_id for r_id in all_result_ids]):
+        object_head["result"] = "Failed"
+        results["status_count"]["Failed"] += 1
+    else:
+        object_head["result"] = "Success"
+        results["status_count"]["Success"] += 1
+    results["objects"].append(object_head)
+    return results
+
+def get_job_details(job):
+    """Required function: return detailed info about given job for display."""
+    job_id = job.job_id
+
+    deriv_job = derivative_jobs.objects.get(job_id=job_id)
+
+    details = [
+        ("Derivatives ID", deriv_job.derive_id),
+        ("Source Directory", deriv_job.source_dir),
+        ("Replace Existing Derivatives", "Y" if deriv_job.replace_on_duplicate == "y" else "N"),
+        ("Items To Process", deriv_job.subset if deriv_job.subset != 0 else "All"),
+    ]
+
+    dv_details = job_derivatives.objects.filter(derive_id=deriv_job)
+    details.append(("Derivative Types", ", ".join([d.derive_type for d in dv_details])))
+
+    return details
+
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
