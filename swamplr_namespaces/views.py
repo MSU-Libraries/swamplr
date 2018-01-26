@@ -677,9 +677,6 @@ def make_id(obj, id_type):
     pid = obj["pid"]
     logging.info("Now processing pid: {0}".format(pid))
 
-    if ":root" not in pid:
-        data = get_item_data(pid, id_type)
-
     if child_or_root_object(pid):
         # Check if pid is a root object or child object. If so, skip.
         logging.info("Object at {0} appears to be a child or root object. Skipping.".format(pid))
@@ -688,7 +685,7 @@ def make_id(obj, id_type):
 
         if data:
             logging.info("Ready to fetch ID.")
-            status, uid = fetch_id(obj, id_type, data)
+            status, uid = fetch_id(pid, obj, id_type)
 
         else:
             logging.error("Unable to return data needed to mint {1} for object: {0}".format(obj["pid"], id_type))
@@ -699,7 +696,7 @@ def make_id(obj, id_type):
         logging.info("ID already exists for: {0}. Validating".format(pid))
         if not validate_existing_id(uid, id_type):
             logging.warning("ID is invalid. Minting new one.")
-            status, uid = fetch_id(obj, id_type, data)
+            status, uid = fetch_id(pid, obj, id_type)
 
         else:
             logging.info("Validation successful.")
@@ -905,9 +902,11 @@ def get_mods_element(mods, xpath):
     return [e.text for e in element]
 
 
-def fetch_id(obj, id_type, data):
+def fetch_id(pid, obj, id_type):
     """Communicate with EZID API to mint DOI/ARK."""
     shoulder = None
+
+    data = get_item_data(pid, id_type)
 
     if id_type == "ark":
         shoulder = settings.ARK_SHOULDER
