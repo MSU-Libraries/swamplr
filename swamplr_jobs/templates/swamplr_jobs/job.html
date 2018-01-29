@@ -150,7 +150,24 @@
              <div class="ds-data job-column job-data ds-column">{{ d.result }}</div>
             </div>
             {% endfor %}
-            {% endif %}
+
+        {% elif job.objects and job.objects.objects %}
+                <div id="objects-heading" class="panel-heading">Objects</div>
+    <div class="table table-responsive table-condensed">
+        <div class="job-row">
+            <div class="job-path job-column job-data">Object</div>
+            <div class="job-result job-column job-data">Info</div>
+            <div class="job-path job-column job-data">Result</div>
+            <div class="job-path job-column job-data">Time</div>
+        </div>
+        {% for o in job.objects.objects %}
+        <div class="object-row job-row">
+            <div class="object-data">
+                <div class="job-path object-column job-column job-data">{{ o.pid }}</div>
+                <div class="job-result object-column job-column job-data">{{ o.uid }}</div>
+                <div class="job-path object-column job-column job-data">{{ o.result }}</div>
+                <div class="job-path object-column job-column job-data">{{ o.completed }}</div>
+            </div>
             </div>
         </div>
         {% endfor %}
