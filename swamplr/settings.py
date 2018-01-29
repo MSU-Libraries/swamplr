@@ -75,6 +75,7 @@ EZID_USER = configs.get("ezid", "EZID_USER")
 EZID_PASSWORD = configs.get("ezid", "EZID_PASSWORD")
 DOI_SHOULDER = configs.get("ezid", "DOI_SHOULDER")
 ARK_SHOULDER = configs.get("ezid", "ARK_SHOULDER")
+EXCLUDE_LIST = configs.get("exid", "EXCLUDE_LIST")
 
 # Application definition
 INSTALLED_APPS = (
