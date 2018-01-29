@@ -41,7 +41,7 @@ class Derivatives(object):
 
         # Get the types specified in the job
         derivative_job_types = job_derivatives.objects.filter(derive_id = self.derivative_job)
-        types = [d['derive_type'] for d in derivative_job_types]
+        types = [d.derive_type for d in derivative_job_types]
         output_endings = [d["output_file"].replace("{0}","") for d in self.derivative_types]
 
         # filter the config settings based on only the selected derivatives for this job
