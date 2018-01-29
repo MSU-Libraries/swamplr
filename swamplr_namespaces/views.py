@@ -106,7 +106,7 @@ def run_process(current_job):
 
     elif operation_type.lower() in ["mint doi", "mint ark"]:
         try:
-            run_mint_id(namespace_job.namespace, current_job, operation_type[-3:])
+            run_mint_id(namespace_job.namespace, current_job, operation_type[-3:].lower())
             status_obj = status.objects.get(status="Success")
             message = ["All objects processed",
                        "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
@@ -434,7 +434,7 @@ def load_excluded_pids():
 
     if os.path.exists(exclude_file_path):
         with open(exclude_file_path, "rb") as f:
-            excluded_pids = [a.strip() for a in f]
+            excluded_pids = [a.strip() for a in f if not a.startswith("#")]
 
     return excluded_pids
 
@@ -465,7 +465,7 @@ def run_mint_id(ns, current_job, id_type):
     if len(found_objects) > 0:
         for o in found_objects:
 
-            response, uid = make_id(o, "doi")
+            response, uid = make_id(o, id_type)
 
             # Make url version of id.
             if uid and id_type == "doi":
@@ -482,13 +482,13 @@ def run_mint_id(ns, current_job, id_type):
             # If creation of id was successful, add to metadata and update.
             if response in [200, 201]:
 
-                uid_added = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
+                uid_added = add_uid_to_metadata(o["pid"], uid, uid_url, id_type)
                 result = update_uid(uid, uid_added)
 
             # Response code of -2 indicates a skip.
             # If uid exists, then this is presumably from a previous attempt; clarify this logic here.
             elif response == -2 and uid is not None:
-                uid_added = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
+                uid_added = add_uid_to_metadata(o["pid"], uid, uid_url, id_type)
                 result = update_uid(uid, uid_added)
 
             elif response == -2 and uid is None:
@@ -601,7 +601,7 @@ def add_uid_to_dc(pid, url, id_type):
             "ark": "https://n2t.net/"
         }
         for u in id_urls:
-            if u.text.startswith(url_patterns[id_type]):
+            if u.text and u.text.startswith(url_patterns[id_type]):
                 u.getparent().remove(u)
 
         new_id_element = etree.SubElement(tree, dc_id_tag, nsmap=nsmap)
@@ -665,9 +665,9 @@ def make_id(obj, id_type):
     elif pid in excluded_pids:
         # Check if pid has been blacklisted.
         logging.info(
-            "Object at {0} appears to be on the list of excluded PIDs at {1}.".format(pid, settings.EXCLUDE_LIST))
+            "Object at {0} appears to be on the list of excluded PIDs ({1}).".format(pid, settings.EXCLUDE_LIST))
 
-    elif not id_exists(pid, id_type):
+    elif not id_exists(pid, id_type.lower()):
 
         data = get_item_data(pid, id_type)
 

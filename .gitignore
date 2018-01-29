@@ -5,4 +5,5 @@
 !swamplr_example.cfg
 !fedora_example.cfg
 !derive_example.cfg
+exclude_list.txt
 .idea
