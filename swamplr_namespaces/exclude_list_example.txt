@@ -1,0 +1,5 @@
+# List PIDs to exclude from ARK and DOI processes, one per line.
+# Lines that start with "#" are ignored.
+
+test:743
+goodluck:85
