@@ -36,7 +36,6 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
         else:
              logging.info("Cache updated successfully.")
     """
-
     response = {
         "headings": ["Number", "Namespace", "Count", "Actions"]
     }
@@ -280,7 +279,6 @@ def delete(request, ns):
 
 def reindex(request, ns):
     logging.info("Adding reindex job for namespace: {0}".format(ns))
-
     new_job = add_job(SwamplrNamespacesConfig.name)
     ns_operation = namespace_operations.objects.get(operation_name="Reindex")
 

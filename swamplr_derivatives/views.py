@@ -210,7 +210,7 @@ def get_status_info(job):
 
     result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
     results = get_job_objects(job_id)
-    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
+    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failure"], results["status_count"]["Skipped"])
     info = ["Filetype: {0} <br/>".format(deriv_job.source_file_extension), "Derivatives: {0} <br/>".format(derive_types),
             result_message]
 
@@ -222,7 +222,7 @@ def get_job_objects(job_id):
     results = {
         "status_count": {
             "Success": 0,
-            "Failed": 0,
+            "Failure": 0,
             "Skipped":0,
         },
         "objects": [],

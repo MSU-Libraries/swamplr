@@ -93,6 +93,7 @@ class Derivatives(object):
 
                     ## loop over each derivative type to be created for each object
                     for derivative in self.derivative_types:
+                        print derivative
                         thread_index += 1
                         ### if we are over the max thread count, wait until one frees up
                         if thread_count.value >= settings.MAX_THREADS:
@@ -208,7 +209,7 @@ class Derivatives(object):
                         result_id=status_objs['success'],
                     )
 
-                elif exit_code is None:
+                elif exit_code is None or len(derivative_options["commands"]) == 0:
                     logging.error("(THREAD={0}) Failed creating {1} derivative at {2}. Error: {2}.".format(thread_index, derive_obj.derive_type, target_file, "No commands supplied."))
                     #result_object = derivative_results.objects.get(label="Failure")
                     derivative_files.objects.create(
