@@ -198,7 +198,19 @@ def get_derive_data(item_type):
     config = get_configs()
     section = "source.{0}".format(item_type.lower())
     return config.get(section, "derive_options").split(",")
-   
+
+def get_derive_settings(item_type, derive_type, settings):
+    """Get values for specified configs.
+
+    args:
+        item_type (str): should be one of existing item types, e.g. tif, jpg, wav.
+        derive_type (st): should be one of existing derivative types, e.g. jpeg_low, json, etc.
+        settings (list): list of all specified settings to return.
+    """
+    config = get_configs()
+    section = "derive.{0}.{1}".format(item_type, derive_type)
+    return {s: config.get(section, s) for s in settings}
+
 def get_status_info(job):
     """Required function: return infor about current job for display."""
     job_id = job.job_id

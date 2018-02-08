@@ -3,6 +3,7 @@ from django.forms import ModelForm
 from django.core.urlresolvers import reverse
 import views
 from crispy_forms.helper import FormHelper
+from django.utils.safestring import mark_safe
 from crispy_forms.layout import Submit, Layout, Field
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
@@ -47,12 +48,16 @@ class DerivativesForm(forms.Form):
             initial=default_path,
             validators=[validate_path],
         )
+        help_text = "{0}<p id='detail-option' data-toggle='tooltip' style='display:inline;' title='<strong>Command</strong>: {1}'><span class='label label-primary'>INFO</span></p>"
+        help_data = {}
+        for d in derive_options:
+            help_data[d] = views.get_derive_settings(item_type, d, ["label", "command"]
 
         # TODO -- show command onhover like swampy
         self.fields["derive_types"] = forms.MultipleChoiceField(
             label = "Select derivatives types to create.",
             help_text = "",
-            choices = [(d, d) for d in derive_options],
+            choices = [(d, mark_safe(help_text.format()) for d in derive_options],
             widget=forms.CheckboxSelectMultiple()   
         )
 
