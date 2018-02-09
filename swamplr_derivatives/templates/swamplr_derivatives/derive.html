@@ -6,6 +6,25 @@
 
 {% include "swamplr_derivatives/browse_helper.html" %}
 
+<script>
+$(document).ready(function() {
+    $('#contrast-slider').slider({
+            formatter: function(value) {
+                $("#id_contrast_value").val(value)
+                return "Constrast: " + value;
+
+            }
+        });
+        $('#brightness-slider').slider({
+            formatter: function(value) {
+                $("#id_brightness_value").val(value)
+                return "Brightness: " + value;
+
+            }
+        });
+});
+</script>
+
 <div class="container-fluid" id="derivatives-panel">
     <div class="derivatives-heading"><h2>Create Derivatives: <span class="form-name">{{ item_type }}</span></h2></div>
     {% crispy form  %}

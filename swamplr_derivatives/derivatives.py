@@ -187,11 +187,14 @@ class Derivatives(object):
                 logging.debug("(THREAD={0}) Creating {1} derivative for {2}".format(thread_index, derive_obj.derive_type, source_file))
 
                 # build the command
-                # replace all placeholders, output_file, input_file
-                
+                # replace all placeholders, output_file, input_file, brightness, contrast
+                brightness= derivative_job.brightness if derivative_job.brightness is not None else 0
+                contrast = derivative_job.contrast if derivative_job.contrast is not None else 0
+
                 pchain = PChain()
+                
                 for command in derivative_options["commands"]:
-                    c = command[0].format(output_file="\"" + target_file + "\"", input_file="\"" + source_file + "\"")
+                    c = command[0].format(output_file="\"" + target_file + "\"", input_file="\"" + source_file + "\"", brightness=brightness, contrast=contrast)
                     logging.debug("(THREAD={0}) Adding command: {1}. JOIN: {2} ({3})".format(thread_index, c, command[1], getattr(pchain, command[1])))
                     pchain.add(c, getattr(pchain, command[1]))
                     

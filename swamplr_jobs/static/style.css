@@ -501,4 +501,21 @@ input#submit-id-add-service {
 #namespaces-general-info > div {
     flex: 0 1 auto;
 }
+.slider.slider-horizontal {
+    margin-left: 14%;
+    margin-bottom: 20px;
+    width: 400px;
+    height: 20px;
+}
+.slider-selection{
+    background-image: linear-gradient(to bottom, #8AC94A 0, #8AC94A 100%);
+
+}
+.slider-handle{
+    background-image: linear-gradient(to bottom,#18453b 0,#18453b 100%);
+
+}
+#id_contrast_value, #id_brightness_value{
+    width:100px
+}
 

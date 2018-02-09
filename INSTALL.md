@@ -191,7 +191,7 @@ INSTALLED_APPS = (
 
 There may be some additional items in that section if you have already enabled other apps.
 
-### Services: swamplr_ingest
+### Ingest: swamplr_ingest
 
 TODO -- describe any additional install dependencies (apps or server utilities)
 
@@ -217,6 +217,13 @@ Run the namespace cahce manually once to populate the table (if using the namesp
 ```
 sudo python /var/www/swamplr/swamplr_namespaces/cache.py /var/www/swamplr/swamplr.cfg
 ```
+
+### Derivatives: swamplr_derivatives  
+
+The app's functionality is defined through the use of a config file which sets the input types, available derivates for each, the command for each as well as some other meta data fields.
+
+Be sure to copy the `swamplr_derivatives\derive_example.cfg` to `swamplr_derivaties\derive.cg` and modify to fit your needs.  
+
 
 ## System Design
 ### Technologies

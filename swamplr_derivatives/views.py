@@ -143,7 +143,9 @@ def add_derivatives_job(request, item_type):
             source_dir=clean["path_list_selected"],
             replace_on_duplicate=replace,
             subset=subset,
-            source_file_extension=item_type
+            source_file_extension=item_type,
+            brightness=clean["brightness_value"],
+            contrast=clean["contrast_value"]
         )
 
         for d in object_derivatives:
@@ -317,6 +319,8 @@ def get_job_details(job):
         ("Source Directory", deriv_job.source_dir),
         ("Replace Existing Derivatives", "Y" if deriv_job.replace_on_duplicate == "y" else "N"),
         ("Items To Process", deriv_job.subset if deriv_job.subset != 0 else "All"),
+        ("Brightness", deriv_job.brightness),
+        ("Contrast", deriv_job.contrast)
     ]
 
     dv_details = job_derivatives.objects.filter(derive_id=deriv_job)
