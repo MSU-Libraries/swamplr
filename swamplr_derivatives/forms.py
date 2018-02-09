@@ -48,16 +48,25 @@ class DerivativesForm(forms.Form):
             initial=default_path,
             validators=[validate_path],
         )
-        help_text = "{0}<p id='detail-option' data-toggle='tooltip' style='display:inline;' title='<strong>Command</strong>: {1}'><span class='label label-primary'>INFO</span></p>"
+        help_text = "{0} <p id='detail-option' data-toggle='popover' style='display:inline;' title='<strong>Command</strong>' data-content='{1}'><span class='label label-primary'>INFO</span></p>"
         help_data = {}
         for d in derive_options:
-            help_data[d] = views.get_derive_settings(item_type, d, ["label", "command"]
+            dsettings = views.get_derive_settings(item_type.lower(), d)
+            help_data[d] = {
+                "label": dsettings["label"],
+            }
+            if "command" in dsettings:
+                help_data[d]["command"] = dsettings["command"]
+            else:
+                option_key = "derive."+item_type.lower()+"."+d.lower()
+                configs = views.get_configs()
+                command_list = views.get_command_list(configs, item_type.lower(), option_key) 
+                help_data[d]["command"] = "<br/>".join(["{0} {1}".format(c[0], c[1]) for c in command_list])
 
-        # TODO -- show command onhover like swampy
         self.fields["derive_types"] = forms.MultipleChoiceField(
             label = "Select derivatives types to create.",
             help_text = "",
-            choices = [(d, mark_safe(help_text.format()) for d in derive_options],
+            choices = [(d, mark_safe(help_text.format(help_data[d]["label"], help_data[d]["command"]))) for d in derive_options],
             widget=forms.CheckboxSelectMultiple()   
         )
 

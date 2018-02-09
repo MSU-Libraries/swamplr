@@ -56,6 +56,22 @@ def get_derivative_options(section):
         nav_options.append(nav_option)
     return nav_options
 
+def get_command_list(config, source_type, option_key):
+    """Get commands from config file."""
+    commands = config.options(option_key)
+    command_steps = sorted([int(c.split(".")[1]) for c in commands if c.startswith("step.") and c.endswith(".command")])
+    
+    command_list = []
+    for c in command_steps:
+        join_key = "step.{0}.join".format(c)
+        join_value = "AND"
+        if config.has_option(option_key, join_key):
+            join_value = config.get(option_key, join_key)
+        command_list.append((config.get(option_key, "step.{0}.command".format(c)), join_value.upper()))
+    if len(command_list) == 0 and config.has_option(option_key, "command"):
+        command_list.append((config.get(option_key, "command"), "AND"))
+    return command_list
+
 def get_derivative_settings(source_type):
     """Get the derivative types and settings for the specified source type."""
 
@@ -67,18 +83,7 @@ def get_derivative_settings(source_type):
     for opt in options:
 
         option_key = "derive."+source_type.lower()+"."+opt.lower()
-        commands = config.options(option_key)
-        command_steps = sorted([int(c.split(".")[1]) for c in commands if c.startswith("step.") and c.endswith(".command")])
-        command_list = []
-        for c in command_steps:
-            join_key = "step.{0}.join".format(c)
-            join_value = "AND"
-            if config.has_option(option_key, join_key):
-                join_value = config.get(option_key, join_key)
-            command_list.append((config.get(option_key, "step.{0}.command".format(c)), join_value.upper()))
-        if len(command_list) == 0 and config.has_option(option_key, "command"):
-            command_list.append((config.get(option_key, "command"), "AND"))
-
+        command_list = get_command_list(config, source_type, option_key)
         output_file = config.get(option_key, "output_file")
         derive = {"derivative_type": opt, "commands": command_list, "output_file": output_file}
         derive_settings.append(derive)
@@ -94,7 +99,7 @@ def get_configs():
     return config
 
 def manage(request):
-    """Load the JSON config to the pag."""
+    """Load the JSON config to the page."""
     # TODO
     pass
 
@@ -199,7 +204,7 @@ def get_derive_data(item_type):
     section = "source.{0}".format(item_type.lower())
     return config.get(section, "derive_options").split(",")
 
-def get_derive_settings(item_type, derive_type, settings):
+def get_derive_settings(item_type, derive_type):
     """Get values for specified configs.
 
     args:
@@ -207,9 +212,12 @@ def get_derive_settings(item_type, derive_type, settings):
         derive_type (st): should be one of existing derivative types, e.g. jpeg_low, json, etc.
         settings (list): list of all specified settings to return.
     """
+    settings = {}
     config = get_configs()
     section = "derive.{0}.{1}".format(item_type, derive_type)
-    return {s: config.get(section, s) for s in settings}
+    for s in config.options(section):
+        settings[s] = config.get(section, s)
+    return settings
 
 def get_status_info(job):
     """Required function: return infor about current job for display."""
