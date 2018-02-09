@@ -3,7 +3,8 @@ from django.forms import ModelForm
 from django.core.urlresolvers import reverse
 import views
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Field
+from django.utils.safestring import mark_safe
+from crispy_forms.layout import Submit, Layout, Field, Fieldset, HTML
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
@@ -15,6 +16,51 @@ def validate_path(value):
             _('%(value)s is not an allowed path.'),
             params={'value': value},
         )
+
+def get_slider_layout():
+    """Return slider layout for contrast and brightness values."""
+    layout = Layout(
+
+        Fieldset(
+            '',
+            'path_list_selected',
+            'derive_types',
+            'replace_on_duplicate',
+            'subset_value',
+            HTML("""
+              <input
+                    type="text"
+                    id="contrast-slider"
+                    name="contrastslider"
+                    data-provide="slider"
+                    data-slider-min="-100"
+                    data-slider-max="100"
+                    data-slider-step="1"
+                    data-slider-value="0"
+                    data-slider-tooltip="show"
+                >
+            """),
+            'contrast_value',
+            HTML("""
+              <input
+                    type="text"
+                    id="brightness-slider"
+                    name="contrastslider"
+                    data-provide="slider"
+                    data-slider-min="-100"
+                    data-slider-max="100"
+                    data-slider-step="1"
+                    data-slider-value="0"
+                    data-slider-tooltip="show"
+                >
+            """),
+            'brightness_value'
+        )
+    )
+
+
+    return layout
+
 
 class DerivativesForm(forms.Form):
 
@@ -28,6 +74,7 @@ class DerivativesForm(forms.Form):
         self.helper.form_show_labels = True
         self.helper.help_text_inline = True
         self.helper.add_input(Submit('submit', 'Start'))
+        self.helper.layout = get_slider_layout()
 
     def set_form_action(self, item_type):
 
@@ -47,12 +94,25 @@ class DerivativesForm(forms.Form):
             initial=default_path,
             validators=[validate_path],
         )
+        help_text = "{0} <p id='detail-option' data-toggle='popover' style='display:inline;' title='<strong>Command</strong>' data-content='{1}'><span class='label label-primary'>INFO</span></p>"
+        help_data = {}
+        for d in derive_options:
+            dsettings = views.get_derive_settings(item_type.lower(), d)
+            help_data[d] = {
+                "label": dsettings["label"],
+            }
+            if "command" in dsettings:
+                help_data[d]["command"] = dsettings["command"]
+            else:
+                option_key = "derive."+item_type.lower()+"."+d.lower()
+                configs = views.get_configs()
+                command_list = views.get_command_list(configs, item_type.lower(), option_key) 
+                help_data[d]["command"] = "<br/>".join(["{0} {1}".format(c[0], c[1]) for c in command_list])
 
-        # TODO -- show command onhover like swampy
         self.fields["derive_types"] = forms.MultipleChoiceField(
             label = "Select derivatives types to create.",
             help_text = "",
-            choices = [(d, d) for d in derive_options],
+            choices = [(d, mark_safe(help_text.format(help_data[d]["label"], help_data[d]["command"]))) for d in derive_options],
             widget=forms.CheckboxSelectMultiple()   
         )
 
@@ -68,5 +128,7 @@ class DerivativesForm(forms.Form):
             min_value=0,
             help_text="Optionally select a number of items to process. Leave blank to process all items."
         )
+        self.fields["contrast_value"] = forms.CharField(label="Contrast", max_length="20",initial=0)
+        self.fields["brightness_value"] = forms.CharField(label="Brightness", max_length="20", initial=0)
 
 

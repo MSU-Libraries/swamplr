@@ -357,6 +357,12 @@ GSEARCH_USER = [gsearchuser]
 GSEARCH_PASSWORD = [gsearchpassword]
 ```
 
+### Derivative Creation: swamplr_derivatives
+The derivative app provides the ability to generate derivative files for various types of input types.
+
+The app's functionality is defined through the use of a config file which sets the input types, available derivates for each, the command for each as well as some other meta data fields.
+
+Be sure to copy the `swamplr_derivatives\derive_example.cfg` to `swamplr_derivaties\derive.cg` and modify to fit your needs.  
 
 ## Install and Setup
 

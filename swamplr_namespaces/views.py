@@ -12,7 +12,6 @@ from swamplr_jobs.models import status
 from fedora_api.api import FedoraApi
 from ezid_api.api import Ezid
 import logging
-import re
 import os
 from StringIO import StringIO
 import requests
@@ -37,7 +36,6 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
         else:
              logging.info("Cache updated successfully.")
     """
-
     response = {
         "headings": ["Number", "Namespace", "Count", "Actions"]
     }
@@ -105,23 +103,13 @@ def run_process(current_job):
             status_obj = status.objects.get(status="Script error")
             message = [e, "Error during deletion."]
 
-    elif operation_type.lower() == "mint doi":
+    elif operation_type.lower() in ["mint doi", "mint ark"]:
         try:
-            run_mint_doi(namespace_job.namespace, current_job)
+            run_mint_id(namespace_job.namespace, current_job, operation_type[-3:].lower())
             status_obj = status.objects.get(status="Success")
-            message = ["All objects processed", "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
+            message = ["All objects processed",
+                       "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
 
-        except Exception as e:
-            logging.error("Unable to complete process.")
-            status_obj = status.objects.get(status="Script error")
-            message = [e, "Error during process."]
-
-    elif operation_type.lower() == "mint ark":
-        try:
-            run_mint_ark(namespace_job.namespace, current_job)
-            status_obj = status.objects.get(status="Success")
-            message = ["All objects processed", "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
-        
         except Exception as e:
             logging.error("Unable to complete process.")
             status_obj = status.objects.get(status="Script error")
@@ -199,9 +187,10 @@ def get_status_info(job):
         ns_job = namespace_jobs.objects.get(job_id=job.job_id)
 
         if job.namespace_jobs.operation_id.operation_name in ["Mint DOI", "Mint ARK"]:
-
             result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
-            result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
+            result_message = result_display.format(results["status_count"]["Success"],
+                                                   results["status_count"]["Failed"],
+                                                   results["status_count"]["Skipped"])
 
         info = ["Process: {0} <br/>".format(ns_job.operation_id.operation_name),
                 "Namespace: {0} <br/>".format(ns_job.namespace),
@@ -214,10 +203,10 @@ def get_status_info(job):
 
     return info, []
 
-def get_job_details(job):
 
+def get_job_details(job):
     ns_job = namespace_jobs.objects.get(job_id=job.job_id)
-    objects = namespace_objects.objects.filter(job_id=job.job_id).values() 
+    objects = namespace_objects.objects.filter(job_id=job.job_id).values()
 
     details = [
         ("Process ID", ns_job.operation_id.operation_id),
@@ -226,7 +215,6 @@ def get_job_details(job):
         ("Objects Processed", len(objects)),
     ]
     return details
-
 
 
 def list_items(request, ns, count=25):
@@ -291,7 +279,6 @@ def delete(request, ns):
 
 def reindex(request, ns):
     logging.info("Adding reindex job for namespace: {0}".format(ns))
-
     new_job = add_job(SwamplrNamespacesConfig.name)
     ns_operation = namespace_operations.objects.get(operation_name="Reindex")
 
@@ -437,84 +424,74 @@ def add_id_job(ns, id_type):
     return redirect(job_status)
 
 
-def run_mint_doi(ns, current_job):
-    """Check if DOI exists for pid and create DOI if not."""
+def load_excluded_pids():
+    """Load file containing excluded pids. File should be located in same dir as views.py."""
+    excluded_pids = []
 
+    exclude_file_path = os.path.join(settings.BASE_DIR, "swamplr_namespaces", settings.EXCLUDE_LIST)
+
+    if os.path.exists(exclude_file_path):
+        with open(exclude_file_path, "rb") as f:
+            excluded_pids = [a.strip() for a in f if not a.startswith("#")]
+
+    return excluded_pids
+
+
+def update_uid(uid, success):
+    """Update status of uid depending on success.
+
+     Delete uid if metadata couldn't be updated.
+     Change status of uid -- mark as not reserved -- if successfully added to metadata.
+     """
+    ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
+
+    if success:
+        result = "Success"
+        ez.modify(uid, {"_status": "public"})
+    else:
+        result = "Failure"
+        ez.delete(uid)
+
+    return result
+
+
+def run_mint_id(ns, current_job, id_type):
+    """Mint ID of given type."""
+    # Find all objects matching namespace.
     found_objects = get_matching_objects(ns)
-    success = False
 
     if len(found_objects) > 0:
         for o in found_objects:
 
-            uid_url = None
-            response, uid = make_id(o, "doi")
-            if uid:
+            response, uid = make_id(o, id_type)
+
+            # Make url version of id.
+            if uid and id_type == "doi":
+
                 uid_url = "https://doi.org/{0}".format(uid.split(":")[1])
-            
-            ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
 
+            elif uid and id_type == "ark":
+
+                uid_url = "https://n2t.net/{0}".format(uid)
+
+            else:
+                uid_url = None
+
+            # If creation of id was successful, add to metadata and update.
             if response in [200, 201]:
-                result = "Success"
-                success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
 
+                uid_added = add_uid_to_metadata(o["pid"], uid, uid_url, id_type)
+                result = update_uid(uid, uid_added)
+
+            # Response code of -2 indicates a skip.
+            # If uid exists, then this is presumably from a previous attempt; clarify this logic here.
             elif response == -2 and uid is not None:
-                success = add_uid_to_metadata(o["pid"], uid, uid_url, "doi")
-                result = "Skipped"
+                uid_added = add_uid_to_metadata(o["pid"], uid, uid_url, id_type)
+                result = update_uid(uid, uid_added)
 
             elif response == -2 and uid is None:
                 result = "Skipped"
 
-            else:
-                result = "Failure"
-
-            if success:
-                ez.modify(uid, {"_status": "public"})
-            else:
-                result = "Failure"
-                ez.delete(uid)
-
-            result_id = object_results.objects.get(label=result)
-
-            namespace_objects.objects.create(
-                job_id=current_job,
-                completed=timezone.now(),
-                result_id=result_id,
-                pid=o["pid"],
-            )
-
-
-def run_mint_ark(ns, current_job):
-    """Check if ARK exists and create DOI."""
-    found_objects = get_matching_objects(ns)
-    success = False
-
-    if len(found_objects) > 0:
-        for o in found_objects:
-
-            response, uid = make_id(o, "ark")
-            uid_url = "https://n2t.net/{0}".format(uid)
-            
-            ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
-
-            if response in [200, 201]:
-
-                result = "Success"
-                success = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
-
-
-                if success:
-                    ez.modify(uid, {"_status": "public"})
-                else:
-                    result = "Failure"
-                    ez.delete(uid)
-
-            elif response == -2 and uid is not None:
-                success = add_uid_to_metadata(o["pid"], uid, uid_url, "ark")
-                result = "Skipped"
-            
-            elif response == -2 and uid is None:
-                result = "Skipped"
-            
             else:
                 result = "Failure"
 
@@ -622,7 +599,7 @@ def add_uid_to_dc(pid, url, id_type):
             "ark": "https://n2t.net/"
         }
         for u in id_urls:
-            if u.text.startswith(url_patterns[id_type]):
+            if u.text and u.text.startswith(url_patterns[id_type]):
                 u.getparent().remove(u)
 
         new_id_element = etree.SubElement(tree, dc_id_tag, nsmap=nsmap)
@@ -677,15 +654,21 @@ def make_id(obj, id_type):
     pid = obj["pid"]
     logging.info("Now processing pid: {0}".format(pid))
 
+    excluded_pids = load_excluded_pids()
+
     if child_or_root_object(pid):
         # Check if pid is a root object or child object. If so, skip.
         logging.info("Object at {0} appears to be a child or root object. Skipping.".format(pid))
 
+    elif pid in excluded_pids:
+        # Check if pid has been blacklisted.
+        logging.info(
+            "Object at {0} appears to be on the list of excluded PIDs ({1}).".format(pid, settings.EXCLUDE_LIST))
 
-    elif not id_exists(pid, id_type):
+    elif not id_exists(pid, id_type.lower()):
 
         data = get_item_data(pid, id_type)
-        
+
         if data:
             logging.info("Ready to fetch ID.")
             status, uid = fetch_id(obj, id_type, data)
@@ -697,6 +680,7 @@ def make_id(obj, id_type):
         pid_object = object_ids.objects.get(pid=pid)
         uid = getattr(pid_object, id_type)
         logging.info("ID already exists for: {0}. Validating".format(pid))
+
         if not validate_existing_id(uid, id_type):
             data = get_item_data(pid, id_type)
             logging.warning("ID is invalid. Minting new one.")
@@ -793,7 +777,7 @@ def validate_existing_id(uid, id_type):
     if not r.ok or "lib.msu.edu" not in r.url:
         logging.info(r.url)
         valid = False
-            
+
     return valid
 
 
@@ -876,8 +860,8 @@ def get_ark_data(pid):
     # Make sure DC and MODS datastreams are both available -- if not, do not create ID.
     if not (dc_status in [200, 201] and mods_status in [200, 201]):
         return None
-    
-    who =  "; ".join(get_dc_element(dc, "//dc:creator"))
+
+    who = "; ".join(get_dc_element(dc, "//dc:creator"))
     if who == "":
         who = "Creator not identified"
 
@@ -910,7 +894,6 @@ def fetch_id(obj, id_type, data):
     """Communicate with EZID API to mint DOI/ARK."""
     shoulder = None
 
-
     if id_type == "ark":
         shoulder = settings.ARK_SHOULDER
     elif id_type == "doi":
@@ -924,7 +907,7 @@ def fetch_id(obj, id_type, data):
 
         ez = Ezid(username=settings.EZID_USER, password=settings.EZID_PASSWORD)
         status, uid_result = ez.mint(shoulder, metadata=data)
-        
+
         if status != -1:
             uid = uid_result.split("|")[0].split(": ")[1].strip()
         else:

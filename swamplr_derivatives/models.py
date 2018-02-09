@@ -11,6 +11,8 @@ class derivative_jobs(models.Model):
     replace_on_duplicate = models.CharField(max_length=1)
     subset = models.IntegerField(default=0)
     source_file_extension = models.CharField(max_length=10)
+    contrast = models.IntegerField(default=0)
+    brightness = models.IntegerField(default=0)
 
 class job_derivatives(models.Model):
 

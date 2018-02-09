@@ -56,6 +56,22 @@ def get_derivative_options(section):
         nav_options.append(nav_option)
     return nav_options
 
+def get_command_list(config, source_type, option_key):
+    """Get commands from config file."""
+    commands = config.options(option_key)
+    command_steps = sorted([int(c.split(".")[1]) for c in commands if c.startswith("step.") and c.endswith(".command")])
+    
+    command_list = []
+    for c in command_steps:
+        join_key = "step.{0}.join".format(c)
+        join_value = "AND"
+        if config.has_option(option_key, join_key):
+            join_value = config.get(option_key, join_key)
+        command_list.append((config.get(option_key, "step.{0}.command".format(c)), join_value.upper()))
+    if len(command_list) == 0 and config.has_option(option_key, "command"):
+        command_list.append((config.get(option_key, "command"), "AND"))
+    return command_list
+
 def get_derivative_settings(source_type):
     """Get the derivative types and settings for the specified source type."""
 
@@ -67,18 +83,7 @@ def get_derivative_settings(source_type):
     for opt in options:
 
         option_key = "derive."+source_type.lower()+"."+opt.lower()
-        commands = config.options(option_key)
-        command_steps = sorted([int(c.split(".")[1]) for c in commands if c.startswith("step.") and c.endswith(".command")])
-        command_list = []
-        for c in command_steps:
-            join_key = "step.{0}.join".format(c)
-            join_value = "AND"
-            if config.has_option(option_key, join_key):
-                join_value = config.get(option_key, join_key)
-            command_list.append((config.get(option_key, "step.{0}.command".format(c)), join_value.upper()))
-        if len(command_list) == 0 and config.has_option(option_key, "command"):
-            command_list.append((config.get(option_key, "command"), "AND"))
-
+        command_list = get_command_list(config, source_type, option_key)
         output_file = config.get(option_key, "output_file")
         derive = {"derivative_type": opt, "commands": command_list, "output_file": output_file}
         derive_settings.append(derive)
@@ -94,7 +99,7 @@ def get_configs():
     return config
 
 def manage(request):
-    """Load the JSON config to the pag."""
+    """Load the JSON config to the page."""
     # TODO
     pass
 
@@ -138,7 +143,9 @@ def add_derivatives_job(request, item_type):
             source_dir=clean["path_list_selected"],
             replace_on_duplicate=replace,
             subset=subset,
-            source_file_extension=item_type
+            source_file_extension=item_type,
+            brightness=clean["brightness_value"],
+            contrast=clean["contrast_value"]
         )
 
         for d in object_derivatives:
@@ -198,7 +205,22 @@ def get_derive_data(item_type):
     config = get_configs()
     section = "source.{0}".format(item_type.lower())
     return config.get(section, "derive_options").split(",")
-   
+
+def get_derive_settings(item_type, derive_type):
+    """Get values for specified configs.
+
+    args:
+        item_type (str): should be one of existing item types, e.g. tif, jpg, wav.
+        derive_type (st): should be one of existing derivative types, e.g. jpeg_low, json, etc.
+        settings (list): list of all specified settings to return.
+    """
+    settings = {}
+    config = get_configs()
+    section = "derive.{0}.{1}".format(item_type, derive_type)
+    for s in config.options(section):
+        settings[s] = config.get(section, s)
+    return settings
+
 def get_status_info(job):
     """Required function: return infor about current job for display."""
     job_id = job.job_id
@@ -210,7 +232,7 @@ def get_status_info(job):
 
     result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
     results = get_job_objects(job_id)
-    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
+    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failure"], results["status_count"]["Skipped"])
     info = ["Filetype: {0} <br/>".format(deriv_job.source_file_extension), "Derivatives: {0} <br/>".format(derive_types),
             result_message]
 
@@ -222,7 +244,7 @@ def get_job_objects(job_id):
     results = {
         "status_count": {
             "Success": 0,
-            "Failed": 0,
+            "Failure": 0,
             "Skipped":0,
         },
         "objects": [],
@@ -280,7 +302,7 @@ def update_results(object_head, results, fail_id):
     elif any([r_id == fail_id for r_id in all_result_ids]):
         object_head["result"] = "Failed"
         results["status_count"]["Failed"] += 1
-    else:
+    elif len(set(all_result_ids)) > 0:
         object_head["result"] = "Success"
         results["status_count"]["Success"] += 1
     results["objects"].append(object_head)
@@ -297,6 +319,8 @@ def get_job_details(job):
         ("Source Directory", deriv_job.source_dir),
         ("Replace Existing Derivatives", "Y" if deriv_job.replace_on_duplicate == "y" else "N"),
         ("Items To Process", deriv_job.subset if deriv_job.subset != 0 else "All"),
+        ("Brightness", deriv_job.brightness),
+        ("Contrast", deriv_job.contrast)
     ]
 
     dv_details = job_derivatives.objects.filter(derive_id=deriv_job)
