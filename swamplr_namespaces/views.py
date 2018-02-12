@@ -359,40 +359,48 @@ def get_job_objects(job_id):
         "objects": []
     }
 
-    objects = namespace_objects.objects.filter(job_id=job_id)
+    objects = namespace_objects.objects.filter(job_id=job_id).values()
+    pids = list(set([o["pid"] for o in objects]))
+    o_pid_objects = {o["pid"]:o for o in object_ids.objects.filter(pid__in=pids).values()}
+
+    operation_name = namespace_jobs.objects.get(job_id=job_id).operation_id.operation_name
+    
+    fail_id = object_results.objects.get(label="Failure").result_id
+    success_id = object_results.objects.get(label="Success").result_id
+    skip_id = object_results.objects.get(label="Skipped").result_id
+
+    result_map = {
+        fail_id: "Failure",
+        success_id: "Success",
+        skip_id: "Skipped",
+    }
 
     for o in objects:
         object_data = {
-            "completed": o.completed,
-            "result_id": o.result_id,
-            "result": o.result_id.label,
-            "pid": o.pid
+            "completed": o["completed"],
+            "result_id": o["result_id_id"],
+            "result": result_map[o["result_id_id"]],
+            "pid": o["pid"]
         }
-
         if operation_name in ["Mint DOI", "Mint ARK"]:
             uid = "N/A"
             created = None
-            pid = o.pid
-            operation_name = namespace_jobs.objects.get(job_id=job_id).operation_id.operation_name
-            o_ids = object_ids.objects.filter(pid=pid)
-            if o_ids and operation_name == "Mint DOI":
-                if o_ids[0].doi is not None:
-                    uid = "https://doi.org/{0}".format(o_ids[0].doi.split(":")[1])
-                    created = o_ids[0].doi_minted
-            elif o_ids and operation_name == "Mint ARK":
-                if o_ids[0].ark is not None:
-                    uid = "https://n2t.net/{0}".format(o_ids[0].ark)
-                    created = o_ids[0].ark_minted
+            pid = o["pid"]
+            if pid in pids and operation_name == "Mint DOI":
+                if pid in o_pid_objects and o_pid_objects[pid]["doi"] is not None:
+                    uid = "https://doi.org/{0}".format(o_pid_objects[pid]["doi"].split(":")[1])
+                    created = o_pid_objects[pid]["doi_minted"]
+            elif pid in pids and operation_name == "Mint ARK":
+                if pid in o_pid_objects and o_pid_objects[pid]["ark"] is not None:
+                    uid = "https://n2t.net/{0}".format(o_pid_objects[pid]["ark"])
+                    created = o_pid_objects[pid]["ark_minted"]
             object_data["uid"] = uid
             object_data["created"] = created
+            results["objects"].append(object_data)
 
-        results["objects"].append(object_data)
-        if o.result_id.label == "Success":
-            results["status_count"]["Success"] += 1
-        elif o.result_id.label == "Skipped":
-            results["status_count"]["Skipped"] += 1
-        else:
-            results["status_count"]["Failed"] += 1
+    results["status_count"]["Success"] = namespace_objects.objects.filter(job_id=job_id, result_id=success_id).count()
+    results["status_count"]["Skipped"] = namespace_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
+    results["status_count"]["Failed"] = namespace_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
 
     return results
 
@@ -411,9 +419,9 @@ def get_job_counts(job_id):
     success_id = object_results.objects.get(label="Success").result_id
     skip_id = object_results.objects.get(label="Skipped").result_id
 
-    results["status_count"]["Success"] = namespace_objects.objects.filter(job_id=4476, result_id=success_id).count()
-    results["status_count"]["Skipped"] = namespace_objects.objects.filter(job_id=4476, result_id=skip_id).count()
-    results["status_count"]["Failed"] = namespace_objects.objects.filter(job_id=4476, result_id=fail_id).count()
+    results["status_count"]["Success"] = namespace_objects.objects.filter(job_id=job_id, result_id=success_id).count()
+    results["status_count"]["Skipped"] = namespace_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
+    results["status_count"]["Failed"] = namespace_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
 
     return results
 
