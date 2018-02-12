@@ -182,7 +182,7 @@ def get_status_info(job):
     try:
         # Get data about successes, skips, failures.
         result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span>"
-        results = get_job_objects(job_id)
+        results = get_job_counts(job_id)
         result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"])
         ns_job = namespace_jobs.objects.get(job_id=job.job_id)
 
@@ -360,6 +360,7 @@ def get_job_objects(job_id):
     }
 
     objects = namespace_objects.objects.filter(job_id=job_id)
+
     for o in objects:
         object_data = {
             "completed": o.completed,
@@ -367,12 +368,12 @@ def get_job_objects(job_id):
             "result": o.result_id.label,
             "pid": o.pid
         }
-        operation_name = namespace_jobs.objects.get(job_id=job_id).operation_id.operation_name
+
         if operation_name in ["Mint DOI", "Mint ARK"]:
             uid = "N/A"
             created = None
             pid = o.pid
-
+            operation_name = namespace_jobs.objects.get(job_id=job_id).operation_id.operation_name
             o_ids = object_ids.objects.filter(pid=pid)
             if o_ids and operation_name == "Mint DOI":
                 if o_ids[0].doi is not None:
@@ -395,6 +396,26 @@ def get_job_objects(job_id):
 
     return results
 
+
+def get_job_counts(job_id):
+    results = {
+        "status_count": {
+            "Success": 0,
+            "Failed": 0,
+            "Skipped": 0
+        },
+        "objects": []
+    }
+
+    fail_id = object_results.objects.get(label="Failure").result_id
+    success_id = object_results.objects.get(label="Success").result_id
+    skip_id = object_results.objects.get(label="Skipped").result_id
+
+    results["status_count"]["Success"] = namespace_objects.objects.filter(job_id=4476, result_id=success_id).count()
+    results["status_count"]["Skipped"] = namespace_objects.objects.filter(job_id=4476, result_id=skip_id).count()
+    results["status_count"]["Failed"] = namespace_objects.objects.filter(job_id=4476, result_id=fail_id).count()
+
+    return results
 
 def mint_doi(request, namespace):
     """Mint DOI for object if one does not already exist."""
