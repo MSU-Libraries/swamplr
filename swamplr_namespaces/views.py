@@ -396,7 +396,7 @@ def get_job_objects(job_id):
                     created = o_pid_objects[pid]["ark_minted"]
             object_data["uid"] = uid
             object_data["created"] = created
-            results["objects"].append(object_data)
+        results["objects"].append(object_data)
 
     results["status_count"]["Success"] = namespace_objects.objects.filter(job_id=job_id, result_id=success_id).count()
     results["status_count"]["Skipped"] = namespace_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
