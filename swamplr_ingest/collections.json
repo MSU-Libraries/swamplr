@@ -400,6 +400,88 @@
             }
         }
     },
+    "mscj": {
+	    "name": "mscj",
+    	"label": "MSCJ",
+	    "type": "collection",
+	    "status": "active",
+	    "use_dynamic_label": "True",
+    	"exclude_strings": [],
+	    "objects": {
+		    "audio": {
+			    "label": "Audio",
+			    "content_model": "audio",
+			    "namespace": "mscj",
+			    "datastreams": {
+				    "OBJ": {
+    					"marker": [".wav"],
+    					"required": "true",
+    					"mimetype": "audio/wav"
+    					},
+				    "PROXY_MP3": {
+    					"marker": [".mp3"],
+    					"required": "true"
+    					},
+                    "TEXTPDF": {
+    					"marker": [".pdf"],
+    					"required": "false"
+    				        },
+				    "TN": {
+    					"marker": ["_TN.jpg"],
+    					"required": "true"
+    					},
+				    "WAVEFORM": {
+    					"marker": ["_JSON.json"],
+    					"required": "true"
+						}
+    				},
+			    "metadata": {
+    				"DC": {
+    					"marker": ["_dc.xml"],
+    					"required": "true"
+    					},
+    				"MODS": {
+    					"marker": ["_mods.xml"],
+    					"required": "true"
+    					},
+    				"MARCXML": {
+    					"marker": ["_marcxml.xml"],
+    					"required": "true"
+    					}
+			        }
+		        },
+		    "compound object":{
+			    "label": "compound object (parent)",
+		    	"content_model": "compound",
+			    "namespace": "mscj",
+		    	"datastreams": {
+    				"TN": {
+    					"marker": ["_TN.jpg"],
+    					"required": "true"
+    				},
+    			    "TEXTPDF": {
+    					"marker": [".pdf"],
+    					"required": "false"
+    				}
+				},
+			    "metadata": {
+    				"DC": {
+    					"marker": ["_dc.xml"],
+    					"required": "true"
+    					},
+    				"MODS": {
+    					"marker": ["_mods.xml"],
+    					"required": "true"
+    					},
+    				"MARCXML": {
+    					"marker": ["_marcxml.xml"],
+    					"required": "true"
+                    }
+                }
+            }
+        }
+    },
+
     "grange": {
         "name": "grange",
         "label": "GRANGE",
