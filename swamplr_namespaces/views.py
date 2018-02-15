@@ -278,7 +278,11 @@ def delete(request, ns):
 
 
 def reindex(request, ns):
-    logging.info("Adding reindex job for namespace: {0}".format(ns))
+    if ns == "all":
+        logging.info("Adding reindex job for all items.")
+        ns = "[all items]"
+    else:
+        logging.info("Adding reindex job for namespace: {0}".format(ns))
     new_job = add_job(SwamplrNamespacesConfig.name)
     ns_operation = namespace_operations.objects.get(operation_name="Reindex")
 
@@ -318,7 +322,11 @@ def run_delete(ns, current_job):
 
 def run_reindex(ns, current_job):
     """Reindex all pids within a given namespace."""
-    pid_search_term = ns + ":*"
+    if ns.startswith("[") and ns.endswith("]"):
+        pid_search_term = "*"
+    else:
+        pid_search_term = ns + ":*"
+
     api = FedoraApi()
 
     found_objects = api.find_all_objects(pid_search_term)
