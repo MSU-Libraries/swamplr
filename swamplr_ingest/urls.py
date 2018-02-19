@@ -6,5 +6,6 @@ urlpatterns = [
     url(r'^manage', views.manage, name="manage-ingest"),
     url(r'^([a-z]{1,20})$', views.run_ingest, name="run-ingest"),
     url(r'^ajax/browse/$', views.browse, name='browse'),
+    url(r'^delete/job/(?P<source_job_id>[0-9]+)/$', views.add_delete_job, name='delete-new')
 ]
 

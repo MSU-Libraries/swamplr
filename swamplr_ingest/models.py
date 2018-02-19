@@ -19,6 +19,20 @@ class ingest_jobs(models.Model):
     rels_ext_from_file = models.CharField(max_length=1)
     rels_ext_generated = models.CharField(max_length=1)
 
+class delete_jobs(models.Model):
+    """Delete objects."""
+    delete_id = models.AutoField(primary_key=True)
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
+    source_job = models.ForeignKey('ingest_jobs')
+
+class delete_objects(models.Model):
+    """Each object deleted."""
+    object_id = models.AutoField(primary_key=True)
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
+    # "Success" or "Failure" (or "Skip")
+    result_id = models.ForeignKey('object_results')
+    pid = models.CharField(max_length=64, null=True)
+
 class job_datastreams(models.Model):
 
     job_datastream_id = models.AutoField(primary_key=True)
@@ -44,6 +58,7 @@ class job_objects(models.Model):
     result_id = models.ForeignKey('object_results')
     pid = models.CharField(max_length=64, null=True)
     datastream_id = models.ForeignKey('datastreams')
+    new_object = models.CharField(max_length=1)
 
 class object_results(models.Model):
 

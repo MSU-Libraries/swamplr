@@ -8,7 +8,7 @@
     <div id="namespaces-counts"><p>Found <mark>{{ namespace_count }}</mark> namespace{{ namespace_count|pluralize }}</p></div>
     <div id="namespaces-object-counts">
         <p>Totaling <mark>{{ object_count|intcomma }}</mark> object{{object_count|pluralize }}</p>
-        <form method="POST" action="{% url reindex 'all' %}">
+        <form method="POST" action="{% url 'reindex' all %}">
             <button type="submit" class="btn btn-primary">Reindex All</button>
         </form>
 
