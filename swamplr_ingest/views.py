@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from apps import SwamplrIngestConfig
-from models import ingest_jobs, job_datastreams, datastreams, job_objects, object_results
-from swamplr_jobs.models import status
+from models import ingest_jobs, delete_jobs, delete_objects, job_datastreams, datastreams, job_objects, object_results
+from swamplr_jobs.models import status, job_types
 from collection import CollectionIngest
 from forms import IngestForm
 from swamplr_jobs.views import add_job, job_status 
@@ -20,6 +20,16 @@ def manage(request):
 
 def run_process(current_job):
     """Run process from swamplr_jobs.views."""
+
+    # First handle different job types.
+    if current_job.type_id.label == "ingest":
+        process_ingest(current_job)
+
+    elif current_job.type_id.label == "delete"
+        process_delete(current_job)
+
+
+def process_ingest(current_job):
 
     ingest_job = ingest_jobs.objects.get(job_id=current_job)
     collection_defaults = load_collection_defaults()
@@ -42,6 +52,30 @@ def run_process(current_job):
 
     return (status_id, [output])
 
+
+def process_delete(current_job):
+
+    delete_job = delete_jobs.objects.get(job_id=current_job).source_job
+    objects_to_delete = job_objects.objects.filter(job_id=delete_job)
+    for o in objects_to_delete:
+        if o.new_object:
+            delete_object(current_job, o.pid)
+
+def delete_object(current_job, pid):
+    """Delete object by pid."""
+    response, output = api.purge_object(pid)
+    if response in [200, 201]:
+        result = "Success"
+    else:
+        result = "Failure"
+    result_id = object_results.objects.get(label=result)
+
+    delete_objects.objects.create(
+        job_id=current_job,
+        completed=timezone.now(),
+        result_id=result_id,
+        pid=pid,
+    )
 
 def add_ingest_job(request, collection_name):
    
@@ -192,9 +226,26 @@ def get_status_info(job):
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
-    actions = []
-    return actions
+    batch_delete = {
+        "method": "DELETE",
+        "label": "Delete New Objects",
+        "action": "delete-new",
+        "class": "btn-danger",
+        "args": job,
+    }
 
+    return [batch_delete]
+
+def add_delete_job(request, source_job_id):
+    """Find all newly created objects associated with a given job."""
+    new_job = add_job(SwamplrIngestConfig.name, job_type_label="delete")
+    ingest_job = ingest_jobs.objects(job_id=source_job_id)
+
+    delete_jobs.objects.create(
+        job_id=new_job,
+        source_job=ingest_job,
+    )
+    return redirect(job_status)
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""

@@ -185,10 +185,17 @@ def load_installed_apps():
     for app in APPS:
         import_apps[app] = importlib.import_module(app)
 
-def add_job(app_name):
-    """Use app_name to create new job."""
+def add_job(app_name, job_type_label=None):
+    """Use app_name or job_type to create new job.
+
+    If job_type provided use to get job type id, else use app name. If an app has more than one job type, job_type_id
+    must be passed in.
+    """
     # Get job type id for job type.
-    job_type = job_types.objects.get(app_name=app_name)
+    if job_type_label:
+        job_type = job_types.objects.get(label=job_type_label)
+    else:
+        job_type = job_types.objects.get(app_name=app_name)
 
     # Query for id of job status.
     job_status = status.objects.get(default="y")

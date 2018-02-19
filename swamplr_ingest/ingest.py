@@ -434,12 +434,13 @@ class Ingest:
         result_object = object_results.objects.get(label=status)
         datastream_object = datastreams.objects.get(datastream_label=ds)
         job_objects.objects.create(
-                    job_id=self.ingest_job.job_id,
-                    created=timezone.now(),
-                    obj_file=path,
-                    result_id=result_object,
-                    pid=self.pid,
-                    datastream_id=datastream_object,
+            job_id=self.ingest_job.job_id,
+            created=timezone.now(),
+            obj_file=path,
+            result_id=result_object,
+            pid=self.pid,
+            datastream_id=datastream_object,
+            new_object="1" if self.new_object else "0",
             )
 
     def set_ds_label(self, ds, name):
