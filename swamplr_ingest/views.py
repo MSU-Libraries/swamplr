@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
 from apps import SwamplrIngestConfig
 from models import ingest_jobs, delete_jobs, delete_objects, job_datastreams, datastreams, job_objects, object_results
 from swamplr_jobs.models import status, job_types
@@ -7,6 +8,7 @@ from collection import CollectionIngest
 from forms import IngestForm
 from swamplr_jobs.views import add_job, job_status 
 from datetime import datetime
+from fedora_api.api import FedoraApi
 import logging
 import os
 import json
@@ -23,11 +25,12 @@ def run_process(current_job):
 
     # First handle different job types.
     if current_job.type_id.label == "ingest":
-        process_ingest(current_job)
+        result = process_ingest(current_job)
 
-    elif current_job.type_id.label == "delete"
-        process_delete(current_job)
+    elif current_job.type_id.label == "delete":
+        result = process_delete(current_job)
 
+    return result
 
 def process_ingest(current_job):
 
@@ -55,14 +58,42 @@ def process_ingest(current_job):
 
 def process_delete(current_job):
 
-    delete_job = delete_jobs.objects.get(job_id=current_job).source_job
+    delete_job = delete_jobs.objects.get(job_id=current_job).source_job.job_id
     objects_to_delete = job_objects.objects.filter(job_id=delete_job)
-    for o in objects_to_delete:
-        if o.new_object:
-            delete_object(current_job, o.pid)
+    count = 0
+    deleted = []
+    try:
+        for o in objects_to_delete:
+            if o.new_object: 
+                if o.pid not in deleted:
+                    response = delete_object(current_job, o.pid)
+                    deleted.append(o.pid)
+                    if response in ["200", "201"]:
+                        count += 1
+                else:
+                    pass
+            else:
+
+                result_id = object_results.objects.get(label="Skipped")
+
+                delete_objects.objects.create(
+                    job_id=current_job,
+                    deleted=timezone.now(),
+                    result_id=result_id,
+                    pid=o.pid,
+                )
+
+        status_id = status.objects.get(status="Success").status_id
+        output = "Deleted {0} object(s).".format(count)
+    except Exception as e:
+        output = e
+        status_id = status.objects.get(status="Script error").status_id
+
+    return (status_id, [output])
 
 def delete_object(current_job, pid):
     """Delete object by pid."""
+    api = FedoraApi()
     response, output = api.purge_object(pid)
     if response in [200, 201]:
         result = "Success"
@@ -72,10 +103,11 @@ def delete_object(current_job, pid):
 
     delete_objects.objects.create(
         job_id=current_job,
-        completed=timezone.now(),
+        deleted=timezone.now(),
         result_id=result_id,
         pid=pid,
     )
+    return response
 
 def add_ingest_job(request, collection_name):
    
@@ -102,7 +134,7 @@ def add_ingest_job(request, collection_name):
         replace_on_duplicate = "y" if clean["replace_on_duplicate"] else ""
         subset = int(clean["subset_value"]) if clean["subset_value"] else 0
 
-        new_job = add_job(SwamplrIngestConfig.name)
+        new_job = add_job(SwamplrIngestConfig.name, job_type_label="ingest")
         ingest_job = ingest_jobs.objects.create(
             job_id=new_job,
             source_dir=clean["path_list_selected"],          
@@ -172,37 +204,46 @@ def get_job_details(job):
     """Required function: return detailed info about given job for display."""
     job_id = job.job_id
 
-    ingest_job = ingest_jobs.objects.get(job_id=job_id)
-    ingest_data = get_ingest_data(ingest_job.collection_name)
+    if job.type_id.label == "delete":
+        delete_job = delete_jobs.objects.get(job_id=job_id)
+        details = [
+            ("Delete Job ID", delete_job.delete_id),
+            ("Deleting from Job", delete_job.source_job.job_id_id),
+        ]
+        
 
-    details = [
-        ("Ingest ID", ingest_job.ingest_id),
-        ("Collection Type", ingest_job.collection_name),
-        ("Namespace", ingest_job.namespace),
-        ("Source Directory", ingest_job.source_dir),
-        ("Process New Objects", "Y" if ingest_job.process_new == "y" else "N"),
-        ("Process Existing Objects", "Y" if ingest_job.process_existing == "y" else "N"),
-        ("Replace Duplicate Datastreams", "Y" if ingest_job.replace_on_duplicate == "y" else "N"),
-        ("Items To Process", ingest_job.subset if ingest_job.subset != 0 else "All"),
-    ]
-    ds_data = {}
-    job_ds = job_datastreams.objects.filter(ingest_id=ingest_job.ingest_id)
-    for j in job_ds:
-        ds = datastreams.objects.get(datastream_id=j.datastream_id_id)
-        label = ds.datastream_label
-        ds_type = "Datastreams" if ds.is_object == "y" else "Metadata"
-        object_type = j.object_type
-        if "label" in ingest_data["objects"][object_type]:
-            object_type_label = ingest_data["objects"][object_type]["label"]
-        else:
-            object_type_label = object_type
-        key = " ".join([object_type_label.capitalize(), ds_type])
-        if key not in ds_data:
-            ds_data[key] = [label]
-        else:
-            ds_data[key].append(label)
-    for k, v in ds_data.items():
-        details.append((k, ", ".join(v)))
+    elif job.type_id.label == "ingest":
+        ingest_job = ingest_jobs.objects.get(job_id=job_id)
+        ingest_data = get_ingest_data(ingest_job.collection_name)
+
+        details = [
+            ("Ingest ID", ingest_job.ingest_id),
+            ("Collection Type", ingest_job.collection_name),
+            ("Namespace", ingest_job.namespace),
+            ("Source Directory", ingest_job.source_dir),
+            ("Process New Objects", "Y" if ingest_job.process_new == "y" else "N"),
+            ("Process Existing Objects", "Y" if ingest_job.process_existing == "y" else "N"),
+            ("Replace Duplicate Datastreams", "Y" if ingest_job.replace_on_duplicate == "y" else "N"),
+            ("Items To Process", ingest_job.subset if ingest_job.subset != 0 else "All"),
+        ]
+        ds_data = {}
+        job_ds = job_datastreams.objects.filter(ingest_id=ingest_job.ingest_id)
+        for j in job_ds:
+            ds = datastreams.objects.get(datastream_id=j.datastream_id_id)
+            label = ds.datastream_label
+            ds_type = "Datastreams" if ds.is_object == "y" else "Metadata"
+            object_type = j.object_type
+            if "label" in ingest_data["objects"][object_type]:
+                object_type_label = ingest_data["objects"][object_type]["label"]
+            else:
+                object_type_label = object_type
+            key = " ".join([object_type_label.capitalize(), ds_type])
+            if key not in ds_data:
+                ds_data[key] = [label]
+            else:
+                ds_data[key].append(label)
+        for k, v in ds_data.items():
+            details.append((k, ", ".join(v)))
 
     return details
 
@@ -211,35 +252,46 @@ def get_status_info(job):
     """Required function: return info about current job for display."""
     job_id = job.job_id
 
-    # Get data about successes, skips, failures.
-    ingest_job = ingest_jobs.objects.get(job_id=job.job_id)
-    ingest_data = get_ingest_data(ingest_job.collection_name)
-    collection_label = ingest_data["label"]
-    
     result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
-    results = get_job_objects(job_id)
-    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
-    info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label),
-            result_message]
     
+    if job.type_id.label == "delete":
+        delete_job = delete_jobs.objects.get(job_id=job_id)
+        delete_id = delete_job.source_job.job_id_id
+        info = ["Deleting from job {0} <br/>".format(delete_id)]
+
+    elif job.type_id.label == "ingest":
+        # Get data about successes, skips, failures.
+        ingest_job = ingest_jobs.objects.get(job_id=job_id)
+        ingest_data = get_ingest_data(ingest_job.collection_name)
+        collection_label = ingest_data["label"]
+        info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label)]
+    
+    results = get_job_objects(job_id, job_type=job.type_id.label)
+    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
+    info.append(result_message) 
+
     return info, []
 
 def get_actions(job):
     """Required function: return actions to populate in job table."""
+    actions = []
     batch_delete = {
         "method": "DELETE",
-        "label": "Delete New Objects",
+        "label": "Delete",
         "action": "delete-new",
         "class": "btn-danger",
-        "args": job,
+        "args": job.job_id,
     }
 
-    return [batch_delete]
+    if job.type_id.label == "ingest" and (job.status.failure == "y" or job.status.success == "y"): 
+        actions.append(batch_delete)
+    
+    return actions
 
 def add_delete_job(request, source_job_id):
     """Find all newly created objects associated with a given job."""
     new_job = add_job(SwamplrIngestConfig.name, job_type_label="delete")
-    ingest_job = ingest_jobs.objects(job_id=source_job_id)
+    ingest_job = ingest_jobs.objects.get(job_id=source_job_id)
 
     delete_jobs.objects.create(
         job_id=new_job,
@@ -271,8 +323,7 @@ def get_ingest_options(status=["active"]):
 
     return ingest_options
 
-def get_job_objects(job_id):
-    logging.info("get_job_objects: {0}".format(job_id))
+def get_job_objects(job_id, job_type="ingest"):
     results = {
         "status_count": {
             "Success": 0,
@@ -280,10 +331,35 @@ def get_job_objects(job_id):
             "Skipped":0,
         },
         "objects": [],
-        "type": "ingest"
+        "type": job_type,
     }
-    cpid = None   # Current pid we are looping on
     fail_id = object_results.objects.get(label="Failure").result_id
+    success_id = object_results.objects.get(label="Success").result_id
+    skip_id = object_results.objects.get(label="Skipped").result_id
+    result_map = {
+        fail_id: "Failure",
+        success_id: "Success",
+        skip_id: "Skipped",
+    }
+
+    if job_type == "delete":
+        objects = delete_objects.objects.filter(job_id=job_id).values()
+        for o in objects:
+            object_data = {
+                "completed": o["deleted"],
+                "result_id": o["result_id_id"],
+                "result": result_map[o["result_id_id"]],
+                "pid": o["pid"],
+        }
+            results["objects"].append(object_data)
+
+        results["status_count"]["Success"] = delete_objects.objects.filter(job_id=job_id, result_id=success_id).count()
+        results["status_count"]["Skipped"] = delete_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
+        results["status_count"]["Failed"] = delete_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
+        logging.info(results)
+        return results
+    
+    cpid = None   # Current pid we are looping on
     all_results_dc = object_results.objects.all().values()
     all_datastreams_dc = datastreams.objects.all().values()
 
@@ -292,7 +368,6 @@ def get_job_objects(job_id):
 
     objects = job_objects.objects.filter(job_id=job_id).values().order_by('pid')
     object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
-    logging.info("Entering the LOOP of {0}".format(len(objects)))
     for o in objects:
         if (cpid != o["pid"]):
             if (cpid != None):
@@ -315,7 +390,6 @@ def get_job_objects(job_id):
         object_head["pid"] = cpid
 
     results = update_results(object_head, results, fail_id)
-
     return results
 
 def update_results(object_head, results, fail_id):

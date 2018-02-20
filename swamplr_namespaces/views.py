@@ -44,7 +44,6 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
     elif direction == "desc":
         direction = "-"
     sort = direction + sort_field
-
     namespace_objects = namespace_cache.objects.all().order_by(sort)
     paginator = Paginator(namespace_objects, count)
     page = request.GET.get('page')
@@ -72,7 +71,7 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
 
     for ns in namespace_list.object_list:
         set_namespace_info(ns)
-
+        
     response["namespaces"] = namespace_list
 
     return render(request, 'swamplr_namespaces/namespaces.html', response)
@@ -125,7 +124,7 @@ def run_process(current_job):
 def set_namespace_info(ns):
     """Prepare namespace object with additional info for display."""
     ns.actions = set_actions(ns)
-
+    print(ns.actions)
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
@@ -149,7 +148,7 @@ def set_actions(ns):
         "label": "Reindex",
         "action": "reindex",
         "class": "btn-primary",
-        "args": ns.namespace
+        "args": ns.namespace,
     }
     delete = {
         "method": "DELETE",

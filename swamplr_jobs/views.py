@@ -98,13 +98,13 @@ def view_job(request, job_id):
     # Get all needed job object information.
     job.objects = []
     if hasattr(app.views, "get_job_objects") and callable(getattr(app.views, "get_job_objects")):
-        object_data = app.views.get_job_objects(job_id)
+        object_data = app.views.get_job_objects(job_id, job_type=job_type_object.label)
         job.objects = object_data
 
     # Get app-specific job data.
     job.details = []
     if hasattr(app.views, "get_job_details") and callable(getattr(app.views, "get_job_details")):
-        details = app.views.get_job_details(job)
+        details = app.views.get_job_details(job) 
         job.details = details
 
     return render(request, 'swamplr_jobs/job.html', {"job": job})
@@ -295,6 +295,7 @@ def stop_job(request, job_id):
     job_object = jobs.objects.get(job_id=job_id)
     status_obj = status.objects.get(failure="manual")
     job_object.status_id = status_obj 
+    job_object.completed = timezone.now()
     job_object.save()
 
     if job_object.process_id != 0:

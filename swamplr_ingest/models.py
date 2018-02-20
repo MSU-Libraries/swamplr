@@ -32,6 +32,7 @@ class delete_objects(models.Model):
     # "Success" or "Failure" (or "Skip")
     result_id = models.ForeignKey('object_results')
     pid = models.CharField(max_length=64, null=True)
+    deleted = models.DateTimeField(null=True)
 
 class job_datastreams(models.Model):
 
@@ -58,7 +59,7 @@ class job_objects(models.Model):
     result_id = models.ForeignKey('object_results')
     pid = models.CharField(max_length=64, null=True)
     datastream_id = models.ForeignKey('datastreams')
-    new_object = models.CharField(max_length=1)
+    new_object = models.CharField(max_length=1, null=True)
 
 class object_results(models.Model):
 

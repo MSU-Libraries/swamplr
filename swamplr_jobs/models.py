@@ -14,7 +14,7 @@ class job_types(models.Model):
     """Type of each new job, e.g. derivative, ingest, etc."""
     type_id = models.AutoField(primary_key=True)
     label = models.CharField(max_length=64, unique=True)
-    app_name = models.CharField(null=True, max_length=64, unique=True) 
+    app_name = models.CharField(null=True, max_length=64) 
 
 
 class jobs(models.Model):
