@@ -13,6 +13,7 @@ from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrDerivativesConfig
 from datetime import datetime
 import logging
+import sys
 from derivatives import Derivatives
 
 def get_nav_bar():
@@ -38,7 +39,7 @@ def run_process(current_job):
         status_id = status.objects.get(status="Success").status_id
         output = "Derivatives job complete."
     except Exception as e:
-        output = e
+        output = "{0} on line {1} of {2}: {3}".format(type(e).__name__, sys.exc_info()[-1].tb_lineno, os.path.basename(__file__), e)
         status_id = status.objects.get(status="Script error").status_id
 
     return (status_id, [output])
