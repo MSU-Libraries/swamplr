@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
+from django.db.models import Count
 from apps import SwamplrIngestConfig
 from models import ingest_jobs, delete_jobs, delete_objects, job_datastreams, datastreams, job_objects, object_results
 from swamplr_jobs.models import status, job_types
@@ -62,26 +63,30 @@ def process_delete(current_job):
     objects_to_delete = job_objects.objects.filter(job_id=delete_job)
     count = 0
     deleted = []
+    skipped = []
     try:
         for o in objects_to_delete:
             if o.new_object: 
                 if o.pid not in deleted:
                     response = delete_object(current_job, o.pid)
                     deleted.append(o.pid)
-                    if response in ["200", "201"]:
+                    if response in [200, 201]:
                         count += 1
                 else:
                     pass
             else:
+                if o.pid not in skipped:
+                    result_id = object_results.objects.get(label="Skipped")
 
-                result_id = object_results.objects.get(label="Skipped")
-
-                delete_objects.objects.create(
-                    job_id=current_job,
-                    deleted=timezone.now(),
-                    result_id=result_id,
-                    pid=o.pid,
-                )
+                    delete_objects.objects.create(
+                        job_id=current_job,
+                        deleted=timezone.now(),
+                        result_id=result_id,
+                        pid=o.pid,
+                        )
+                    skipped.append(o.pid)
+                else:
+                    pass
 
         status_id = status.objects.get(status="Success").status_id
         output = "Deleted {0} object(s).".format(count)
@@ -93,7 +98,7 @@ def process_delete(current_job):
 
 def delete_object(current_job, pid):
     """Delete object by pid."""
-    api = FedoraApi()
+    api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
     response, output = api.purge_object(pid)
     if response in [200, 201]:
         result = "Success"
@@ -206,10 +211,12 @@ def get_job_details(job):
 
     if job.type_id.label == "delete":
         delete_job = delete_jobs.objects.get(job_id=job_id)
+        object_count = delete_objects.objects.filter(job_id=delete_job.job_id).annotate(Count('pid', distinct=True)).count()
         details = [
             ("Delete Job ID", delete_job.delete_id),
-            ("Deleting from Job", delete_job.source_job.job_id_id),
-        ]
+            ("Deleting New Items From Job", delete_job.source_job.job_id_id),
+            ("Items Processed", object_count),
+    ]
         
 
     elif job.type_id.label == "ingest":
@@ -257,7 +264,7 @@ def get_status_info(job):
     if job.type_id.label == "delete":
         delete_job = delete_jobs.objects.get(job_id=job_id)
         delete_id = delete_job.source_job.job_id_id
-        info = ["Deleting from job {0} <br/>".format(delete_id)]
+        info = ["Deleting From: <span class='job-data'>Job {0}</span> <br/>".format(delete_id)]
 
     elif job.type_id.label == "ingest":
         # Get data about successes, skips, failures.
@@ -277,7 +284,7 @@ def get_actions(job):
     actions = []
     batch_delete = {
         "method": "DELETE",
-        "label": "Delete",
+        "label": "Delete Objects",
         "action": "delete-new",
         "class": "btn-danger",
         "args": job.job_id,
@@ -356,7 +363,6 @@ def get_job_objects(job_id, job_type="ingest"):
         results["status_count"]["Success"] = delete_objects.objects.filter(job_id=job_id, result_id=success_id).count()
         results["status_count"]["Skipped"] = delete_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
         results["status_count"]["Failed"] = delete_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
-        logging.info(results)
         return results
     
     cpid = None   # Current pid we are looping on
@@ -368,28 +374,31 @@ def get_job_objects(job_id, job_type="ingest"):
 
     objects = job_objects.objects.filter(job_id=job_id).values().order_by('pid')
     object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
+    count = 0
     for o in objects:
+        count += 1
         if (cpid != o["pid"]):
             if (cpid != None):
                 results = update_results(object_head, results, fail_id)
 
-            cpid = o["pid"]
+            cpid = o["pid"] if ":" in o["pid"] else "[skipped object #{0}]".format(count)
             object_head = {"job_id": job_id, "subs": [], "path": None, "pid": "", "result": ""}
-
+        
         object_data = {}
         object_data["datastream"] = all_datastreams[o["datastream_id_id"]]
         object_data["file"] = os.path.basename(o["obj_file"]) if o["obj_file"] else "Null"
         object_data["created"] = o["created"]
         object_data["result_id"] = o["result_id_id"]
         object_data["result"] = all_results[o["result_id_id"]]
-        object_data["pid"] = o["pid"]
+        object_data["pid"] = cpid
         object_head["subs"].append(object_data)
         if object_head["path"] is None and o["obj_file"] is not None:
             object_head["path"] = "/".join(o["obj_file"].rstrip("/").split("/")[:-1])
-
+        print(object_data)
         object_head["pid"] = cpid
 
     results = update_results(object_head, results, fail_id)
+    print(results["status_count"])
     return results
 
 def update_results(object_head, results, fail_id):

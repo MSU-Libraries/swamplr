@@ -238,7 +238,7 @@ def get_status_info(job):
 
     return info, []
 
-def get_job_objects(job_id):
+def get_job_objects(job_id, job_type=None):
     """Gather all objects created by the given job, and count successes/failures/skips."""
 
     results = {

@@ -356,7 +356,7 @@ def send_reindex(pid):
     return response
 
 
-def get_job_objects(job_id):
+def get_job_objects(job_id, job_type=None):
     results = {
         "status_count": {
             "Success": 0,

@@ -440,7 +440,7 @@ class Ingest:
             result_id=result_object,
             pid=self.pid,
             datastream_id=datastream_object,
-            new_object="1" if self.new_object else "0",
+            new_object="y" if self.new_object else None,
             )
 
     def set_ds_label(self, ds, name):

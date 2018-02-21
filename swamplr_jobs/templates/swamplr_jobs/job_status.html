@@ -22,7 +22,10 @@
             <div class="job-column {{ headings.5|lower|slugify }}-column">{{ j.status.status }}</div>
             <div class="job-column {{ headings.6|lower|slugify }}-column app-button">
             {% for a in j.actions %}
-                <form method="{{ a.method }}" action="{% url a.action a.args %}"><button type="submit" class="btn {{ a.class }}">{{ a.label }}</button></form>
+            <form method="{{ a.method }}" action="{% url a.action a.args %}"><button type="submit" class="btn {{ a.class }}"                
+            {% if a.label == "Delete Objects"  %} onclick='return confirm("Delete all new items created during this job?")' 
+            {% endif %}>{{ a.label }}
+            </button></form>
             {% endfor %}
             </div>
          </div>

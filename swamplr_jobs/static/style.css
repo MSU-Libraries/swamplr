@@ -276,11 +276,11 @@ a.btn.btn-lg.btn-outline-dark {
 }
 
 .created-column {
-    width:15%;
+    width:14%;
 }
 
 .completed-column {
-    width:15%;
+    width:14%;
 }
 
 .status-column {
@@ -288,7 +288,7 @@ a.btn.btn-lg.btn-outline-dark {
 }
 
 .actions-column {
-    width:15%;
+    width:18%;
 }
 
 .ns-column.actions-column {
@@ -351,7 +351,7 @@ input#submit-id-add-service {
 }
 
 .app-button {
-    text-align:center;
+    text-align:right;
 }
 
 #status-container {
@@ -391,10 +391,11 @@ input#submit-id-add-service {
     display:flex;
     width:100%;
     text-align:left;
+    align-items:center;
 }
 
 .object-data > .object-column {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
 }
 .job-container .job-detail-heading {
     background-color:white;

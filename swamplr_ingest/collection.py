@@ -80,7 +80,6 @@ class CollectionIngest(object):
 
                 # Check if job has been cancelled.
                 failure_status = jobs.objects.get(job_id=self.job.job_id.job_id).status_id.failure 
-                logging.info(failure_status)
                 if failure_status == "manual":
                     break
                 # Stop after processing specified number of items.
@@ -332,4 +331,5 @@ class CollectionIngest(object):
                     if dirx.endswith("_root"):
                         root_dir = os.path.join(root, dirx)
                         break
+        logging.info("Root dir set as: {0}".format(root_dir))
         return root_dir
