@@ -84,7 +84,7 @@ def run_process(current_job):
     if operation_type.lower() == "reindex":
         try:
             run_reindex(namespace_job.namespace, current_job)
-            status_obj = status.objects.get(status="Success")
+            status_obj = status.objects.get(status="Complete")
             message = ["Reindex completed."]
         except Exception as e:
             logging.error("Unable to complete reindex.")
@@ -93,7 +93,7 @@ def run_process(current_job):
     elif operation_type.lower() == "delete":
         try:
             run_delete(namespace_job.namespace, current_job)
-            status_obj = status.objects.get(status="Success")
+            status_obj = status.objects.get(status="Complete")
             message = ["Deletion completed."]
             namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()
 
@@ -105,7 +105,7 @@ def run_process(current_job):
     elif operation_type.lower() in ["mint doi", "mint ark"]:
         try:
             run_mint_id(namespace_job.namespace, current_job, operation_type[-3:].lower())
-            status_obj = status.objects.get(status="Success")
+            status_obj = status.objects.get(status="Complete")
             message = ["All objects processed",
                        "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
 

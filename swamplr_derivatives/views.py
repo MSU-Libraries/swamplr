@@ -35,7 +35,7 @@ def run_process(current_job):
     try:
         d = Derivatives()
         d.start_derivatives(derivative_job, derivative_settings)
-        status_id = status.objects.get(status="Success").status_id
+        status_id = status.objects.get(status="Complete").status_id
         output = "Derivatives job complete."
     except Exception as e:
         output = e
