@@ -13,11 +13,6 @@ from pwd import getpwnam
 import getpass
 
 
-#### TODO
-#### - fits commands aren't working
-#### - mp3 and waveform commands aren't working
-#### - occassional MySql server disappeared error (seems better after moving out derive_obj calls)
-
 class Derivatives(object):
 
     def __init__(self):
@@ -91,9 +86,10 @@ class Derivatives(object):
                         logging.debug("Reached subset count ({0}), stopping processing.".format(files_processed))
                         break
 
+                    ## check if the job has been canceled -- TODO
+
                     ## loop over each derivative type to be created for each object
                     for derivative in self.derivative_types:
-                        print derivative
                         thread_index += 1
                         ### if we are over the max thread count, wait until one frees up
                         if thread_count.value >= settings.MAX_THREADS:
