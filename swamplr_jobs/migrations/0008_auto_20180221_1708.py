@@ -12,5 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL("""UPDATE swamplr_jobs_status SET status = "Complete" where status = "Success";""")
+        migrations.RunSQL("""UPDATE swamplr_jobs_status SET status = "Complete" where status = "Success";"""),
+        migrations.RunSQL("INSERT INTO swamplr_jobs_job_types (label, app_name) VALUES('delete', 'swamplr_ingest') ON DUPLICATE KEY UPDATE label=label;")
 ]
