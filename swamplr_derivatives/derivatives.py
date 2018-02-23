@@ -11,6 +11,7 @@ from models import derivative_files, derivative_results, job_derivatives
 import subprocess
 from pwd import getpwnam
 import getpass
+from django import db
 
 
 class Derivatives(object):
@@ -115,6 +116,7 @@ class Derivatives(object):
                         thread_count.release()
 
                         ### start the process
+                        db.connections.close_all()
                         p.start()
 
                     ## increment number of files processed
