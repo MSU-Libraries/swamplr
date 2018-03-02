@@ -11,6 +11,7 @@ from swamplr_jobs.views import add_job, job_status
 from datetime import datetime
 from fedora_api.api import FedoraApi
 import logging
+import sys
 import os
 import json
 from django.conf import settings
@@ -51,7 +52,7 @@ def process_ingest(current_job):
         output = "Ingest complete."
 
     except Exception as e:
-        output = e
+        output = "{0} on line {1} of {2}: {3}".format(type(e).__name__, sys.exc_info()[-1].tb_lineno, os.path.basename(__file__), e)
         status_id = status.objects.get(status="Script error").status_id
 
     return (status_id, [output])
@@ -91,7 +92,7 @@ def process_delete(current_job):
         status_id = status.objects.get(status="Complete").status_id
         output = "Deleted {0} object(s).".format(count)
     except Exception as e:
-        output = e
+        output = "{0} on line {1} of {2}: {3}".format(type(e).__name__, sys.exc_info()[-1].tb_lineno, os.path.basename(__file__), e)
         status_id = status.objects.get(status="Script error").status_id
 
     return (status_id, [output])
@@ -290,7 +291,7 @@ def get_actions(job):
         "args": job.job_id,
     }
 
-    if job.type_id.label == "ingest" and (job.status.failure == "y" or job.status.success == "y"): 
+    if job.type_id.label == "ingest" and job.status_id.running != "y" and job.status_id.default != "y": 
         actions.append(batch_delete)
     
     return actions

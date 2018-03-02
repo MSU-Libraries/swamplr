@@ -16,6 +16,5 @@ class Migration(migrations.Migration):
             model_name='jobs',
             name='archived',
             field=models.CharField(blank=True, max_length=1),
-        ),
-    migrations.RunSQL("INSERT INTO swamplr_jobs_job_types (label, app_name) VALUES('delete', 'swamplr_ingest') ON DUPLICATE KEY UPDATE label=label;"),
-]
+        )
+    ]
