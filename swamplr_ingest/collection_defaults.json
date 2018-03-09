@@ -6,6 +6,12 @@
     "large_image": {
       "has_model": "info:fedora/islandora:sp_large_image_cmodel"
     },
+    "book": {
+      "has_model": "info:fedora/islandora:bookCModel"
+    },
+    "book_page": {
+      "has_model": "info:fedora/islandora:pageCModel"
+    }
     "newspaper_issue": {
       "has_model": "info:fedora/islandora:newspaperIssueCModel"
     },
@@ -158,6 +164,14 @@
       "versionable": "False",
       "checksum_type": "SHA-512",
       "mimetype": "text/xml"
+    },
+    "BIO": {
+      "id": "BIO",
+      "label": "BIO",
+      "type": "M",
+      "versionable": "True",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/html"
     }
   },
   "metadata":{

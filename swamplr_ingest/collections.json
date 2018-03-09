@@ -169,6 +169,188 @@
             }
         }
     },
+    "fa": {
+        "name": "fa",
+        "label": "Feeding America",
+        "type": "collection",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "book": {
+                "label": "Book",
+                "content_model": "book",
+                "namespace": "book",
+                "datastreams": {
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "PDF": {
+                        "marker": [".pdf"],
+                        "required": "true"
+                    },
+                    "FULL_TEXT": {
+                        "marker":[".txt"],
+                        "required": "true"
+                    },
+                    "MARKUP": {
+                        "marker": ["_MARKUP.xml"],
+                        "required": "true"
+                    },
+                    "PDF_REM": {
+                        "marker": ["_rem.pdf"],
+                        "required": "false"
+                    },
+                    "PREVIEW": {
+                        "marker": ["_PREVIEW.jpg"],
+                        "required": "true"
+                    },
+                    "BIO": {
+                        "marker": [".html"],
+                        "required": "false"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_DC.xml", "_dc.xml"],
+                        "required": "true"
+                    },
+                    "MARC": {
+                        "marker": ["_DC.xml", "_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml", "_mods.xml"],
+                        "required": "true"
+                    },
+                    "CUSTOM": {
+                        "marker": ["CUSTOM.xml"],
+                        "required": "true"
+                    }
+                }
+            },
+            "book_page": {
+                "label": "Book Page",
+                "namespace": "book",
+                "content_model": "book_page",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".tif"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "JP2": {
+                        "marker": [".jp2"],
+                        "required": "true"
+                    },
+                    "FULL_TEXT": {
+                        "marker": [".txt"],
+                        "required": "true"
+                    },
+                    "HOCR": {
+                        "marker": [".html"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_HIGH.jpg"],
+                        "required": "true"
+                    }
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "false"
+                    }
+                }
+            }
+        }
+    },
+    "book": {
+        "name": "book",
+        "label": "Book",
+        "type": "default",
+        "status": "active",
+        "use_dynamic_label": "True",
+        "exclude_strings": [],
+        "objects": {
+            "book": {
+                "label": "Book",
+                "content_model": "book",
+                "namespace": "book",
+                "datastreams": {
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "PDF": {
+                        "marker": [".pdf"],
+                        "required": "true"
+                    }
+
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_DC.xml", "_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_MODS.xml", "_mods.xml"],
+                        "required": "true"
+                    }
+                }
+            },
+            "book_page": {
+                "label": "Book Page",
+                "namespace": "book",
+                "content_model": "book_page",
+                "datastreams": {
+                    "OBJ": {
+                        "marker": [".tif"],
+                        "required": "true"
+                    },
+                    "TN": {
+                        "marker": ["_TN.jpg"],
+                        "required": "true"
+                    },
+                    "JP2": {
+                        "marker": ["_JP2.jp2"],
+                        "required": "true"
+                    },
+                    "FULL_TEXT": {
+                        "marker": [".txt"],
+                        "required": "true"
+                    },
+                    "HOCR": {
+                        "marker": [".html"],
+                        "required": "true"
+                    },
+                    "JPG": {
+                        "marker": ["_JPG_HIGH.jpg"],
+                        "required": "true"
+                    }
+                },
+                "metadata": {
+                    "DC": {
+                        "marker": ["_dc.xml"],
+                        "required": "true"
+                    },
+                    "MODS": {
+                        "marker": ["_mods.xml"],
+                        "required": "false"
+                    }
+                }
+            }
+        }
+    },
     "etd": {
         "name": "etd",
         "label": "ETD",
@@ -223,63 +405,6 @@
                     },
                     "CUSTOM": {
                         "marker": ["_CUSTOM.xml"],
-                        "required": "true"
-                    }
-                }
-            }
-        }
-    },
-    "fa": {
-        "name": "fa",
-        "label": "Feeding America",
-        "type": "collection",
-        "use_dynamic_label": "True",
-        "status": "active",
-        "exclude_strings": [],
-        "objects": {
-            "object": {
-                "label": "PDF Object",
-                "content_model": "pdf",
-                "namespace": "fa",
-                "datastreams": {
-                    "OBJ": {
-                        "marker": [".pdf"],
-                        "mimetype": "application/pdf",
-                        "required": "true"
-                    },
-                    "TN": {
-                        "marker": ["_TN.jpg"],
-                        "required": "true"
-                    },
-                    "PREVIEW": {
-                        "marker": ["_PREVIEW.jpg"],
-                        "required": "true"
-                    },
-                    "FULL_TEXT": {
-                        "marker": [".txt"],
-                        "required": "true"
-                    },
-                    "MARKUP": {
-                        "marker": ["_MARKUP.xml"],
-                        "required": "true"
-                    },
-                    "PDF_REM": {
-                        "marker": ["_rem.pdf"],
-                        "mimetype":"application/pdf",
-                        "required": "false"
-                    }
-                },
-                "metadata": {
-                    "DC": {
-                        "marker": ["_dc.xml"],
-                        "required": "true"
-                    },
-                    "MODS": {
-                        "marker": ["_mods.xml"],
-                        "required": "true"
-                    },
-                    "MARCXML": {
-                        "marker": ["_marc.xml"],
                         "required": "true"
                     }
                 }

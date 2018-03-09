@@ -162,9 +162,15 @@ class Ingest:
                 self.get_date(self.datastream_paths.get("DC", None)), isLiteral=True
             )
 
+        elif self.content_model == "book":
+            self.fedora_api.add_relationship(
+                self.pid, "info:fedora/fedora-system:def/relations-external#isMemberOfCollection",
+                "info:fedora/{0}".format(root_pid.replace("root", "1"))
+            )
+
         elif self.child:
 
-            if self.content_model == "newspaper_page":
+            if self.content_model in ["newspaper_page", "book_page"]:
                 self.fedora_api.add_relationship(
                     self.pid, "http://islandora.ca/ontology/relsext#isSequenceNumber", self.sequence, isLiteral="true",
                     datatype="int"
