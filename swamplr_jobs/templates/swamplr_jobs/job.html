@@ -62,7 +62,6 @@ $(document).ready(function() {
     </div>
     {% endif %}
     {% if job.objects and job.objects.objects and job.objects.type == "ingest" %}
-    {{ job.objects.type }}
     <div id="objects-heading" class="panel-heading">Objects</div> 
       <div class="table table-responsive table-condensed">
         <div class="job-row">

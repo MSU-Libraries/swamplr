@@ -187,7 +187,7 @@ class Ingest:
                     "info:fedora/{0}".format(self.parent_pid)
                 )
                 new_title = "{0} Page {1}".format(self.title, self.sequence)
-                self.fedora_api.modify_object(self.pid, label=new_title, logMessage="Update newspaper title")
+                self.fedora_api.modify_object(self.pid, label=new_title, logMessage="Update paged content title")
 
             else:
                 # Child object is 'constituent of' parent.
@@ -304,7 +304,7 @@ class Ingest:
 
     def set_sequence_predicate(self):
         """Set up predicate to record/check sequence number of child object."""
-        if self.content_model == "newspaper_page":
+        if self.content_model in ["newspaper_page", "book_page"]:
             predicate = "http://islandora.ca/ontology/relsext#isSequenceNumber"
         else:
             # Sequence predicate for compound object children.
@@ -549,7 +549,7 @@ class Ingest:
         else:
             if len(self.pids) > 1:
                 logging.info(type(self.ingest_job))
-                message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pids[0])
+                message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pid)
                 job_messages.objects.create(job_id=self.ingest_job.job_id, message=message, created=timezone.now())                
                 logging.warn(message)
             elif len(self.pids) == 1:
@@ -582,6 +582,7 @@ class Ingest:
         child_pid = None
         sequence_match = 0
         predicate = self.set_sequence_predicate()
+        logging.info("Attempting to find child pid: {0} -- sequence #{1}".format(predicate, self.sequence))
         for pid in self.pids:
             # Get content models.
             status, object_profile = self.fedora_api.get_object_profile(pid=pid)
@@ -592,7 +593,7 @@ class Ingest:
                 sequence_match = self.get_predicate_value(rels_ext, predicate)
             if not self.is_compound(object_profile) and int(sequence_match) == int(self.sequence):
                 child_pid = pid
-        logging.info("child_pid set at {0}".format(child_pid))
+        logging.info("Child PID set at {0}".format(child_pid))
         return child_pid
 
     def is_compound(self, object_profile):
@@ -602,7 +603,9 @@ class Ingest:
             object_profile(xml string): object profile returned from repo.
         """
         compound = False
-        compound_types = ["info:fedora/islandora:compoundCModel",
+        compound_types = [
+                          "info:fedora/islandora:bookCModel",
+                          "info:fedora/islandora:compoundCModel",
                           "info:fedora/islandora:newspaperIssueCModel"]
         cmodels = self.get_content_models(object_profile)
         if any([c in compound_types for c in cmodels]):
@@ -752,12 +755,14 @@ class Ingest:
             pidspace(str): pid namespace for which to return a pid.
         """
         pids = None
-        status, xml = self.fedora_api.find_objects_by_id(fileid, maxResults="100")
+        status, xml = self.fedora_api.find_objects_by_id(fileid, maxResults="1000")
         if status == 200:
             tree = etree.fromstring(xml)
             ns = {"f": "http://www.fedora.info/definitions/1/0/types/"}
             objs = tree.xpath("//f:pid", namespaces=ns)
+            logging.info("Found {0} repository objects total".format(len(objs)))
             pids = [o.text for o in objs if o.text.split(":")[0] == pidspace]
+        logging.info("Found {0} matching PIDs".format(len(pids)))
         for pid in pids:
             logging.info("----Found matching PID: {0}".format(pid))
         return pids

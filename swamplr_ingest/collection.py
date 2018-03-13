@@ -39,7 +39,7 @@ class CollectionIngest(object):
         # 'Compound' content models are those with hierarchical directory structures.
         # All items in subdirectories will be processed as 'children' of the main item directory.
         self.compound_content_models = ["compound", "newspaper_issue", "book"]
-        self.simple_content_models = ["large_image", "pdf", "newspaper_page", "oral_histories", "audio"]
+        self.simple_content_models = ["large_image", "pdf", "newspaper_page", "oral_histories", "audio", "book_page"]
 
         self.pidcounter = 0
         self.deleted_pid = ""
