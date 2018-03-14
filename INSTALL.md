@@ -224,6 +224,18 @@ The app's functionality is defined through the use of a config file which sets t
 
 Be sure to copy the `swamplr_derivatives\derive_example.cfg` to `swamplr_derivaties\derive.cg` and modify to fit your needs.  
 
+If using ImageMagick for derivative creation: perform the following install steps:  
+* Remove previously installed ImageMagick if done from source
+```
+sudo aptitude remove imagemagick
+```
+* Install the JP2 delegate
+```
+sudo aptitude install libopenjp2-tools 
+sudo aptitude install libopenjp2-7-dev 
+```
+* Follow the steps documented here: https://www.imagemagick.org/script/install-source.php
+
 
 ## System Design
 ### Technologies
