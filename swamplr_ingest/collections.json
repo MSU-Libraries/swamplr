@@ -256,7 +256,7 @@
                         "required": "true"
                     },
                     "JPG": {
-                        "marker": ["_JPG_HIGH.jpg"],
+                        "marker": ["_HIGH.jpg"],
                         "required": "true"
                     }
                 },
