@@ -11,7 +11,7 @@
     },
     "book_page": {
       "has_model": "info:fedora/islandora:pageCModel"
-    }
+    },
     "newspaper_issue": {
       "has_model": "info:fedora/islandora:newspaperIssueCModel"
     },
