@@ -165,7 +165,7 @@ class Ingest:
         elif self.content_model == "book":
             self.fedora_api.add_relationship(
                 self.pid, "info:fedora/fedora-system:def/relations-external#isMemberOfCollection",
-                "info:fedora/{0}".format(root_pid.replace("root", "1"))
+                "info:fedora/{0}".format(root_pid)
             )
 
         elif self.child:
