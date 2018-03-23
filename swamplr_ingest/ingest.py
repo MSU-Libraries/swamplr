@@ -186,7 +186,7 @@ class Ingest:
                     self.pid, "info:fedora/fedora-system:def/relations-external#isMemberOf",
                     "info:fedora/{0}".format(self.parent_pid)
                 )
-                new_title = "{0} Page {1}".format(self.title, self.sequence)
+                new_title = u"{0} Page {1}".format(self.title, self.sequence)
                 self.fedora_api.modify_object(self.pid, label=new_title, logMessage="Update paged content title")
 
             else:

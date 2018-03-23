@@ -302,7 +302,7 @@ def update_results(object_head, results, fail_id):
         object_head["result"] = object_head["subs"][0]["result"]
     elif any([r_id == fail_id for r_id in all_result_ids]):
         object_head["result"] = "Failed"
-        results["status_count"]["Failed"] += 1
+        results["status_count"]["Failure"] += 1
     elif len(set(all_result_ids)) > 0:
         object_head["result"] = "Success"
         results["status_count"]["Success"] += 1
