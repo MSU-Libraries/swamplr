@@ -244,7 +244,7 @@
                         "required": "true"
                     },
                     "JP2": {
-                        "marker": [".jp2"],
+                        "marker": ["_JP2.jp2"],
                         "required": "true"
                     },
                     "FULL_TEXT": {
