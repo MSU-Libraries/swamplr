@@ -29,11 +29,12 @@ class ServicesForm(ModelForm):
             "command",
             "frequency",
             Field("frequency_time",css_class=" btn btn-info dropdown-toggle" ),
+            "auto_archive",
+            Field("auto_archive_time",css_class=" btn btn-info dropdown-toggle" ),
             "last_started",
             "run_as_user",
             Submit("add-service", "Add Service", css_class="btn btn-outline-success"),
         )
-        # self.helper.add_input(Submit('submit', 'Add Service'))
 
     run_as_user = forms.CharField(required=False, widget=forms.TextInput(
                                                       attrs={"placeholder": "User name",
@@ -49,11 +50,16 @@ class ServicesForm(ModelForm):
                                                       attrs={"placeholder": "Frequency",
                                                              "size": "10"}))
     frequency_time = forms.ChoiceField(required=False,  choices=FREQUENCY_CHOICES )
+    
+    auto_archive = forms.CharField(required=False, widget=forms.TextInput(
+                                                      attrs={"placeholder": "Auto archive if success after...",
+                                                             "size": "10"}))
+    auto_archive_time = forms.ChoiceField(required=False,  choices=FREQUENCY_CHOICES )
 
     last_started = forms.CharField(required=False, widget=forms.HiddenInput())
   
     class Meta:
         model = services
-        fields = ["label", "description", "command", "frequency", "last_started", "run_as_user"]
+        fields = ["label", "description", "command", "frequency", "auto_archive", "last_started", "run_as_user"]
 
     

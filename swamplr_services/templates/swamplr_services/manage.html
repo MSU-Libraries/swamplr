@@ -20,7 +20,8 @@
     <div class="app-row">
         <div class="app-column">Service</div>
         <div class="app-column command-column">Command</div>
-        <div class="app-column">Frequency (mins.)</div>
+        <div class="app-column">Frequency<br/>(mins.)</div>
+        <div class="app-column">Auto Archive<br/>(mins.)</div>
         <div class="app-column">Last Started</div>
         <div class="app-column">User</div>
         <div class="app-column services-actions-column">Actions</div>
@@ -33,6 +34,7 @@
         <div class="app-column">{{ s.label }}</div>
         <div class="app-column command-column" id="command-text"><code>{{ s.command }}</code></div>
         <div class="app-column">{{ s.frequency }}</div>
+        <div class="app-column">{{ s.auto_archive }}</div>
         <div class="app-column">{{ s.last_started }}</div>
         <div class="app-column">{{ s.run_as_user }}</div>
         <div class="app-column app-button">

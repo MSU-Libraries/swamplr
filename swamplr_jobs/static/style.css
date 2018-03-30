@@ -207,9 +207,9 @@ a.btn.btn-lg.btn-outline-dark {
     text-align: left;
     height: auto;
     line-height: normal;
-    white-space: nowrap;
+    /*white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; */
     margin-right: 1.1%;     
     margin-top:5px;
     padding-top: 10px;
@@ -233,7 +233,7 @@ a.btn.btn-lg.btn-outline-dark {
 }
 
 .app-column {
-    width: 13%;
+    width: 10%;
 }
 
 .command-column {

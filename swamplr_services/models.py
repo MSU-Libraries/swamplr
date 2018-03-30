@@ -10,7 +10,9 @@ class services(models.Model):
     command = models.CharField(max_length=1024)
     run_as_user = models.CharField(max_length=16, null=True)
     frequency = models.BigIntegerField(null=True)
+    auto_archive = models.BigIntegerField(null=True)
     last_started = models.DateTimeField(null=True)
+    archived = models.CharField(max_length=1, blank=True)
 
 class service_jobs(models.Model):
 
