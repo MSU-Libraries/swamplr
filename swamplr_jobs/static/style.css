@@ -337,6 +337,10 @@ input#submit-id-add-service {
     margin-top: 10px;
 }
 
+
+.new-service {
+    width: 60%;
+}
 .form-inline {
     margin-top:7px;
 }

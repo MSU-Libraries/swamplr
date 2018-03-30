@@ -87,6 +87,7 @@ def pre_process():
         WHERE s.auto_archive IS NOT NULL AND s.auto_archive > 0
         AND j.archived != 'y'
         AND DATE_ADD(j.completed, INTERVAL s.auto_archive MINUTE) <= NOW()
+        AND t.success='y'
     """);
 
     # Archive each job
