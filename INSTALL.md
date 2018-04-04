@@ -229,11 +229,13 @@ If using ImageMagick for derivative creation: perform the following install step
 ```
 sudo aptitude remove imagemagick
 ```
+
 * Install the JP2 delegate
 ```
 sudo aptitude install libopenjp2-tools 
 sudo aptitude install libopenjp2-7-dev 
 ```
+
 * Follow the steps documented here: https://www.imagemagick.org/script/install-source.php
 
 
