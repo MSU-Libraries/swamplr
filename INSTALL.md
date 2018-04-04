@@ -237,6 +237,23 @@ sudo aptitude install libopenjp2-7-dev
 * Follow the steps documented here: https://www.imagemagick.org/script/install-source.php
 
 
+If using FITS (File Information Tool Set) for creation of technical metadata; perform the following install steps:
+```
+wget https://projects.iq.harvard.edu/files/fits/files/fits-1.2.0.zip
+unzip fits-1.2.0.zip
+mv fits-1.2.0 /var/local/
+```
+
+Also important to note, that on some TIFs, FITS will use a different tool to generate the technical metadata resulting in an inconsistant output file. To avoid this, comment out the use of Jhove from the fits config.
+```
+vim /var/local/fits-1.2.0/xml/fits.xml
+```
+
+File to comment out:  
+```
+<!--<tool class="edu.harvard.hul.ois.fits.tools.jhove.Jhove" exclude-exts="dng,mbx,mbox,arw,adl,eml,java,doc,docx,docm,odt,rtf,pages,wpd,wp,epub,csv,avi,mov,mpg,mpeg,mkv,mp4,mpeg4,m2ts,mxf,ogv,mj2,divx,dv,m4v,m2v,ismv,pcd,zip" classpath-dirs="lib/jhove" />-->
+```
+
 ## System Design
 ### Technologies
 
