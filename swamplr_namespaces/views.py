@@ -104,10 +104,11 @@ def run_process(current_job):
 
     elif operation_type.lower() in ["mint doi", "mint ark"]:
         try:
-            run_mint_id(namespace_job.namespace, current_job, operation_type[-3:].lower())
+            messages = run_mint_id(namespace_job.namespace, current_job, operation_type[-3:].lower())
             status_obj = status.objects.get(status="Complete")
             message = ["All objects processed",
                        "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
+            message = message + messages
 
         except Exception as e:
             logging.error("Unable to complete process.")
@@ -496,10 +497,14 @@ def run_mint_id(ns, current_job, id_type):
     # Find all objects matching namespace.
     found_objects = get_matching_objects(ns)
 
+    messages = []
+
     if len(found_objects) > 0:
         for o in found_objects:
 
-            response, uid = make_id(o, id_type)
+            response, uid, message = make_id(o, id_type)
+            if message is not None:
+                messages.append(message)
 
             # Make url version of id.
             if uid and id_type == "doi":
@@ -539,6 +544,8 @@ def run_mint_id(ns, current_job, id_type):
                 result_id=result_id,
                 pid=o["pid"],
             )
+
+    return messages
 
 
 def add_uid_to_metadata(pid, uid, url, id_type):
@@ -687,6 +694,7 @@ def make_id(obj, id_type):
     """Object in repository for which to process ID."""
     status = -2
     uid = None
+    message = None
     pid = obj["pid"]
     logging.info("Now processing pid: {0}".format(pid))
 
@@ -728,6 +736,7 @@ def make_id(obj, id_type):
             #status, uid = fetch_id(obj, id_type, data)
 
             logging.error("ID '{0}' is invalid. Manually review and remove from the DB if it should be regenerated".format(uid))
+            message = "ID '{0}' is invalid for pid {1}. Manually review and remove from the DB if it should be regenerated".format(uid, pid)
             status = -1
 
         else:
@@ -746,7 +755,7 @@ def make_id(obj, id_type):
             pid
         ))
 
-    return status, uid
+    return status, uid, message
 
 
 def child_or_root_object(pid):
