@@ -718,9 +718,17 @@ def make_id(obj, id_type):
         logging.info("ID already exists for: {0}. Validating".format(pid))
 
         if not validate_existing_id(uid, id_type):
-            data = get_item_data(pid, id_type)
-            logging.warning("ID is invalid. Minting new one.")
-            status, uid = fetch_id(obj, id_type, data)
+            ## Decided to let this fail instead of creating a new one in case the
+            ## site was just down at the time we checked resulting in multiple IDs for the
+            ## same pid. The process will now be to review the failures and manually update the 
+            ## DB removing it's doi/ark record if we really want to re-create it.
+
+            #data = get_item_data(pid, id_type)
+            #logging.warning("ID is invalid. Minting new one.")
+            #status, uid = fetch_id(obj, id_type, data)
+
+            logging.error("ID '{0}' is invalid. Manually review and remove from the DB if it should be regenerated".format(uid))
+            status = -1
 
         else:
             logging.info("Validation successful.")
