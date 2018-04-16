@@ -74,6 +74,7 @@ class Derivatives(object):
         # walk the directory starting at the source_dir
         for root, dirs, files in os.walk(self.derivative_job.source_dir):
             for f in files:
+                f = f.replace('.'+self.derivative_job.source_file_extension.upper(),'.'+self.derivative_job.source_file_extension.lower())
                 ## determine if file matches the source_ext, skip if not
                 if f.endswith('.'+self.derivative_job.source_file_extension.lower()):
 
