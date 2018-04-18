@@ -535,7 +535,6 @@ class Ingest:
             self.pid = self.pids[0] if len(self.pids) > 0 else None
 
         # If no pid returned in search.
-        logging.debug(self.pids)
         if (len(self.pids) == 0 or self.pid is None) and self.ingest_job.process_new == 'y':
 
             logging.info("Unable to find appropriate object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
@@ -548,7 +547,6 @@ class Ingest:
             logging.info("No existing objects to process; Not creating new object. Skipping")
         else:
             if len(self.pids) > 1:
-                logging.info(type(self.ingest_job))
                 message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pid)
                 job_messages.objects.create(job_id=self.ingest_job.job_id, message=message, created=timezone.now())                
                 logging.warn(message)

@@ -395,11 +395,9 @@ def get_job_objects(job_id, job_type="ingest"):
         object_head["subs"].append(object_data)
         if object_head["path"] is None and o["obj_file"] is not None:
             object_head["path"] = "/".join(o["obj_file"].rstrip("/").split("/")[:-1])
-        print(object_data)
         object_head["pid"] = cpid
 
     results = update_results(object_head, results, fail_id)
-    print(results["status_count"])
     return results
 
 def update_results(object_head, results, fail_id):
