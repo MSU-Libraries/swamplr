@@ -3,8 +3,8 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.db.models import Count
 from apps import SwamplrIngestConfig
-from models import ingest_jobs, delete_jobs, delete_objects, job_datastreams, datastreams, job_objects, object_results
-from swamplr_jobs.models import status, job_types
+from models import ingest_jobs, delete_jobs, delete_objects, job_datastreams, datastreams, job_objects, object_results, pathauto_jobs, pathauto_objects
+from swamplr_jobs.models import status, job_types, jobs
 from collection import CollectionIngest
 from forms import IngestForm
 from swamplr_jobs.views import add_job, job_status 
@@ -15,6 +15,7 @@ import sys
 import os
 import json
 from django.conf import settings
+from django.db import connections
 
 def manage(request):
     """Manage existing services and add new ones."""
@@ -25,12 +26,16 @@ def manage(request):
 def run_process(current_job):
     """Run process from swamplr_jobs.views."""
 
+    result = None
     # First handle different job types.
     if current_job.type_id.label == "ingest":
         result = process_ingest(current_job)
 
     elif current_job.type_id.label == "delete":
         result = process_delete(current_job)
+
+    elif current_job.type_id.label == "pathauto":
+        result = process_pathauto(current_job)
 
     return result
 
@@ -57,6 +62,58 @@ def process_ingest(current_job):
 
     return (status_id, [output])
 
+def process_pathauto(current_job):
+    pathauto_job = pathauto_jobs.objects.get(job_id=current_job).source_job.job_id
+    objects_to_generate = job_objects.objects.filter(job_id=pathauto_job)
+    count = 0
+    messages = []
+    generated = []
+    status_id = None
+
+    try:
+        for o in objects_to_generate:
+            pid = o.pid
+            if pid in generated:
+                continue
+            else:
+                generated.append(pid)
+            # check if the job is still active (i.e. not cancelled by the user)
+            failure_status = jobs.objects.get(job_id=current_job.job_id).status_id.failure
+            if failure_status == "manual":
+                messages.append("Job manually stopped by user.")
+                status_id = status.objects.get(status="Cancelled By User").status_id
+                break
+
+            source = "islandora/object/{0}".format(pid)
+            alias = "{0}/{1}".format(pid.split(":")[0], pid.split(":")[1])
+            with connections['drupal'].cursor() as cursor:
+                try:
+                    cursor.execute("SELECT alias FROM url_alias WHERE source = %s",[source])
+                    record = cursor.fetchone()
+                    if record is not None and len(record) == 1:
+                        messages.append("Pathauto URL already exists for PID: {0}".format(pid))
+                    else:
+                        logging.info("Creating Pathauto URL for PID: {0}. source: {1}. alias: {2}".format(pid, source, alias))
+                        cursor.execute("INSERT INTO url_alias (source, alias, language) VALUES (%s, %s, 'und')", [source, alias])
+                    result_id = object_results.objects.get(label="Success")
+                except Exception as e:
+                    result_id = object_results.objects.get(label="Failure")
+                    messages.append("Could not create pathauto URL for {0}. Error: {1}".format(pid, e))
+                finally:
+                    # Insert into job objects table
+                    pathauto_objects.objects.create(
+                        job_id=current_job,
+                        generated=timezone.now(),
+                        result_id=result_id,
+                        pid=pid,
+                    )
+        status_id = status.objects.get(status="Complete").status_id
+  
+    except Exception as e:
+        messages.append("{0} on line {1} of {2}: {3}".format(type(e).__name__, sys.exc_info()[-1].tb_lineno, os.path.basename(__file__), e))
+        status_id = status.objects.get(status="Script error").status_id
+
+    return (status_id, messages)
 
 def process_delete(current_job):
 
@@ -219,6 +276,15 @@ def get_job_details(job):
             ("Items Processed", object_count),
     ]
         
+    elif job.type_id.label == "pathauto":
+        pathauto_job = pathauto_jobs.objects.get(job_id=job_id)
+        object_count = pathauto_objects.objects.filter(job_id=pathauto_job.job_id).annotate(Count('pid', distinct=True)).count()
+        details = [
+            ("Pathauto Job ID", pathauto_job.pathauto_job_id),
+            ("Generating Pathauto URLs From Job", pathauto_job.source_job.job_id_id),
+            ("Items Processed", object_count),
+    ]
+
 
     elif job.type_id.label == "ingest":
         ingest_job = ingest_jobs.objects.get(job_id=job_id)
@@ -261,12 +327,16 @@ def get_status_info(job):
     job_id = job.job_id
 
     result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
-    
+    info = [] 
     if job.type_id.label == "delete":
         delete_job = delete_jobs.objects.get(job_id=job_id)
         delete_id = delete_job.source_job.job_id_id
         info = ["Deleting From: <span class='job-data'>Job {0}</span> <br/>".format(delete_id)]
 
+    elif job.type_id.label == "pathauto":
+        pathauto_job = pathauto_jobs.objects.get(job_id=job_id)
+        pathauto_id = pathauto_job.source_job.job_id_id
+        info = ["Generating Pathauto For: <span class='job-data'>Job {0}</span> <br/>".format(pathauto_id)]
     elif job.type_id.label == "ingest":
         # Get data about successes, skips, failures.
         ingest_job = ingest_jobs.objects.get(job_id=job_id)
@@ -291,8 +361,17 @@ def get_actions(job):
         "args": job.job_id,
     }
 
+    batch_pathauto = {
+        "method": "PUT",
+        "label": "Run Pathauto",
+        "action": "pathauto-job",
+        "class": "btn-success",
+        "args": job.job_id,
+    }
+
     if job.type_id.label == "ingest" and job.status_id.running != "y" and job.status_id.default != "y": 
         actions.append(batch_delete)
+        actions.append(batch_pathauto)
     
     return actions
 
@@ -302,6 +381,16 @@ def add_delete_job(request, source_job_id):
     ingest_job = ingest_jobs.objects.get(job_id=source_job_id)
 
     delete_jobs.objects.create(
+        job_id=new_job,
+        source_job=ingest_job,
+    )
+    return redirect(job_status)
+
+def add_pathauto_job(request, source_job_id):
+    new_job = add_job(SwamplrIngestConfig.name, job_type_label="pathauto")
+    ingest_job = ingest_jobs.objects.get(job_id=source_job_id)
+
+    pathauto_jobs.objects.create(
         job_id=new_job,
         source_job=ingest_job,
     )
@@ -365,6 +454,23 @@ def get_job_objects(job_id, job_type="ingest"):
         results["status_count"]["Skipped"] = delete_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
         results["status_count"]["Failed"] = delete_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
         return results
+
+    if job_type == "pathauto":
+        objects = pathauto_objects.objects.filter(job_id=job_id).values()
+        for o in objects:
+            object_data = {
+                "generated": o["generated"],
+                "result_id": o["result_id_id"],
+                "result": result_map[o["result_id_id"]],
+                "pid": o["pid"],
+        }
+            results["objects"].append(object_data)
+
+        results["status_count"]["Success"] = pathauto_objects.objects.filter(job_id=job_id, result_id=success_id).count()
+        results["status_count"]["Skipped"] = pathauto_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
+        results["status_count"]["Failed"] = pathauto_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
+        return results
+
     
     cpid = None   # Current pid we are looping on
     all_results_dc = object_results.objects.all().values()

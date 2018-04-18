@@ -109,7 +109,8 @@ ROOT_URLCONF = 'swamplr.urls'
 WSGI_APPLICATION = 'swamplr.wsgi.application'
 
 # Database
-DATABASES = {'default': dict(configs.items("database.default"))}
+DATABASES = {'default': dict(configs.items("database.default")), 
+            'drupal': dict(configs.items("database.drupal")),}
 # Check for ATOMIC_REQUESTS setting. If not set, defaults to True.
 ATOMIC_REQUESTS = DATABASES['default'].get('ATOMIC_REQUESTS', "True").lower() == "true"
 DATABASES['default']['ATOMIC_REQUESTS'] = ATOMIC_REQUESTS

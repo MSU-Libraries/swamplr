@@ -48,6 +48,8 @@ The file contains sections for the database connection information, the allowed 
 
 The database information should match the database created in the previous step that stores the Swamplr data.
 
+To use the pathauto functionality, you must also configure the drupal database connection making sure that the user has select, insert, and update privileges (at least to the url_alias table used for Pathauto).
+
 The allowed hosts can be a comma separated list of the host names for the Swamplr site. For example, if you host the site at: http://swamplr.example.edu
 the allowed host would simply be: swamplr.example.edu.
 

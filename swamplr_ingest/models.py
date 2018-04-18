@@ -66,3 +66,17 @@ class object_results(models.Model):
     result_id = models.AutoField(primary_key=True)
     label = models.CharField(max_length=32)
 
+class pathauto_jobs(models.Model):
+    """Pathauto job."""
+    pathauto_job_id = models.AutoField(primary_key=True)
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
+    source_job = models.ForeignKey('ingest_jobs')
+
+class pathauto_objects(models.Model):
+    """Each object deleted."""
+    object_id = models.AutoField(primary_key=True)
+    job_id = models.ForeignKey('swamplr_jobs.jobs')
+    # "Success" or "Failure" (or "Skip")
+    result_id = models.ForeignKey('object_results')
+    pid = models.CharField(max_length=64, null=True)
+    generated = models.DateTimeField(null=True)

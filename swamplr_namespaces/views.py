@@ -17,7 +17,7 @@ from StringIO import StringIO
 import requests
 from lxml import etree
 from rdflib.graph import Graph
-
+from django.db import connections
 
 def load_namespaces(request, count=25, sort_field="count", direction="-", update_cache=True):
     """Load all namespaces from cache."""
@@ -86,7 +86,6 @@ def run_process(current_job):
     if operation_type.lower() == "reindex":
         try:
             messages, status_obj = run_reindex(namespace_job.namespace, current_job)
-            #status_obj = status.objects.get(status="Complete")
             message = ["Reindex completed."]
         except Exception as e:
             logging.error("Unable to complete reindex.")
@@ -112,7 +111,14 @@ def run_process(current_job):
             logging.error("Unable to complete process.")
             status_obj = status.objects.get(status="Script error")
             message = [e, "Error during process."]
-
+    elif operation_type.lower() == "pathauto":
+        try:
+            messages, status_obj = run_pathauto(namespace_job.namespace, current_job)
+            message = ["Pathauto URL generation complete."]
+        except Exception as e:
+            logging.error("Unable to complete pathauto URL generation.")
+            status_obj = status.objects.get(status="Script error")
+            message = [e, "Error during pathauto URL generation."]
     else:
         logging.error("Unable to find function for operation {0}".format(operation_type))
 
@@ -124,7 +130,6 @@ def run_process(current_job):
 def set_namespace_info(ns):
     """Prepare namespace object with additional info for display."""
     ns.actions = set_actions(ns)
-    print(ns.actions)
 
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
@@ -171,7 +176,14 @@ def set_actions(ns):
         "class": "btn-success",
         "args": ns.namespace
     }
-    return [reindex, add_doi, add_ark, delete]
+    pathauto = {
+        "method": "POST",
+        "label": "Pathauto",
+        "action": "pathauto",
+        "class": "btn-primary",
+        "args": ns.namespace
+    }
+    return [reindex, add_doi, add_ark, pathauto, delete]
 
 
 def get_status_info(job):
@@ -293,6 +305,56 @@ def reindex(request, ns):
 
     return redirect(job_status)
 
+
+def run_pathauto(ns, current_job):
+    messages = []
+    status_obj = None
+
+    pid_search_term = ns + ":*"
+    api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
+    count = namespace_cache.objects.get(namespace=ns).count
+    api.set_dynamic_param("maxResults", count)
+    found_objects = api.find_all_objects(pid_search_term)
+    logging.info("Found {0} objects to generate pathauto URLs for.".format(len(found_objects)))
+
+    if len(found_objects) > 0:
+        for o in found_objects:
+            pid = o['pid']
+            # check if the job is still active (i.e. not cancelled by the user)
+            failure_status = jobs.objects.get(job_id=current_job.job_id).status_id.failure
+            if failure_status == "manual":
+                messages.append("Job manually stopped by user.")
+                status_obj = status.objects.get(status="Cancelled By User")
+                break
+
+            source = "islandora/object/{0}".format(pid)
+            alias = "{0}/{1}".format(pid.split(":")[0], pid.split(":")[1]) 
+            with connections['drupal'].cursor() as cursor:
+                try:
+                    cursor.execute("SELECT alias FROM url_alias WHERE source = %s",[source])
+                    record = cursor.fetchone()
+                    if record is not None and len(record) == 1:
+                        messages.append("Pathauto URL already exists for PID: {0}".format(pid))
+                        logging.info("Pathauto URL already exists for PID: {0}".format(pid))
+                    else:
+                        logging.info("Creating Pathauto URL for PID: {0}. source: {1}. alias: {2}".format(pid, source, alias))
+                        cursor.execute("INSERT INTO url_alias (source, alias, language) VALUES (%s, %s, 'und')", [source, alias])
+                    result_id = object_results.objects.get(label="Success")
+                except Exception as e:
+                    result_id = object_results.objects.get(label="Failure")
+                    messages.append("Could not create pathauto URL for {0}. Error: {1}".format(pid, e))
+                finally:
+                    # Insert into job objects table
+                    namespace_objects.objects.create(
+                        job_id=current_job,
+                        completed=timezone.now(),
+                        result_id=result_id,
+                        pid=pid,
+                    )
+
+    if status_obj is None:
+        status_obj = status.objects.get(status="Complete")
+    return messages, status_obj
 
 def run_delete(ns, current_job):
     messages = []
@@ -464,6 +526,9 @@ def mint_ark(request, namespace):
     """Mint ARK for object if one does not already exist."""
     return add_id_job(namespace, "ARK")
 
+def pathauto(request, namespace):
+    """Generate the pathauto urls for all the items in the namespace"""
+    return add_id_job(namespace,"Pathauto")
 
 def add_id_job(ns, id_type):
     """Add job to queue."""
@@ -474,6 +539,8 @@ def add_id_job(ns, id_type):
         ns_operation = namespace_operations.objects.get(operation_name="Mint DOI")
     elif id_type.lower() == "ark":
         ns_operation = namespace_operations.objects.get(operation_name="Mint ARK")
+    elif id_type.lower() == "pathauto":
+        ns_operation = namespace_operations.objects.get(operation_name="Pathauto")
 
     namespace_jobs.objects.create(
         job_id=new_job,
@@ -812,7 +879,6 @@ def child_or_root_object(pid):
 
     status, object_profile = api.get_object_profile(pid=pid)
     cmodels = get_content_models(object_profile)
-    logging.debug(cmodels)
 
     if any(c in disallowed_cms for c in cmodels):
         child_or_root = True
