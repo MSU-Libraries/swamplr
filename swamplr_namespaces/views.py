@@ -8,7 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 from swamplr_jobs.views import add_job, job_status
 from apps import SwamplrNamespacesConfig
-from swamplr_jobs.models import status
+from swamplr_jobs.models import status, jobs
 from fedora_api.api import FedoraApi
 from ezid_api.api import Ezid
 import logging
@@ -80,23 +80,24 @@ def load_namespaces(request, count=25, sort_field="count", direction="-", update
 def run_process(current_job):
     namespace_job = namespace_jobs.objects.get(job_id=current_job)
     operation_type = namespace_job.operation_id.operation_name
+    messages = [] # messages returned from operation functions
+    message = [] # message set in run_process based on exceptions
 
     if operation_type.lower() == "reindex":
         try:
-            run_reindex(namespace_job.namespace, current_job)
-            status_obj = status.objects.get(status="Complete")
+            messages, status_obj = run_reindex(namespace_job.namespace, current_job)
+            #status_obj = status.objects.get(status="Complete")
             message = ["Reindex completed."]
         except Exception as e:
             logging.error("Unable to complete reindex.")
             status_obj = status.objects.get(status="Script error")
             message = [e, "Error during reindex."]
+
     elif operation_type.lower() == "delete":
         try:
-            run_delete(namespace_job.namespace, current_job)
-            status_obj = status.objects.get(status="Complete")
+            messages, status_obj = run_delete(namespace_job.namespace, current_job)
             message = ["Deletion completed."]
             namespace_cache.objects.filter(namespace=namespace_job.namespace).delete()
-
         except Exception as e:
             logging.error("Unable to complete deletion.")
             status_obj = status.objects.get(status="Script error")
@@ -104,12 +105,9 @@ def run_process(current_job):
 
     elif operation_type.lower() in ["mint doi", "mint ark"]:
         try:
-            messages = run_mint_id(namespace_job.namespace, current_job, operation_type[-3:].lower())
-            status_obj = status.objects.get(status="Complete")
+            messages, status_obj = run_mint_id(namespace_job.namespace, current_job, operation_type[-3:].lower())
             message = ["All objects processed",
                        "IDs may take up to 30 minutes to take effect, and may appear as invalid until then."]
-            message = message + messages
-
         except Exception as e:
             logging.error("Unable to complete process.")
             status_obj = status.objects.get(status="Script error")
@@ -118,6 +116,7 @@ def run_process(current_job):
     else:
         logging.error("Unable to find function for operation {0}".format(operation_type))
 
+    message = messages + message # merge all messages
     result = (status_obj.status_id, message)
     return result
 
@@ -296,6 +295,8 @@ def reindex(request, ns):
 
 
 def run_delete(ns, current_job):
+    messages = []
+    status_obj = None
     pid_search_term = ns + ":*"
     api = FedoraApi(username=settings.GSEARCH_USER, password=settings.GSEARCH_PASSWORD)
     count = namespace_cache.objects.get(namespace=ns).count
@@ -305,6 +306,13 @@ def run_delete(ns, current_job):
 
     if len(found_objects) > 0:
         for o in found_objects:
+            # check if the job is still active (i.e. not cancelled by the user)
+            failure_status = jobs.objects.get(job_id=current_job.job_id).status_id.failure 
+            if failure_status == "manual":
+                messages.append("Job manually stopped by user.")
+                status_obj = status.objects.get(status="Cancelled By User")
+                break
+
             response, output = api.purge_object(o["pid"])
             if response in [200, 201]:
                 result = "Success"
@@ -318,10 +326,14 @@ def run_delete(ns, current_job):
                 result_id=result_id,
                 pid=o["pid"],
             )
-
+    if status_obj is None:
+        status_obj = status.objects.get(status="Complete")
+    return messages, status_obj
 
 def run_reindex(ns, current_job):
     """Reindex all pids within a given namespace."""
+    messages = []
+    status_obj = None
     if ns.startswith("[") and ns.endswith("]"):
         pid_search_term = "*"
     else:
@@ -333,6 +345,13 @@ def run_reindex(ns, current_job):
     logging.info("Found {0} objects to reindex.".format(len(found_objects)))
     if len(found_objects) > 0:
         for o in found_objects:
+            # check if the job is still active (i.e. not cancelled by the user)
+            failure_status = jobs.objects.get(job_id=current_job.job_id).status_id.failure 
+            if failure_status == "manual":
+                messages.append("Job manually stopped by user.")
+                status_obj = status.objects.get(status="Cancelled By User")
+                break
+    
             response = send_reindex(o["pid"])
             if response.ok:
                 result = "Success"
@@ -347,6 +366,9 @@ def run_reindex(ns, current_job):
                 pid=o["pid"],
             )
 
+    if status_obj is None:
+        status_obj = status.objects.get(status="Complete")
+    return messages, status_obj
 
 def send_reindex(pid):
     """Make call to gsearch to reindex pid."""
@@ -498,9 +520,16 @@ def run_mint_id(ns, current_job, id_type):
     found_objects = get_matching_objects(ns)
 
     messages = []
+    status_obj = None
 
     if len(found_objects) > 0:
         for o in found_objects:
+            # check if the job is still active (i.e. not cancelled by the user)
+            failure_status = jobs.objects.get(job_id=current_job.job_id).status_id.failure 
+            if failure_status == "manual":
+                messages.append("Job manually stopped by user.")
+                status_obj = status.objects.get(status="Cancelled By User")
+                break
 
             response, uid, message = make_id(o, id_type)
             if message is not None:
@@ -545,7 +574,9 @@ def run_mint_id(ns, current_job, id_type):
                 pid=o["pid"],
             )
 
-    return messages
+    if status_obj is None:
+        status_obj = status.objects.get(status="Complete")
+    return messages, status_obj
 
 
 def add_uid_to_metadata(pid, uid, url, id_type):

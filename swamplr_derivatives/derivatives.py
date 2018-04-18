@@ -28,6 +28,7 @@ class Derivatives(object):
         """
         self.derivative_job = derivative_job
         self.derivative_types = derivative_types
+        status_id = None 
 
         job_messages.objects.create(
             job_id=derivative_job.job_id,
@@ -74,6 +75,11 @@ class Derivatives(object):
         # walk the directory starting at the source_dir
         for root, dirs, files in os.walk(self.derivative_job.source_dir):
             for f in files:
+                # Check if the job has been stopped (i.e. cancelled by the user)
+                failure_status = jobs.objects.get(job_id=self.derivative_job.job_id.job_id).status_id.failure 
+                if failure_status == "manual":
+                    break
+
                 f = f.replace('.'+self.derivative_job.source_file_extension.upper(),'.'+self.derivative_job.source_file_extension.lower())
                 ## determine if file matches the source_ext, skip if not
                 if f.endswith('.'+self.derivative_job.source_file_extension.lower()):
@@ -88,10 +94,20 @@ class Derivatives(object):
                         logging.debug("Reached subset count ({0}), stopping processing.".format(files_processed))
                         break
 
-                    ## check if the job has been canceled -- TODO
-
                     ## loop over each derivative type to be created for each object
                     for derivative in self.derivative_types:
+                        # Check if the job has been stopped (i.e. cancelled by the user)
+                        failure_status = jobs.objects.get(job_id=self.derivative_job.job_id.job_id).status_id.failure 
+                        if failure_status == "manual":
+                            job_messages.objects.create(
+                                job_id=derivative_job.job_id,
+                                created=timezone.now(),
+                                message="Job manually stopped by user."
+                            )
+                            status_id = status.objects.get(status="Cancelled By User").status_id
+                            logging.debug("Derivative job manually cancelled by user")
+                            break
+
                         thread_index += 1
                         ### if we are over the max thread count, wait until one frees up
                         if thread_count.value >= settings.MAX_THREADS:
@@ -122,6 +138,11 @@ class Derivatives(object):
 
                     ## increment number of files processed
                     files_processed += 1
+            
+            # Check if the job has been stopped (i.e. cancelled by the user)
+            failure_status = jobs.objects.get(job_id=self.derivative_job.job_id.job_id).status_id.failure 
+            if failure_status == "manual":
+                break
             ## check if over the subset count; if so, break
             if self.derivative_job.subset is not None and self.derivative_job.subset > 0 and files_processed >= self.derivative_job.subset:
                 break
@@ -139,6 +160,10 @@ class Derivatives(object):
                 # check if process is still running after being terminated
                 if p.is_alive():
                     logging.error("Thread {0} still alive after terminate.".format(thread_index))
+
+        if status_id is None:
+            status_id = status.objects.get(status="Complete").status_id
+        return status_id
 
 
     def create_derivative(self, derivative_job, derive_obj, source_file, derivative_options, status_objs, thread_count, thread_index):
