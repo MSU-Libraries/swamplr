@@ -52,8 +52,7 @@ def process_ingest(current_job):
     
     try:
         c = CollectionIngest()
-        c.start_ingest(ingest_job, user_datastreams, collection_data, collection_defaults)
-        status_id = status.objects.get(status="Complete").status_id
+        status_id = c.start_ingest(ingest_job, user_datastreams, collection_data, collection_defaults)
         output = "Ingest complete."
 
     except Exception as e:

@@ -50,6 +50,7 @@ class CollectionIngest(object):
         """Initiate ingest according to parameters from job in database and settings in collections.json.
 
         """
+        status_id = status.objects.get(status="Complete").status_id
         self.job = ingest_job
         self.datastreams = datastreams
         self.collection = collection_configs
@@ -81,6 +82,7 @@ class CollectionIngest(object):
                 # Check if job has been cancelled.
                 failure_status = jobs.objects.get(job_id=self.job.job_id.job_id).status_id.failure 
                 if failure_status == "manual":
+                    status_id = status.objects.get(status="Cancelled By User").status_id
                     break
                 # Stop after processing specified number of items.
                 if ((self.successful_objects + self.failed_objects) >= self.job.subset > 0):
@@ -93,6 +95,7 @@ class CollectionIngest(object):
                     continue
 
                 self.prepare(full_path, sequence=i)
+        return status_id
 
     def prepare(self, full_path, sequence=1):
         """Assign object type if possible, otherwise skip.
