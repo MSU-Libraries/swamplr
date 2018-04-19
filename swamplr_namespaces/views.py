@@ -194,13 +194,13 @@ def get_status_info(job):
         # Get data about successes, skips, failures.
         result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span>"
         results = get_job_counts(job_id)
-        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"])
+        result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failure"])
         ns_job = namespace_jobs.objects.get(job_id=job.job_id)
 
         if job.namespace_jobs.operation_id.operation_name in ["Mint DOI", "Mint ARK"]:
             result_display = "<span class='label label-success'>{0} Succeeded</span> <span class='label label-danger'>{1} Failed</span> <span class='label label-default'>{2} Skipped</span>"
             result_message = result_display.format(results["status_count"]["Success"],
-                                                   results["status_count"]["Failed"],
+                                                   results["status_count"]["Failure"],
                                                    results["status_count"]["Skipped"])
 
         info = ["Process: {0} <br/>".format(ns_job.operation_id.operation_name),
@@ -445,7 +445,7 @@ def get_job_objects(job_id, job_type=None):
     results = {
         "status_count": {
             "Success": 0,
-            "Failed": 0,
+            "Failure": 0,
             "Skipped": 0
         },
         "objects": []
@@ -492,7 +492,7 @@ def get_job_objects(job_id, job_type=None):
 
     results["status_count"]["Success"] = namespace_objects.objects.filter(job_id=job_id, result_id=success_id).count()
     results["status_count"]["Skipped"] = namespace_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
-    results["status_count"]["Failed"] = namespace_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
+    results["status_count"]["Failure"] = namespace_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
 
     return results
 
@@ -501,7 +501,7 @@ def get_job_counts(job_id):
     results = {
         "status_count": {
             "Success": 0,
-            "Failed": 0,
+            "Failure": 0,
             "Skipped": 0
         },
         "objects": []
@@ -513,7 +513,7 @@ def get_job_counts(job_id):
 
     results["status_count"]["Success"] = namespace_objects.objects.filter(job_id=job_id, result_id=success_id).count()
     results["status_count"]["Skipped"] = namespace_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
-    results["status_count"]["Failed"] = namespace_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
+    results["status_count"]["Failure"] = namespace_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
 
     return results
 

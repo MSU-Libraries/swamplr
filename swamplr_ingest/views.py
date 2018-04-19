@@ -345,7 +345,7 @@ def get_status_info(job):
         info = ["Namespace: {0} <br/>".format(ingest_job.namespace), "Collection: {0} <br/>".format(collection_label)]
     
     results = get_job_objects(job_id, job_type=job.type_id.label)
-    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failed"], results["status_count"]["Skipped"])
+    result_message = result_display.format(results["status_count"]["Success"], results["status_count"]["Failure"], results["status_count"]["Skipped"])
     info.append(result_message) 
 
     return info, []
@@ -424,7 +424,7 @@ def get_job_objects(job_id, job_type="ingest"):
     results = {
         "status_count": {
             "Success": 0,
-            "Failed": 0,
+            "Failure": 0,
             "Skipped":0,
         },
         "objects": [],
@@ -452,7 +452,7 @@ def get_job_objects(job_id, job_type="ingest"):
 
         results["status_count"]["Success"] = delete_objects.objects.filter(job_id=job_id, result_id=success_id).count()
         results["status_count"]["Skipped"] = delete_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
-        results["status_count"]["Failed"] = delete_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
+        results["status_count"]["Failure"] = delete_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
         return results
 
     if job_type == "pathauto":
@@ -468,7 +468,7 @@ def get_job_objects(job_id, job_type="ingest"):
 
         results["status_count"]["Success"] = pathauto_objects.objects.filter(job_id=job_id, result_id=success_id).count()
         results["status_count"]["Skipped"] = pathauto_objects.objects.filter(job_id=job_id, result_id=skip_id).count()
-        results["status_count"]["Failed"] = pathauto_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
+        results["status_count"]["Failure"] = pathauto_objects.objects.filter(job_id=job_id, result_id=fail_id).count()
         return results
 
     
@@ -513,8 +513,8 @@ def update_results(object_head, results, fail_id):
         results["status_count"][object_head["subs"][0]["result"]] += 1
         object_head["result"] = object_head["subs"][0]["result"]
     elif any([r_id == fail_id for r_id in all_result_ids]):
-        object_head["result"] = "Failed"
-        results["status_count"]["Failed"] += 1
+        object_head["result"] = "Failure"
+        results["status_count"]["Failure"] += 1
     elif len(set(all_result_ids)) > 0:
         object_head["result"] = "Success"
         results["status_count"]["Success"] += 1
