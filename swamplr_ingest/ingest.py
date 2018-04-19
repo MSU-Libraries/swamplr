@@ -535,7 +535,7 @@ class Ingest:
             self.pid = self.pids[0] if len(self.pids) > 0 else None
 
         # If no pid returned in search.
-        if (len(self.pids) == 0 or self.pid is None) and self.ingest_job.process_new == 'y':
+        if (self.pids is None or len(self.pids) == 0 or self.pid is None) and self.ingest_job.process_new == 'y':
 
             logging.info("Unable to find appropriate object matching '{0}' in namespace: {1}".format(object_id, self.namespace))
             self.no_pid_returned()
