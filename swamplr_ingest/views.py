@@ -357,7 +357,7 @@ def get_actions(job):
         "label": "Delete Objects",
         "action": "delete-new",
         "class": "btn-danger",
-        "args": job.job_id,
+        "args": str(job.job_id),
     }
 
     batch_pathauto = {
@@ -365,13 +365,42 @@ def get_actions(job):
         "label": "Run Pathauto",
         "action": "pathauto-job",
         "class": "btn-success",
-        "args": job.job_id,
+        "args": str(job.job_id),
+    }
+
+    stop_job = {
+         "method": "POST",
+         "label": "Stop Job",
+         "action": "stop_job",
+         "class": "btn-warning",
+         "args": str(job.job_id)
+        }
+    rerun_job = {
+        "method": "POST",
+        "label": "Run same job",
+        "action": "add_job",
+        "class": "btn-info",
+        "args": str(job.job_id),
+        }
+
+    archive_job = {
+        "method": "POST",
+        "label": "Remove Job",
+        "action": "remove_job",
+        "class": "btn-primary",
+        "args": str(job.job_id)
     }
 
     if job.type_id.label == "ingest" and job.status_id.running != "y" and job.status_id.default != "y": 
         actions.append(batch_delete)
         actions.append(batch_pathauto)
-    
+
+    if job.status.default == "y" or job.status.running == "y":
+        actions.append(stop_job)
+
+    elif not job.archived:
+        actions.append(archive_job)
+
     return actions
 
 def add_delete_job(request, source_job_id):

@@ -328,9 +328,3 @@ def get_job_details(job):
 
     return details
 
-
-def get_actions(job):
-    """Required function: return actions to populate in job table."""
-    actions = []
-    return actions
- 

@@ -227,6 +227,29 @@ def get_job_details(job):
 def get_actions(job):
     """Required function: return actions to populate in job table."""
     actions = []
+
+    stop_job = {
+         "method": "POST",
+         "label": "Stop Job",
+         "action": "stop_job",
+         "class": "btn-warning",
+         "args": str(job.job_id)
+    }
+
+    archive_job = {
+        "method": "POST",
+        "label": "Remove Job",
+        "action": "remove_job",
+        "class": "btn-primary",
+        "args": str(job.job_id)
+    }
+
+    if job.status.default == "y":
+        actions.append(stop_job)
+
+    elif not job.archived and job.status.default != 'y' and job.status.running != 'y':
+        actions.append(archive_job)
+
     return actions
 
 def delete_service(request, s_id):

@@ -140,12 +140,6 @@ def get_nav_bar():
     return nav
 
 
-def get_actions(job):
-    """Required function: return actions to populate in job table."""
-    actions = []
-    return actions
-
-
 def set_actions(ns):
     """Required function: return actions to populate in job table."""
     reindex = {
