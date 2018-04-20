@@ -72,7 +72,7 @@ def process_pathauto(current_job):
     try:
         for o in objects_to_generate:
             pid = o.pid
-            if pid in generated:
+            if pid in generated or pid is None:
                 continue
             else:
                 generated.append(pid)
@@ -90,7 +90,7 @@ def process_pathauto(current_job):
                     cursor.execute("SELECT alias FROM url_alias WHERE source = %s",[source])
                     record = cursor.fetchone()
                     if record is not None and len(record) == 1:
-                        messages.append("Pathauto URL already exists for PID: {0}".format(pid))
+                        logging.debug("Pauthauto URL already exists for PID: {0}".format(pid))
                     else:
                         logging.info("Creating Pathauto URL for PID: {0}. source: {1}. alias: {2}".format(pid, source, alias))
                         cursor.execute("INSERT INTO url_alias (source, alias, language) VALUES (%s, %s, 'und')", [source, alias])
