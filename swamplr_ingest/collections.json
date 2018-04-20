@@ -699,9 +699,9 @@
             }
         }
     },
-    "mtopp": {
-        "name": "mtopp",
-        "label": "M-TOPP",
+    "tone": {
+        "name": "tone",
+        "label": "Tone",
         "type": "collection",
         "status": "active",
         "use_dynamic_label": "True",
@@ -710,7 +710,7 @@
             "object": {
                 "label": "Audio Object",
                 "content_model": "audio",
-                "namespace": "mtopp",
+                "namespace": "tone",
                 "datastreams": {
                     "OBJ": {
                         "marker": [".wav"],
