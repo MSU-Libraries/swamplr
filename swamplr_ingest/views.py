@@ -209,13 +209,15 @@ def add_ingest_job(request, collection_name):
         )
         ds_options = datastreams.objects.all()
         existing_ds = [ds.datastream_label for ds in ds_options]
+        added = []
         for ds, otype, dtype in all_datastreams:
-            if ds not in existing_ds:
+            if ds not in existing_ds and ds not in added:
                 is_object = "y" if dtype == "datastreams" else "" 
                 new_ds = datastreams.objects.create(
                     datastream_label=ds,
                     is_object=is_object,
                 )
+                added.append(ds)
 
             job_datastream = job_datastreams.objects.create(
                 ingest_id=ingest_job,
