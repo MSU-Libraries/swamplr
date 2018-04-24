@@ -532,7 +532,7 @@ class Ingest:
             self.pid = self.get_child_pid()
 
         else:
-            self.pid = self.pids[0] if len(self.pids) > 0 else None
+            self.pid = self.pids[0] if (self.pids is not None and len(self.pids) > 0) else None
 
         # If no pid returned in search.
         if (self.pids is None or len(self.pids) == 0 or self.pid is None) and self.ingest_job.process_new == 'y':
