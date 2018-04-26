@@ -19,7 +19,8 @@ from derivatives import Derivatives
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
     nav = {"label": "Derivatives",
-           "name": "derivatives"}
+           "name": "derivatives",
+           "manage": False}
     nav["children"] = get_derivative_options("source")
     return nav
 

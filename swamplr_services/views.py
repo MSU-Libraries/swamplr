@@ -267,6 +267,7 @@ def get_nav_bar():
 
     all_services = services.objects.all()
     nav = {"label": "Services",
-           "name": "services"}
+           "name": "services",
+           "manage": False}
     
     return nav

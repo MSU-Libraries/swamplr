@@ -429,7 +429,8 @@ def add_pathauto_job(request, source_job_id):
 def get_nav_bar():
     """Set contents of navigation bar for current app."""
     nav = {"label": "Ingest",
-           "name": "ingest"}
+           "name": "ingest",
+           "manage": True}
     nav["children"] = get_ingest_options()
     return nav
 

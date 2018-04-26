@@ -136,6 +136,7 @@ def get_nav_bar():
 
     nav = {"label": "Namespaces",
            "name": "namespaces",
+           "manage": False
            }
     return nav
 
