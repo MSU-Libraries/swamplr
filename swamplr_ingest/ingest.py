@@ -550,7 +550,7 @@ class Ingest:
                 message = "Found more than 1 matching pid for id: {0}. Updating {1}".format(object_id, self.pid)
                 job_messages.objects.create(job_id=self.ingest_job.job_id, message=message, created=timezone.now())                
                 logging.warn(message)
-            elif seld.pids is not None and len(self.pids) == 1:
+            elif self.pids is not None and len(self.pids) == 1:
                 logging.info("Found 1 matching PID: {0}".format(self.pid))
 
             if self.ingest_job.replace_on_duplicate == 'y':
