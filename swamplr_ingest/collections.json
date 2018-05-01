@@ -391,6 +391,10 @@
                     "DATA": {
                         "marker": ["data.zip"],
                         "required": "false"
+                    },
+                    "POLICY": {
+                        "marker": ["xacml-hold.xml"],
+                        "required": "false"
                     }
                 },
                 "metadata": {

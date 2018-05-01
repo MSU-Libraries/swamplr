@@ -53,6 +53,14 @@
       "checksum_type": "SHA-512",
       "mimetype": "application/zip"
     },
+    "POLICY": {
+      "id": "POLICY",
+      "label": "XACML Policy Stream",
+      "type": "M",
+      "versionable": "False",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/xml"
+    },
     "OBJ": {
       "id": "OBJ",
       "label": "Image Object",
