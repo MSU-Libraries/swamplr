@@ -180,6 +180,14 @@
       "versionable": "True",
       "checksum_type": "SHA-512",
       "mimetype": "text/plain"
+    },
+    "BIO_CONTRIB": {
+      "id": "BIO_CONTRIB",
+      "label": "BIO_CONTRIB",
+      "type": "M",
+      "versionable": "True",
+      "checksum_type": "SHA-512",
+      "mimetype": "text/plain"
     }
   },
   "metadata":{

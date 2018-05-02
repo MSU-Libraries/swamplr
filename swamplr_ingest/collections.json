@@ -207,7 +207,11 @@
                         "required": "true"
                     },
                     "BIO": {
-                        "marker": [".html"],
+                        "marker": ["_author.html"],
+                        "required": "false"
+                    },
+                    "BIO_CONTRIB": {
+                        "marker": ["_contributor.html"],
                         "required": "false"
                     }
                 },
