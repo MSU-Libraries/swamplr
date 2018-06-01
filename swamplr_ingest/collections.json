@@ -224,7 +224,7 @@
                         "required": "true"
                     },
                     "MARC": {
-                        "marker": ["_DC.xml", "_dc.xml"],
+                        "marker": ["_marc.xml", "_marc.xml"],
                         "required": "true"
                     },
                     "MODS": {
