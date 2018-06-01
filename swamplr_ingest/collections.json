@@ -100,6 +100,7 @@
                 "label": "Newspaper Issue",
                 "content_model": "newspaper_issue",
                 "namespace": "newspaper",
+                "required": "True",
                 "datastreams": {
                     "TN": {
                         "marker": ["_TN.jpg"],
@@ -125,6 +126,7 @@
             "newspaper_page": {
                 "label": "Newspaper Page",
                 "namespace": "newspaper",
+                "required": "False",
                 "content_model": "newspaper_page",
                 "datastreams": {
                     "OBJ": {
@@ -181,6 +183,7 @@
                 "label": "Book",
                 "content_model": "book",
                 "namespace": "fa",
+                "required": "True",
                 "datastreams": {
                     "TN": {
                         "marker": ["_TN.jpg"],
@@ -237,6 +240,7 @@
             "book_page": {
                 "label": "Book Page",
                 "namespace": "book",
+                "required": "False",
                 "content_model": "book_page",
                 "datastreams": {
                     "OBJ": {
@@ -293,6 +297,7 @@
                 "label": "Book",
                 "content_model": "book",
                 "namespace": "book",
+                "required": "True",
                 "datastreams": {
                     "TN": {
                         "marker": ["_TN.jpg"],
@@ -318,6 +323,7 @@
             "book_page": {
                 "label": "Book Page",
                 "namespace": "book",
+                "required": "False",
                 "content_model": "book_page",
                 "datastreams": {
                     "OBJ": {
@@ -634,6 +640,7 @@
                 "label": "Newspaper Issue",
                 "content_model": "newspaper_issue",
                 "namespace": "grange",
+                "required": "True",
                 "datastreams": {
                     "TN": {
                         "marker": ["_TN.jpg"],
@@ -663,6 +670,7 @@
             "newspaper_page": {
                 "label": "Newspaper Page",
                 "namespace": "grange",
+                "required": "False",
                 "content_model": "newspaper_page",
                 "datastreams": {
                     "OBJ": {

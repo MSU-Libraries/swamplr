@@ -8,7 +8,8 @@
 
 <script>
 $( document ).ready( function() {
-    $( "input[value='DC']" ).attr("disabled", "disabled").attr("title", "DC datastream must be selected.");
+    $( "input[value='DC'].obj-req" ).attr("disabled", "disabled").attr("title", "DC datastream must be selected.");
+    $( "input[value='DC']:not(.obj-req)" ).attr("title", "DC datastream will be included if any other datastreams are selected for the object (even if not explicitly checked).");
     $( "#id_process_2" ).change(function() {
        $("#id_replace_on_duplicate").prop('checked', false); 
        $("#div_id_replace_on_duplicate").toggle(200, function() {

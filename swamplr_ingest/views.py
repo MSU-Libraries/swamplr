@@ -190,7 +190,23 @@ def add_ingest_job(request, collection_name):
         object_datastreams = get_all_datastreams(collection_data, clean)
         metadata_datastreams = get_all_metadata(collection_data, clean)
         all_datastreams = object_datastreams + metadata_datastreams
-    
+
+        # if at least one datastream for the object type (otype) was selected,
+        # make sure DC was added as a job_datastream
+        counts = {}
+        for ds, otype, dtype in all_datastreams:
+            if otype in counts:
+                counts[otype]["cnt"] = counts[otype]["cnt"] + 1
+            else:
+                counts[otype] = {}
+                counts[otype]["cnt"] = 0
+            if ds == "DC":
+                counts[otype]["has_dc"] = True
+
+        for obj_type, obj_data in counts.items():
+            if "has_dc" not in obj_data:
+                all_datastreams.append(("DC", obj_type, "metadata"))        
+
         process_new = "y" if "process_new" in clean["process"] else ""
         process_existing = "y" if "process_existing" in clean["process"] else ""
         replace_on_duplicate = "y" if clean["replace_on_duplicate"] else ""
@@ -224,7 +240,8 @@ def add_ingest_job(request, collection_name):
                 object_type=otype,
                 datastream_id=datastreams.objects.get(datastream_label=ds),
             )
-    
+           
+ 
     else:
 
         message = ["Unable to add job: Missing or invalid form data."]
@@ -603,9 +620,6 @@ def get_all_datastreams(collection_data, form_data, value_type="datastreams"):
         # For each checked box for each object type, add value and type.
         for ds_value in ds_values:
             datastreams.append((ds_value, otype, value_type))
-        # Disabled "DC" form value does not get included in POST; re-adding DC here.
-        if value_type == "metadata":
-            datastreams.append(("DC", otype, "metadata"))
     return datastreams
 
 def load_json(self, path):

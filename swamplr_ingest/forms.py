@@ -60,6 +60,12 @@ class IngestForm(forms.Form):
             validators=[validate_path],
         )
         for objectx, data in collection_data["objects"].items():
+            # Determine if the object is required for ingest
+            if data.get("required", "True") == "True": 
+                obj_req = "obj-req"
+            else:
+                obj_req = ""
+
             # Gather datastream choices; these should be a tuple of 2-tuples containing label and ID.
             ds_choices = []
             for label, values in data["datastreams"].items():
@@ -73,7 +79,7 @@ class IngestForm(forms.Form):
                 choices=tuple(ds_choices),
                 required=False,
                 help_text="",
-                widget=forms.CheckboxSelectMultiple(attrs={"checked": "checked"}))
+                widget=forms.CheckboxSelectMultiple(attrs={"checked": "checked", "class": obj_req}))
 
             # Gather metadata choices.
             meta_choices = []
@@ -88,7 +94,7 @@ class IngestForm(forms.Form):
                 required=False,
                 choices=tuple(meta_choices),
                 help_text="",
-                widget=forms.CheckboxSelectMultiple(attrs={"checked": "checked"}))
+                widget=forms.CheckboxSelectMultiple(attrs={"checked": "checked", "class": obj_req}))
 
         self.fields["process"] = forms.MultipleChoiceField(
             required=False,
